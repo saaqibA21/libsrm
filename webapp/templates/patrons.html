@@ -20,6 +20,7 @@
   <button class="btn btn-outline" onclick="openModal('importStudModal')"><i class="fa fa-upload"></i> Import Students</button>
   <button class="btn btn-outline" onclick="openModal('importStaffModal')"><i class="fa fa-upload"></i> Import Staff</button>
   <a href="/patrons/barcodes" class="btn btn-outline"><i class="fa fa-barcode"></i> Print ID Cards PDF</a>
+  <button class="btn btn-primary" onclick="openModal('batchEmailModal')"><i class="fa fa-paper-plane"></i> Email Barcode Cards</button>
 </div>
 
 <div style="margin-bottom:14px;font-size:13px;color:var(--muted);">
@@ -50,9 +51,10 @@
       <td class="text-sm">{{ p.mobile or '—' }}</td>
       <td class="text-sm text-muted">{{ p.email or '—' }}</td>
       <td style="white-space:nowrap">
-        <button class="btn btn-outline btn-sm" onclick="viewHistory({{ p.id }}, '{{ p.name|e }}')"><i class="fa fa-history"></i></button>
-        <button class="btn btn-outline btn-sm" onclick="editPatron({{ p.id }})"><i class="fa fa-edit"></i></button>
-        <button class="btn btn-danger btn-sm" onclick="deletePatron({{ p.id }}, '{{ p.name|e }}')"><i class="fa fa-trash"></i></button>
+        <button class="btn btn-outline btn-sm" onclick="sendPatronBarcode({{ p.id }}, '{{ p.name|e }}', '{{ p.email or '' }}')" title="Email digital barcode card"><i class="fa fa-paper-plane" style="color:var(--accent-text, #166534);"></i></button>
+        <button class="btn btn-outline btn-sm" onclick="viewHistory({{ p.id }}, '{{ p.name|e }}')" title="Borrowing History"><i class="fa fa-history"></i></button>
+        <button class="btn btn-outline btn-sm" onclick="editPatron({{ p.id }})" title="Edit"><i class="fa fa-edit"></i></button>
+        <button class="btn btn-danger btn-sm" onclick="deletePatron({{ p.id }}, '{{ p.name|e }}')" title="Delete"><i class="fa fa-trash"></i></button>
       </td>
     </tr>
     {% else %}
@@ -141,6 +143,61 @@
   </div>
 </div>
 
+<!-- Batch Email Barcodes Modal -->
+<div class="modal-overlay" id="batchEmailModal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <h3>📧 Email Digital Barcode Cards</h3>
+      <button class="modal-close" onclick="closeModal('batchEmailModal')">✕</button>
+    </div>
+    <div style="font-size:13px; color:var(--muted); margin-bottom:16px; line-height:1.5;">
+      Send official digital library cards containing unique Code 128 barcodes directly to students and teachers. Patrons can scan them directly from their phone screen at the desk.
+    </div>
+
+    <div class="form-row cols-3">
+      <div class="form-group">
+        <label>Recipient Type</label>
+        <select class="form-control" id="batchEmailType">
+          <option value="all">All (Students & Staff)</option>
+          <option value="student">Students Only</option>
+          <option value="teacher">Teachers Only</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Year Filter</label>
+        <select class="form-control" id="batchEmailYear">
+          <option value="all">All Years</option>
+          <option value="I">Year I</option>
+          <option value="II">Year II</option>
+          <option value="III">Year III</option>
+          <option value="IV">Year IV</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Section Filter</label>
+        <select class="form-control" id="batchEmailSec">
+          <option value="all">All Sections</option>
+          <option value="A">Section A</option>
+          <option value="B">Section B</option>
+          <option value="C">Section C</option>
+          <option value="D">Section D</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="background:rgba(22,101,52,0.06); border:1px solid rgba(22,101,52,0.18); border-radius:10px; padding:12px 14px; font-size:12px; color:var(--accent-text); margin-bottom:16px;">
+      💡 <em>Make sure your Gmail App Password is configured under <strong>Settings → Email</strong> before sending.</em>
+    </div>
+
+    <div id="batchEmailStatus" style="display:none; margin-bottom:16px;"></div>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('batchEmailModal')">Close</button>
+      <button class="btn btn-primary" id="btnStartBatchEmail" onclick="doBatchEmailBarcodes()"><i class="fa fa-paper-plane"></i> Send Barcodes Now</button>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 {% block scripts %}
 <script>
@@ -225,6 +282,64 @@ async function doImportStaff() {
   const res = await postForm('/patrons/import/staff', fd);
   if (res.success) { showToast(`✅ Imported ${res.added} staff (${res.skipped} skipped)`,'success'); closeModal('importStaffModal'); setTimeout(()=>location.reload(),1200); }
   else showToast(res.message,'error');
+}
+
+async function sendPatronBarcode(id, name, email) {
+  if (!email) {
+    showToast(`No email address recorded for ${name}. Please edit patron to add an email first.`, 'error');
+    return;
+  }
+  if (!confirm(`Send digital barcode card to ${name} (${email})?`)) return;
+  showToast(`Sending barcode card to ${name}…`, 'info');
+  try {
+    const res = await fetch(`/api/send_patron_barcode/${id}`, {method:'POST'}).then(r=>r.json());
+    showToast(res.message, res.success ? 'success' : 'error');
+  } catch (err) {
+    showToast('Failed to contact server: ' + err, 'error');
+  }
+}
+
+async function doBatchEmailBarcodes() {
+  const ptype = document.getElementById('batchEmailType').value;
+  const year = document.getElementById('batchEmailYear').value;
+  const sec = document.getElementById('batchEmailSec').value;
+
+  const btn = document.getElementById('btnStartBatchEmail');
+  const statusDiv = document.getElementById('batchEmailStatus');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Sending Emails...';
+  statusDiv.style.display = 'block';
+  statusDiv.innerHTML = '<div style="color:var(--info); font-weight:600; padding:10px 0;"><i class="fa fa-spinner fa-spin"></i> Dispatching barcode emails through your SMTP account... Please wait...</div>';
+
+  try {
+    const res = await fetch('/api/send_batch_barcode_emails', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ patron_type: ptype, year: year, section: sec })
+    }).then(r => r.json());
+
+    if (res.success) {
+      statusDiv.innerHTML = `
+        <div style="background:#F0FDF4; border:1px solid #BBF7D0; padding:14px; border-radius:10px; color:#166534; font-size:13px; line-height:1.6;">
+          <strong>✅ Email Dispatch Completed!</strong><br>
+          • <strong>${res.sent}</strong> email(s) successfully delivered.<br>
+          • <strong>${res.skipped_no_email}</strong> patron(s) skipped (no email address).<br>
+          • <strong>${res.failed}</strong> failed.<br>
+          <div style="font-size:11.5px; color:#435A48; margin-top:6px;">${res.message}</div>
+        </div>
+      `;
+      showToast(`Batch complete: ${res.sent} sent, ${res.skipped_no_email} skipped`, 'success');
+    } else {
+      statusDiv.innerHTML = `<div style="background:#FEF2F2; border:1px solid #FECACA; padding:12px 14px; border-radius:10px; color:#991B1B; font-size:13px;">❌ Error: ${res.message}</div>`;
+      showToast(res.message, 'error');
+    }
+  } catch (err) {
+    statusDiv.innerHTML = `<div style="background:#FEF2F2; border:1px solid #FECACA; padding:12px 14px; border-radius:10px; color:#991B1B; font-size:13px;">❌ Network or server error: ${err}</div>`;
+    showToast('Batch emailing failed', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa fa-paper-plane"></i> Send Barcodes Now';
+  }
 }
 </script>
 {% endblock %}

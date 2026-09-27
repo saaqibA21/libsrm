@@ -1,30 +1,49 @@
 """
-Email reminder utility — sends due date and overdue notifications
+Email reminder and barcode delivery utility — sends barcodes, due dates, and overdue notices
 """
 
 import smtplib
+import base64
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.image import MIMEImage
 from datetime import datetime
 
 
 def send_email(to_addr: str, subject: str, body_html: str,
                smtp_host: str, smtp_port: int,
                smtp_user: str, smtp_password: str,
-               from_addr: str = None) -> tuple[bool, str]:
-    """Send a single email. Returns (success, error_message)."""
+               from_addr: str = None,
+               inline_images: dict = None) -> tuple[bool, str]:
+    """Send a single email. Returns (success, error_message).
+    inline_images: optional dict mapping content_id string to (image_bytes, subtype_str)
+    """
     if not to_addr or not smtp_user or not smtp_password:
-        return False, "Email configuration incomplete"
+        return False, "Email configuration incomplete (SMTP user or password missing)"
 
     from_addr = from_addr or smtp_user
 
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
-    msg["From"] = f"SRM Library <{from_addr}>"
-    msg["To"] = to_addr
+    if inline_images:
+        msg = MIMEMultipart("related")
+        msg["Subject"] = subject
+        msg["From"] = f"SRM EEE Library <{from_addr}>"
+        msg["To"] = to_addr
 
-    part = MIMEText(body_html, "html")
-    msg.attach(part)
+        alt_part = MIMEMultipart("alternative")
+        alt_part.attach(MIMEText(body_html, "html"))
+        msg.attach(alt_part)
+
+        for cid, (img_bytes, subtype) in inline_images.items():
+            img_part = MIMEImage(img_bytes, _subtype=subtype)
+            img_part.add_header("Content-ID", f"<{cid}>")
+            img_part.add_header("Content-Disposition", "inline", filename=f"{cid}.{subtype}")
+            msg.attach(img_part)
+    else:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = f"SRM EEE Library <{from_addr}>"
+        msg["To"] = to_addr
+        msg.attach(MIMEText(body_html, "html"))
 
     try:
         with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
@@ -37,36 +56,167 @@ def send_email(to_addr: str, subject: str, body_html: str,
         return False, str(e)
 
 
+def build_patron_barcode_email(patron: dict, library_name: str = "SRM EEE Department Library", use_cid: bool = True) -> str:
+    """Build an elegant Digital Library ID Card email with embedded barcode."""
+    name = patron.get("name", "Student / Faculty")
+    reg = patron.get("register_number", "")
+    barcode_str = patron.get("barcode", "")
+    ptype = (patron.get("patron_type", "") or "student").title()
+    year = patron.get("year", "")
+    section = patron.get("section", "")
+
+    # Barcode image: use inline CID for universal client compatibility, with base64/fallback
+    barcode_img_tag = ""
+    if use_cid:
+        barcode_img_tag = f'<img src="cid:barcode_img" alt="{barcode_str}" style="max-width:280px; width:100%; height:auto; display:block; margin:0 auto;" />'
+    else:
+        try:
+            from library_app.utils.barcode_utils import generate_barcode_image
+            img_bytes = generate_barcode_image(barcode_str)
+            b64 = base64.b64encode(img_bytes).decode("ascii")
+            barcode_img_tag = f'<img src="data:image/png;base64,{b64}" alt="{barcode_str}" style="max-width:280px; width:100%; height:auto; display:block; margin:0 auto;" />'
+        except Exception:
+            barcode_img_tag = f'<div style="font-family:monospace; font-size:24px; font-weight:bold; letter-spacing:4px; padding:10px;">{barcode_str}</div>'
+
+    class_info = f"Class: Year {year} • Section {section}" if year else f"Role: {ptype}"
+
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="margin:0; padding:20px; background-color:#F4F6F1; font-family:'Segoe UI',Helvetica,Arial,sans-serif; color:#17241A;">
+      <div style="max-width:540px; margin:0 auto; background:#FFFFFF; border:1px solid #DDE5D8; border-radius:20px; overflow:hidden; box-shadow:0 8px 24px rgba(0,0,0,0.06);">
+        
+        <!-- Header -->
+        <div style="background:#1C3022; color:#FFFFFF; padding:26px 30px; text-align:center;">
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:1px; color:#A7BFA0; font-weight:600; margin-bottom:4px;">
+            Department of Electrical & Electronics Engineering
+          </div>
+          <h1 style="margin:0; font-size:22px; font-weight:700; letter-spacing:-0.5px;">
+            SRM Institute of Science & Technology
+          </h1>
+          <div style="font-size:13px; color:#E3EBE1; margin-top:4px;">
+            {library_name} • Digital Library Card
+          </div>
+        </div>
+
+        <!-- Body / ID Card -->
+        <div style="padding:30px 28px; text-align:center;">
+          <p style="font-size:15px; color:#435A48; margin-top:0; margin-bottom:18px;">
+            Hello <strong>{name}</strong>, here is your official digital library barcode for issuing and returning books:
+          </p>
+
+          <!-- Digital Card Box -->
+          <div style="background:#F8FAF6; border:2px dashed #CBD5E1; border-radius:16px; padding:24px 20px; margin:20px 0; text-align:center;">
+            <div style="font-size:12px; font-weight:700; color:#1C3022; text-transform:uppercase; letter-spacing:0.8px;">
+              SRM EEE LIBRARY CARD
+            </div>
+            
+            <div style="font-size:18px; font-weight:700; color:#17241A; margin:8px 0 2px;">
+              {name}
+            </div>
+            <div style="font-size:13px; color:#627265; margin-bottom:16px;">
+              <strong>ID: {reg}</strong> • {class_info}
+            </div>
+
+            <!-- Barcode Image -->
+            <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:10px; padding:16px 12px; display:inline-block; max-width:90%;">
+              {barcode_img_tag}
+              <div style="font-family:monospace; font-size:15px; font-weight:700; color:#0F172A; letter-spacing:2px; margin-top:8px;">
+                {barcode_str}
+              </div>
+            </div>
+          </div>
+
+          <!-- Instructions -->
+          <div style="text-align:left; background:#EBF2E9; border-radius:12px; padding:16px 18px; margin-top:20px; font-size:12.5px; color:#26432D; line-height:1.6;">
+            <strong>📱 How to use at the Library:</strong>
+            <ul style="margin:6px 0 0; padding-left:20px;">
+              <li>Save this email or take a screenshot on your mobile phone.</li>
+              <li>When borrowing or returning a textbook, show this barcode to the librarian.</li>
+              <li>The scanner reads directly from your phone screen in 1 second!</li>
+              <li>You can also browse all available books online anytime.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="background:#F8FAF6; border-top:1px solid #E5EBE1; padding:16px 20px; text-align:center; font-size:11.5px; color:#8A9A8D;">
+          {library_name} • SRMIST Kattankulathur<br>
+          This is an official library notification. Please keep your barcode safe.
+        </div>
+      </div>
+    </body>
+    </html>
+    """
+
+
+def send_patron_barcode_email(patron: dict, smtp_host: str, smtp_port: int,
+                              smtp_user: str, smtp_password: str,
+                              from_addr: str = None,
+                              library_name: str = "SRM EEE Department Library") -> tuple[bool, str]:
+    """Helper to generate and send an official digital barcode card to a patron's email."""
+    email = (patron.get("email") or "").strip()
+    if not email:
+        return False, f"Patron {patron.get('name', 'patron')} does not have an email address"
+
+    barcode_str = patron.get("barcode", "")
+    inline_images = {}
+    use_cid = False
+    try:
+        from library_app.utils.barcode_utils import generate_barcode_image
+        img_bytes = generate_barcode_image(barcode_str)
+        inline_images["barcode_img"] = (img_bytes, "png")
+        use_cid = True
+    except Exception:
+        use_cid = False
+
+    body_html = build_patron_barcode_email(patron, library_name=library_name, use_cid=use_cid)
+    subject = f"[{library_name}] Official Digital Library Card — {patron.get('name')}"
+
+    return send_email(
+        to_addr=email,
+        subject=subject,
+        body_html=body_html,
+        smtp_host=smtp_host,
+        smtp_port=smtp_port,
+        smtp_user=smtp_user,
+        smtp_password=smtp_password,
+        from_addr=from_addr,
+        inline_images=inline_images if use_cid else None
+    )
+
+
 def build_due_reminder_email(patron_name: str, books: list[dict], library_name: str) -> str:
     """Build HTML email for due date reminder."""
     rows = ""
     for b in books:
         rows += f"""
         <tr>
-            <td style="padding:8px;border-bottom:1px solid #eee;">{b.get('book_title','')}</td>
-            <td style="padding:8px;border-bottom:1px solid #eee;color:#e67e22;">{b.get('due_date','')}</td>
+            <td style="padding:10px;border-bottom:1px solid #eee;">{b.get('book_title','')}</td>
+            <td style="padding:10px;border-bottom:1px solid #eee;color:#e67e22;font-weight:600;">{b.get('due_date','')}</td>
         </tr>"""
 
     return f"""
-    <html><body style="font-family:Arial,sans-serif;color:#333;max-width:600px;margin:auto;">
-    <div style="background:#1565C0;color:white;padding:20px;border-radius:8px 8px 0 0;">
+    <html><body style="font-family:'Segoe UI',Arial,sans-serif;color:#333;max-width:580px;margin:auto;padding:20px;">
+    <div style="background:#1C3022;color:white;padding:20px;border-radius:12px 12px 0 0;text-align:center;">
         <h2 style="margin:0;">📚 {library_name}</h2>
-        <p style="margin:5px 0 0;">Book Return Reminder</p>
+        <p style="margin:5px 0 0;color:#A7BFA0;">Book Return Due Date Reminder</p>
     </div>
-    <div style="padding:20px;background:#f9f9f9;">
+    <div style="padding:24px;background:#f9f9f9;border:1px solid #eee;border-radius:0 0 12px 12px;">
         <p>Dear <strong>{patron_name}</strong>,</p>
-        <p>This is a friendly reminder that the following book(s) are due for return soon:</p>
-        <table style="width:100%;border-collapse:collapse;background:white;border-radius:6px;overflow:hidden;">
+        <p>This is a reminder that the following textbook(s) borrowed from the department library are due soon:</p>
+        <table style="width:100%;border-collapse:collapse;background:white;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
             <thead>
-                <tr style="background:#1565C0;color:white;">
+                <tr style="background:#1C3022;color:white;font-size:12px;">
                     <th style="padding:10px;text-align:left;">Book Title</th>
                     <th style="padding:10px;text-align:left;">Due Date</th>
                 </tr>
             </thead>
             <tbody>{rows}</tbody>
         </table>
-        <p style="margin-top:20px;">Please return the book(s) on time to avoid late fines.</p>
-        <p style="color:#888;font-size:12px;">This is an automated message from {library_name}. Please do not reply.</p>
+        <p style="margin-top:20px;font-size:13px;color:#555;">Please return or renew on time to avoid late fines of ₹2.00/day.</p>
+        <p style="color:#888;font-size:11px;margin-top:24px;">Automated notice from {library_name}.</p>
     </div>
     </body></html>
     """
@@ -77,44 +227,49 @@ def build_overdue_email(patron_name: str, books: list[dict],
     """Build HTML email for overdue notice."""
     rows = ""
     today = datetime.now()
+    total_fine = 0
     for b in books:
         try:
             due = datetime.strptime(b.get("due_date", ""), "%Y-%m-%d")
             days_overdue = (today - due).days
             fine = days_overdue * fine_per_day
+            total_fine += fine
         except Exception:
             days_overdue = 0
             fine = 0
         rows += f"""
         <tr>
-            <td style="padding:8px;border-bottom:1px solid #eee;">{b.get('book_title','')}</td>
-            <td style="padding:8px;border-bottom:1px solid #eee;color:#c0392b;">{b.get('due_date','')}</td>
-            <td style="padding:8px;border-bottom:1px solid #eee;color:#c0392b;">{days_overdue} days</td>
-            <td style="padding:8px;border-bottom:1px solid #eee;color:#c0392b;">₹{fine:.2f}</td>
+            <td style="padding:10px;border-bottom:1px solid #eee;">{b.get('book_title','')}</td>
+            <td style="padding:10px;border-bottom:1px solid #eee;color:#c0392b;">{b.get('due_date','')}</td>
+            <td style="padding:10px;border-bottom:1px solid #eee;color:#c0392b;font-weight:600;">{days_overdue} days</td>
+            <td style="padding:10px;border-bottom:1px solid #eee;color:#c0392b;font-weight:700;">₹{fine:.2f}</td>
         </tr>"""
 
     return f"""
-    <html><body style="font-family:Arial,sans-serif;color:#333;max-width:600px;margin:auto;">
-    <div style="background:#c0392b;color:white;padding:20px;border-radius:8px 8px 0 0;">
+    <html><body style="font-family:'Segoe UI',Arial,sans-serif;color:#333;max-width:580px;margin:auto;padding:20px;">
+    <div style="background:#991B1B;color:white;padding:20px;border-radius:12px 12px 0 0;text-align:center;">
         <h2 style="margin:0;">📚 {library_name}</h2>
-        <p style="margin:5px 0 0;">⚠️ Overdue Book Notice</p>
+        <p style="margin:5px 0 0;color:#FECACA;">⚠️ Overdue Textbook Notice</p>
     </div>
-    <div style="padding:20px;background:#fef9f9;">
+    <div style="padding:24px;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:0 0 12px 12px;">
         <p>Dear <strong>{patron_name}</strong>,</p>
-        <p>The following book(s) are <strong>overdue</strong> and accruing fines:</p>
-        <table style="width:100%;border-collapse:collapse;background:white;border-radius:6px;overflow:hidden;">
+        <p>The following textbook(s) borrowed under your account are <strong>overdue</strong> and accruing daily late fines:</p>
+        <table style="width:100%;border-collapse:collapse;background:white;border-radius:8px;overflow:hidden;">
             <thead>
-                <tr style="background:#c0392b;color:white;">
+                <tr style="background:#991B1B;color:white;font-size:12px;">
                     <th style="padding:10px;text-align:left;">Book Title</th>
                     <th style="padding:10px;text-align:left;">Due Date</th>
-                    <th style="padding:10px;text-align:left;">Days Overdue</th>
+                    <th style="padding:10px;text-align:left;">Overdue</th>
                     <th style="padding:10px;text-align:left;">Fine</th>
                 </tr>
             </thead>
             <tbody>{rows}</tbody>
         </table>
-        <p style="margin-top:20px;color:#c0392b;"><strong>Please return the book(s) immediately to stop accruing fines.</strong></p>
-        <p style="color:#888;font-size:12px;">This is an automated message from {library_name}. Please do not reply.</p>
+        <div style="margin-top:16px;font-size:14px;font-weight:700;color:#991B1B;">
+            Total Pending Late Fine: ₹{total_fine:.2f}
+        </div>
+        <p style="margin-top:16px;color:#7F1D1D;font-size:13px;"><strong>Please return the textbook(s) to the department library immediately.</strong></p>
+        <p style="color:#888;font-size:11px;margin-top:24px;">Automated notice from {library_name}.</p>
     </div>
     </body></html>
     """

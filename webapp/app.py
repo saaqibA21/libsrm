@@ -632,6 +632,132 @@ def api_mark_fine_paid(txn_id):
     return jsonify({"success": True})
 
 
+@app.route("/api/send_patron_barcode/<int:patron_id>", methods=["POST"])
+def send_patron_barcode_single(patron_id):
+    if not require_staff():
+        return jsonify({"success": False, "message": "Unauthorized. Please login to Librarian Desk."}), 403
+
+    from library_app.utils.email_utils import send_patron_barcode_email
+    patron = get_patron_by_id(patron_id)
+    if not patron:
+        return jsonify({"success": False, "message": "Patron not found"}), 404
+
+    if not patron.get("email"):
+        return jsonify({"success": False, "message": f"{patron.get('name')} does not have an email address registered."}), 400
+
+    smtp_host = get_setting("email_host", "smtp.gmail.com")
+    smtp_port = int(get_setting("email_port", "587"))
+    smtp_user = get_setting("email_user", "")
+    smtp_pass = get_setting("email_password", "")
+    from_addr = get_setting("email_from", "")
+    lib_name = get_setting("library_name", "SRM EEE Department Library")
+
+    if not smtp_user or not smtp_pass:
+        return jsonify({
+            "success": False,
+            "message": "SMTP not configured! Please open Settings → Email and enter your email address and App Password."
+        }), 400
+
+    ok, err = send_patron_barcode_email(
+        patron=patron,
+        smtp_host=smtp_host,
+        smtp_port=smtp_port,
+        smtp_user=smtp_user,
+        smtp_password=smtp_pass,
+        from_addr=from_addr,
+        library_name=lib_name
+    )
+
+    if ok:
+        return jsonify({"success": True, "message": f"Official digital library barcode card sent to {patron.get('email')}!"})
+    else:
+        return jsonify({"success": False, "message": f"Failed to send email: {err}"})
+
+
+@app.route("/api/send_batch_barcode_emails", methods=["POST"])
+def send_batch_barcode_emails():
+    if not require_staff():
+        return jsonify({"success": False, "message": "Unauthorized. Please login to Librarian Desk."}), 403
+
+    from library_app.utils.email_utils import send_patron_barcode_email
+    import time
+
+    smtp_host = get_setting("email_host", "smtp.gmail.com")
+    smtp_port = int(get_setting("email_port", "587"))
+    smtp_user = get_setting("email_user", "")
+    smtp_pass = get_setting("email_password", "")
+    from_addr = get_setting("email_from", "")
+    lib_name = get_setting("library_name", "SRM EEE Department Library")
+
+    if not smtp_user or not smtp_pass:
+        return jsonify({
+            "success": False,
+            "message": "SMTP not configured! Please open Settings → Email and configure your email & App Password first."
+        }), 400
+
+    payload = request.get_json(silent=True) or {}
+    patron_type = payload.get("patron_type") or None
+    year = payload.get("year") or None
+    section = payload.get("section") or None
+
+    all_patrons = get_all_patrons()
+
+    target_patrons = []
+    for p in all_patrons:
+        if patron_type and patron_type != "all" and p.get("patron_type") != patron_type:
+            continue
+        if year and year != "all" and (p.get("year") or "").strip().upper() != year.strip().upper():
+            continue
+        if section and section != "all" and (p.get("section") or "").strip().upper() != section.strip().upper():
+            continue
+        target_patrons.append(p)
+
+    sent = 0
+    failed = 0
+    skipped_no_email = 0
+    err_msgs = []
+
+    for p in target_patrons:
+        email = (p.get("email") or "").strip()
+        if not email:
+            skipped_no_email += 1
+            continue
+
+        ok, err = send_patron_barcode_email(
+            patron=p,
+            smtp_host=smtp_host,
+            smtp_port=smtp_port,
+            smtp_user=smtp_user,
+            smtp_password=smtp_pass,
+            from_addr=from_addr,
+            library_name=lib_name
+        )
+
+        if ok:
+            sent += 1
+        else:
+            failed += 1
+            if len(err_msgs) < 3:
+                err_msgs.append(f"{p.get('name')}: {err}")
+
+        time.sleep(0.1)
+
+    msg = f"Dispatched {sent} barcode email(s)."
+    if skipped_no_email > 0:
+        msg += f" {skipped_no_email} patrons skipped (no email address recorded)."
+    if failed > 0:
+        msg += f" {failed} failed: {'; '.join(err_msgs)}"
+
+    return jsonify({
+        "success": True,
+        "sent": sent,
+        "failed": failed,
+        "skipped_no_email": skipped_no_email,
+        "total": len(target_patrons),
+        "message": msg
+    })
+
+
 # ─── Librarian Desk: Settings ──────────────────────────────────────────────────
 
 @app.route("/settings", methods=["GET", "POST"])
