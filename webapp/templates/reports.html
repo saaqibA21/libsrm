@@ -3,70 +3,244 @@
 {% block page_title %}📊 Reports & Analytics{% endblock %}
 {% block content %}
 
+<!-- Header & PDF Download Actions -->
+<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px; background:var(--card2); border:1px solid var(--border); border-radius:18px; padding:16px 20px;">
+  <div>
+    <h3 class="serif-heading" style="margin:0; font-size:18px; color:var(--primary);">Circulation Reports & Borrowing Analytics</h3>
+    <p style="margin:4px 0 0; font-size:12.5px; color:var(--muted);">
+      Monitor active circulation, overdue items, book popularity counts, and search student/faculty borrowing records.
+    </p>
+  </div>
+  <div style="display:flex; gap:10px; flex-wrap:wrap;">
+    <a href="/reports/pdf" target="_blank" class="btn btn-primary btn-sm" style="box-shadow:0 2px 8px rgba(28,48,34,0.2);">
+      <i class="fa fa-file-pdf"></i> View / Print Report PDF
+    </a>
+    <a href="/reports/pdf?download=1" class="btn btn-outline btn-sm">
+      <i class="fa fa-download"></i> Download PDF
+    </a>
+  </div>
+</div>
+
 <div id="tabContainer">
   <div class="tab-bar">
     <button class="tab-btn active" data-tab="tab-overdue">⚠️ Overdue ({{ overdue|length }})</button>
     <button class="tab-btn" data-tab="tab-active">📤 Active Loans ({{ active|length }})</button>
-    <button class="tab-btn" data-tab="tab-history">🕐 History</button>
+    <button class="tab-btn" data-tab="tab-book-stats">📚 Book Borrow Frequency</button>
+    <button class="tab-btn" data-tab="tab-patron-stats">👥 Patron Borrow Search</button>
+    <button class="tab-btn" data-tab="tab-history">🕐 Full History</button>
     <button class="tab-btn" data-tab="tab-topbooks">🏆 Top Books</button>
     <button class="tab-btn" data-tab="tab-toppatrons">🌟 Top Patrons</button>
   </div>
 
   <!-- Overdue Tab -->
   <div class="tab-pane active" id="tab-overdue">
-    <div style="display:flex;gap:10px;margin-bottom:14px;align-items:center">
-      <span style="color:var(--danger);font-weight:700;font-size:14px">🚨 {{ overdue|length }} overdue book(s)</span>
-      <button class="btn btn-danger btn-sm" onclick="sendOverdueEmails()"><i class="fa fa-envelope"></i> Email All Overdue</button>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+      <span style="color:var(--danger); font-weight:700; font-size:13.5px;">
+        <i class="fa fa-triangle-exclamation"></i> {{ overdue|length }} overdue book(s) accruing daily late fines
+      </span>
+      {% if overdue %}
+        <button class="btn btn-danger btn-sm" onclick="sendOverdueEmails()">
+          <i class="fa fa-envelope"></i> Email All Overdue Patrons
+        </button>
+      {% endif %}
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Patron</th><th>Reg. No.</th><th>Type</th><th>Book</th><th>Issue Date</th><th>Due Date</th><th>Overdue Days</th><th>Fine (₹)</th><th>Action</th></tr></thead>
+        <thead><tr><th>Patron</th><th>Reg. No.</th><th>Type</th><th>Book Title</th><th>Issue Date</th><th>Due Date</th><th>Overdue Days</th><th>Fine (₹)</th><th>Action</th></tr></thead>
         <tbody>
         {% for txn in overdue %}
         <tr style="color:var(--danger)">
-          <td>{{ txn.patron_name }}</td>
-          <td class="text-sm">{{ txn.register_number }}</td>
+          <td style="font-weight:600">{{ txn.patron_name }}</td>
+          <td class="text-sm">{{ txn.register_number or '—' }}</td>
           <td><span class="badge badge-{% if txn.patron_type=='teacher' %}purple{% else %}info{% endif %}">{{ txn.patron_type.title() }}</span></td>
-          <td style="max-width:180px;font-weight:500">{{ txn.book_title[:50] }}</td>
+          <td style="max-width:220px; font-weight:500">{{ txn.book_title }}</td>
           <td class="text-sm">{{ txn.issue_date }}</td>
           <td><span class="badge badge-danger">{{ txn.due_date }}</span></td>
           <td style="font-weight:700">{{ txn.overdue_days }} days</td>
           <td style="font-weight:700">₹{{ "%.2f"|format(txn.fine) }}</td>
-          <td><button class="btn btn-success btn-sm" onclick="markPaid({{ txn.id }})">✅ Paid</button></td>
+          <td><button class="btn btn-success btn-sm" onclick="markPaid({{ txn.id }})">✅ Mark Paid</button></td>
         </tr>
         {% else %}
-        <tr><td colspan="9" style="text-align:center;padding:30px;color:var(--success)">🎉 No overdue books!</td></tr>
+        <tr><td colspan="9" style="text-align:center; padding:36px; color:var(--success); font-weight:500;">🎉 No overdue books! All loans are on schedule.</td></tr>
         {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
 
-  <!-- Active Tab -->
+  <!-- Active Loans Tab -->
   <div class="tab-pane" id="tab-active">
-    <div style="margin-bottom:14px;display:flex;gap:10px;align-items:center">
-      <span style="font-weight:700;color:var(--info)">📤 {{ active|length }} book(s) currently issued</span>
-      <button class="btn btn-primary btn-sm" onclick="sendReminders()"><i class="fa fa-envelope"></i> Send Due Reminders</button>
+    <div style="margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+      <span style="font-weight:700; color:var(--info);">
+        <i class="fa fa-arrow-up-right-from-square"></i> {{ active|length }} book(s) currently borrowed
+      </span>
+      <button class="btn btn-primary btn-sm" onclick="sendReminders()">
+        <i class="fa fa-envelope"></i> Send Due Date Reminders
+      </button>
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Patron</th><th>Reg. No.</th><th>Book</th><th>Issue Date</th><th>Due Date</th><th>Days Left</th></tr></thead>
+        <thead><tr><th>Borrower Name</th><th>Reg. No.</th><th>Book Title</th><th>Issue Date</th><th>Due Date</th><th>Status / Time Left</th></tr></thead>
         <tbody>
         {% for txn in active %}
         {% set color = 'var(--danger)' if txn.days_left < 0 else ('var(--warning)' if txn.days_left <= 3 else 'var(--text)') %}
         <tr>
-          <td>{{ txn.patron_name }}</td>
-          <td class="text-sm">{{ txn.register_number }}</td>
-          <td style="max-width:200px;font-weight:500">{{ txn.book_title[:50] }}</td>
+          <td style="font-weight:600">{{ txn.patron_name }}</td>
+          <td class="text-sm">{{ txn.register_number or '—' }}</td>
+          <td style="max-width:240px; font-weight:500">{{ txn.book_title }}</td>
           <td class="text-sm text-muted">{{ txn.issue_date }}</td>
           <td class="text-sm">{{ txn.due_date }}</td>
-          <td style="color:{{ color }};font-weight:700">
-            {% if txn.days_left < 0 %}OVERDUE{% else %}{{ txn.days_left }} days{% endif %}
+          <td style="color:{{ color }}; font-weight:700">
+            {% if txn.days_left < 0 %}
+              <span class="badge badge-danger">Overdue ({{ txn.days_left|abs }}d)</span>
+            {% elif txn.days_left <= 3 %}
+              <span class="badge badge-warning">Due in {{ txn.days_left }}d</span>
+            {% else %}
+              <span class="badge badge-success">{{ txn.days_left }} days left</span>
+            {% endif %}
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="6" style="text-align:center;padding:30px;color:var(--muted)">No books currently issued.</td></tr>
+        <tr><td colspan="6" style="text-align:center; padding:36px; color:var(--muted)">No books currently issued. All 2,118 books are on shelf!</td></tr>
         {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- BOOK BORROW FREQUENCY TAB (SEARCH HOW MANY TIMES TAKEN) -->
+  <div class="tab-pane" id="tab-book-stats">
+    <div style="margin-bottom:16px;">
+      <div style="font-weight:700; font-size:14px; margin-bottom:6px; color:var(--text);">
+        🔍 Search Book Borrow Frequency
+      </div>
+      <p style="font-size:12.5px; color:var(--muted); margin-bottom:12px;">
+        Search any textbook by title, author, barcode, or accession number to see <strong>how many times it has been borrowed</strong>, who currently has it, and its circulation status.
+      </p>
+      <div class="search-box" style="max-width:600px;">
+        <i class="fa fa-search"></i>
+        <input id="bookStatsQuery" placeholder="Type book title, author, barcode (BK...), or accession number..." oninput="debounceBookSearch()">
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Book Title</th>
+            <th>Author(s)</th>
+            <th>Accession / Barcode</th>
+            <th style="text-align:center;">Times Borrowed</th>
+            <th>Current Status</th>
+            <th>Last Issued Date</th>
+          </tr>
+        </thead>
+        <tbody id="bookStatsTbody">
+          {% for b in book_stats %}
+          <tr>
+            <td style="font-weight:600; max-width:260px;">{{ b.title }}</td>
+            <td class="text-sm text-muted">{{ b.authors or '—' }}</td>
+            <td>
+              <code style="font-size:11px; color:var(--info);">{{ b.barcode }}</code>
+              {% if b.account_number %}<span class="text-sm text-muted"> (Acc: {{ b.account_number }})</span>{% endif %}
+            </td>
+            <td style="text-align:center;">
+              <span class="badge {% if b.times_borrowed > 0 %}badge-success{% else %}badge-gray{% endif %}" style="font-size:12px;">
+                {{ b.times_borrowed }} ×
+              </span>
+            </td>
+            <td>
+              {% if b.status == 'issued' %}
+                <span class="badge badge-warning" style="margin-bottom:2px;">Currently Borrowed</span><br>
+                <span class="text-sm" style="color:var(--text); font-weight:500;">By: {{ b.current_borrower or 'Patron' }}</span>
+                {% if b.current_due_date %}<span class="text-sm text-muted">(Due: {{ b.current_due_date }})</span>{% endif %}
+              {% else %}
+                <span class="badge badge-success">Available on Shelf</span>
+              {% endif %}
+            </td>
+            <td class="text-sm text-muted">{{ b.last_issued_date or 'Never' }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" style="text-align:center; padding:30px; color:var(--muted)">No books found matching search query.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PATRON BORROW SEARCH TAB (HOW MANY BOOKS A PERSON HAS TAKEN) -->
+  <div class="tab-pane" id="tab-patron-stats">
+    <div style="margin-bottom:16px;">
+      <div style="font-weight:700; font-size:14px; margin-bottom:6px; color:var(--text);">
+        🔍 Search Patron Activity & Borrow Count
+      </div>
+      <p style="font-size:12.5px; color:var(--muted); margin-bottom:12px;">
+        Search any student or teacher by name, register number, or barcode to see <strong>how many books they have taken</strong>, current active loans, and borrowing history.
+      </p>
+      <div class="search-box" style="max-width:600px;">
+        <i class="fa fa-search"></i>
+        <input id="patronStatsQuery" placeholder="Search by student/faculty name, register no (RA...), or barcode..." oninput="debouncePatronSearch()">
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Patron Name</th>
+            <th>Reg. / Employee No</th>
+            <th>Type / Class</th>
+            <th style="text-align:center;">Total Books Taken</th>
+            <th style="text-align:center;">Active Loans</th>
+            <th style="text-align:center;">Overdue</th>
+            <th>Pending Fines</th>
+            <th>Last Borrowed</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="patronStatsTbody">
+          {% for p in patron_stats %}
+          <tr>
+            <td style="font-weight:600;">{{ p.name }}</td>
+            <td class="text-sm">{{ p.register_number or '—' }}</td>
+            <td>
+              <span class="badge badge-{% if p.patron_type=='teacher' %}purple{% else %}info{% endif %}">
+                {{ (p.patron_type or '').title() }}
+              </span>
+              {% if p.year %}<span class="text-sm text-muted">Yr {{ p.year }} {{ p.section }}</span>{% endif %}
+            </td>
+            <td style="text-align:center;">
+              <span class="badge {% if p.total_books_taken > 0 %}badge-success{% else %}badge-gray{% endif %}" style="font-size:12px;">
+                {{ p.total_books_taken }} books
+              </span>
+            </td>
+            <td style="text-align:center;">
+              {% if p.active_loans_count > 0 %}
+                <span class="badge badge-info">{{ p.active_loans_count }}</span>
+              {% else %}
+                <span class="text-muted text-sm">0</span>
+              {% endif %}
+            </td>
+            <td style="text-align:center;">
+              {% if p.overdue_count > 0 %}
+                <span class="badge badge-danger">{{ p.overdue_count }}</span>
+              {% else %}
+                <span class="text-muted text-sm">0</span>
+              {% endif %}
+            </td>
+            <td style="font-weight:600; color:{% if p.pending_fines > 0 %}var(--danger){% else %}var(--muted){% endif %};">
+              ₹{{ "%.2f"|format(p.pending_fines or 0) }}
+            </td>
+            <td class="text-sm text-muted">{{ p.last_borrowed_date or 'Never' }}</td>
+            <td>
+              <button class="btn btn-outline btn-sm" onclick="viewHistory({{ p.id }}, '{{ p.name|e }}')">
+                <i class="fa fa-history"></i> View Loans
+              </button>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="9" style="text-align:center; padding:30px; color:var(--muted)">No patrons found matching search query.</td></tr>
+          {% endfor %}
         </tbody>
       </table>
     </div>
@@ -76,23 +250,23 @@
   <div class="tab-pane" id="tab-history">
     <div class="table-wrap">
       <table>
-        <thead><tr><th>#</th><th>Patron</th><th>Book</th><th>Issue Date</th><th>Due Date</th><th>Return Date</th><th>Status</th></tr></thead>
+        <thead><tr><th>#</th><th>Patron</th><th>Book Title</th><th>Issue Date</th><th>Due Date</th><th>Return Date</th><th>Status</th></tr></thead>
         <tbody>
         {% for txn in history %}
         <tr>
           <td class="text-muted text-sm">{{ txn.id }}</td>
-          <td>{{ txn.patron_name }}</td>
-          <td style="max-width:200px">{{ txn.book_title[:50] }}</td>
+          <td style="font-weight:600">{{ txn.patron_name }}</td>
+          <td style="max-width:240px">{{ txn.book_title }}</td>
           <td class="text-sm text-muted">{{ txn.issue_date }}</td>
           <td class="text-sm text-muted">{{ txn.due_date }}</td>
           <td class="text-sm">{{ txn.return_date or '—' }}</td>
           <td>
             {% if txn.status == 'returned' %}<span class="badge badge-success">Returned</span>
-            {% else %}<span class="badge badge-info">Issued</span>{% endif %}
+            {% else %}<span class="badge badge-info">Currently Issued</span>{% endif %}
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--muted)">No transactions yet.</td></tr>
+        <tr><td colspan="7" style="text-align:center; padding:30px; color:var(--muted)">No transactions recorded yet.</td></tr>
         {% endfor %}
         </tbody>
       </table>
@@ -107,15 +281,15 @@
         <tbody>
         {% for b in top_books %}
         <tr>
-          <td style="font-size:18px;font-weight:800;color:{% if loop.index<=3 %}var(--warning){% else %}var(--muted){% endif %}">
+          <td style="font-size:18px; font-weight:800; color:{% if loop.index<=3 %}var(--warning){% else %}var(--muted){% endif %}">
             #{{ loop.index }}
           </td>
           <td style="font-weight:600">{{ b.title }}</td>
           <td class="text-muted text-sm">{{ b.authors or '—' }}</td>
-          <td style="font-weight:700;color:var(--primary)">{{ b.borrow_count }} ×</td>
+          <td style="font-weight:700; color:var(--primary)">{{ b.borrow_count }} ×</td>
         </tr>
         {% else %}
-        <tr><td colspan="4" style="text-align:center;padding:30px;color:var(--muted)">No data yet.</td></tr>
+        <tr><td colspan="4" style="text-align:center; padding:30px; color:var(--muted)">No data yet.</td></tr>
         {% endfor %}
         </tbody>
       </table>
@@ -130,17 +304,33 @@
         <tbody>
         {% for p in top_patrons %}
         <tr>
-          <td style="font-size:18px;font-weight:800;color:{% if loop.index<=3 %}var(--warning){% else %}var(--muted){% endif %}">
+          <td style="font-size:18px; font-weight:800; color:{% if loop.index<=3 %}var(--warning){% else %}var(--muted){% endif %}">
             #{{ loop.index }}
           </td>
           <td style="font-weight:600">{{ p.name }}</td>
           <td class="text-muted text-sm">{{ p.register_number }}</td>
-          <td style="font-weight:700;color:var(--primary)">{{ p.borrow_count }} ×</td>
+          <td style="font-weight:700; color:var(--primary)">{{ p.borrow_count }} ×</td>
         </tr>
         {% else %}
-        <tr><td colspan="4" style="text-align:center;padding:30px;color:var(--muted)">No data yet.</td></tr>
+        <tr><td colspan="4" style="text-align:center; padding:30px; color:var(--muted)">No data yet.</td></tr>
         {% endfor %}
         </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- History Modal -->
+<div class="modal-overlay" id="historyModal">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-header">
+      <h3 id="historyTitle">📋 Borrowing History</h3>
+      <button class="modal-close" onclick="closeModal('historyModal')">✕</button>
+    </div>
+    <div class="table-wrap" style="max-height:400px; overflow-y:auto">
+      <table>
+        <thead><tr><th>Book</th><th>Issue Date</th><th>Due Date</th><th>Return Date</th><th>Fine</th></tr></thead>
+        <tbody id="historyTbody"></tbody>
       </table>
     </div>
   </div>
@@ -151,15 +341,134 @@
 <script>
 initTabs('tabContainer');
 
+let bookTimer = null;
+function debounceBookSearch() {
+  clearTimeout(bookTimer);
+  bookTimer = setTimeout(doBookSearch, 300);
+}
+
+async function doBookSearch() {
+  const q = document.getElementById('bookStatsQuery').value.trim();
+  const res = await fetch(`/api/reports/search_books?q=${encodeURIComponent(q)}`).then(r => r.json());
+  const tbody = document.getElementById('bookStatsTbody');
+  tbody.innerHTML = '';
+  if (!res.results || !res.results.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--muted)">No books found matching search query.</td></tr>';
+    return;
+  }
+  res.results.forEach(b => {
+    let statusBadge = '';
+    if (b.status === 'issued') {
+      statusBadge = `<span class="badge badge-warning" style="margin-bottom:2px;">Currently Borrowed</span><br>
+                     <span class="text-sm" style="color:var(--text); font-weight:500;">By: ${b.current_borrower || 'Patron'}</span>
+                     ${b.current_due_date ? `<span class="text-sm text-muted"> (Due: ${b.current_due_date})</span>` : ''}`;
+    } else {
+      statusBadge = '<span class="badge badge-success">Available on Shelf</span>';
+    }
+    tbody.innerHTML += `
+      <tr>
+        <td style="font-weight:600; max-width:260px;">${b.title}</td>
+        <td class="text-sm text-muted">${b.authors || '—'}</td>
+        <td>
+          <code style="font-size:11px; color:var(--info);">${b.barcode}</code>
+          ${b.account_number ? `<span class="text-sm text-muted"> (Acc: ${b.account_number})</span>` : ''}
+        </td>
+        <td style="text-align:center;">
+          <span class="badge ${b.times_borrowed > 0 ? 'badge-success' : 'badge-gray'}" style="font-size:12px;">
+            ${b.times_borrowed} ×
+          </span>
+        </td>
+        <td>${statusBadge}</td>
+        <td class="text-sm text-muted">${b.last_issued_date || 'Never'}</td>
+      </tr>
+    `;
+  });
+}
+
+let patronTimer = null;
+function debouncePatronSearch() {
+  clearTimeout(patronTimer);
+  patronTimer = setTimeout(doPatronSearch, 300);
+}
+
+async function doPatronSearch() {
+  const q = document.getElementById('patronStatsQuery').value.trim();
+  const res = await fetch(`/api/reports/search_patrons?q=${encodeURIComponent(q)}`).then(r => r.json());
+  const tbody = document.getElementById('patronStatsTbody');
+  tbody.innerHTML = '';
+  if (!res.results || !res.results.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:30px; color:var(--muted)">No patrons found matching search query.</td></tr>';
+    return;
+  }
+  res.results.forEach(p => {
+    const roleBadge = `<span class="badge badge-${p.patron_type === 'teacher' ? 'purple' : 'info'}">${(p.patron_type||'').toUpperCase()}</span>`;
+    const classInfo = p.year ? `<span class="text-sm text-muted"> Yr ${p.year} ${p.section || ''}</span>` : '';
+    const finesColor = p.pending_fines > 0 ? 'var(--danger)' : 'var(--muted)';
+    tbody.innerHTML += `
+      <tr>
+        <td style="font-weight:600;">${p.name}</td>
+        <td class="text-sm">${p.register_number || '—'}</td>
+        <td>${roleBadge}${classInfo}</td>
+        <td style="text-align:center;">
+          <span class="badge ${p.total_books_taken > 0 ? 'badge-success' : 'badge-gray'}" style="font-size:12px;">
+            ${p.total_books_taken} books
+          </span>
+        </td>
+        <td style="text-align:center;">
+          ${p.active_loans_count > 0 ? `<span class="badge badge-info">${p.active_loans_count}</span>` : '<span class="text-muted text-sm">0</span>'}
+        </td>
+        <td style="text-align:center;">
+          ${p.overdue_count > 0 ? `<span class="badge badge-danger">${p.overdue_count}</span>` : '<span class="text-muted text-sm">0</span>'}
+        </td>
+        <td style="font-weight:600; color:${finesColor};">
+          ₹${(p.pending_fines || 0).toFixed(2)}
+        </td>
+        <td class="text-sm text-muted">${p.last_borrowed_date || 'Never'}</td>
+        <td>
+          <button class="btn btn-outline btn-sm" onclick="viewHistory(${p.id}, '${escapeQuotes(p.name)}')">
+            <i class="fa fa-history"></i> View Loans
+          </button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+function escapeQuotes(str) {
+  return (str || '').replace(/'/g, "\\'");
+}
+
+async function viewHistory(id, name) {
+  document.getElementById('historyTitle').textContent = `📋 Borrowing History: ${name}`;
+  const data = await fetch(`/patrons/history/${id}`).then(r => r.json());
+  const tbody = document.getElementById('historyTbody');
+  tbody.innerHTML = '';
+  if (!data.history || !data.history.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--muted)">No borrowing history</td></tr>';
+  } else {
+    data.history.forEach(h => {
+      const color = h.status === 'issued' ? 'var(--info)' : 'var(--text)';
+      tbody.innerHTML += `<tr style="color:${color}">
+        <td>${h.book_title}</td>
+        <td>${h.issue_date}</td>
+        <td>${h.due_date}</td>
+        <td>${h.return_date || '—'}</td>
+        <td>₹${(h.fine_amount || 0).toFixed(2)}</td>
+      </tr>`;
+    });
+  }
+  openModal('historyModal');
+}
+
 async function sendOverdueEmails() {
   if (!confirm('Send overdue email notices to all overdue patrons?')) return;
   const res = await postJSON('/api/send_overdue_emails', {});
-  if (res.success) showToast(`✅ Sent: ${res.sent}, Failed: ${res.failed}`, res.failed>0?'info':'success');
+  if (res.success) showToast(`✅ Sent: ${res.sent}, Failed: ${res.failed}`, res.failed > 0 ? 'info' : 'success');
   else showToast(res.message, 'error');
 }
 
 async function sendReminders() {
-  if (!confirm('Send due reminders to patrons whose books are due in 3 days?')) return;
+  if (!confirm('Send due reminders to patrons whose books are due soon?')) return;
   const res = await postJSON('/api/send_overdue_emails', {reminders: true});
   showToast(res.message || `Sent: ${res.sent}`, 'info');
 }

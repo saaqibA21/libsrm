@@ -541,6 +541,54 @@ def get_most_active_patrons(limit=10):
     return [dict(r) for r in rows]
 
 
+def search_book_borrow_stats(query="", limit=50):
+    """Search how many times each book has been borrowed and its circulation status."""
+    conn = get_connection()
+    q = f"%{query}%"
+    sql = """
+        SELECT b.id, b.title, b.authors, b.barcode, b.account_number, b.status,
+               COUNT(t.id) as times_borrowed,
+               MAX(t.issue_date) as last_issued_date,
+               (SELECT p.name FROM transactions t2 JOIN patrons p ON t2.patron_id = p.id 
+                WHERE t2.book_id = b.id AND t2.status = 'issued' LIMIT 1) as current_borrower,
+               (SELECT t2.due_date FROM transactions t2 
+                WHERE t2.book_id = b.id AND t2.status = 'issued' LIMIT 1) as current_due_date
+        FROM books b
+        LEFT JOIN transactions t ON b.id = t.book_id
+        WHERE (b.title LIKE ? OR b.authors LIKE ? OR b.barcode LIKE ? OR b.account_number LIKE ?)
+        GROUP BY b.id
+        ORDER BY times_borrowed DESC, b.title ASC
+        LIMIT ?
+    """
+    rows = conn.execute(sql, (q, q, q, q, limit)).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def search_patron_borrow_stats(query="", limit=50):
+    """Search how many books each patron has taken, with active loans and fines."""
+    conn = get_connection()
+    q = f"%{query}%"
+    today = datetime.now().strftime("%Y-%m-%d")
+    sql = """
+        SELECT p.id, p.name, p.register_number, p.patron_type, p.year, p.section, p.barcode, p.email,
+               COUNT(t.id) as total_books_taken,
+               SUM(CASE WHEN t.status = 'issued' THEN 1 ELSE 0 END) as active_loans_count,
+               SUM(CASE WHEN t.status = 'issued' AND t.due_date < ? THEN 1 ELSE 0 END) as overdue_count,
+               SUM(CASE WHEN t.fine_paid = 0 THEN t.fine_amount ELSE 0 END) as pending_fines,
+               MAX(t.issue_date) as last_borrowed_date
+        FROM patrons p
+        LEFT JOIN transactions t ON p.id = t.patron_id
+        WHERE (p.name LIKE ? OR p.register_number LIKE ? OR p.barcode LIKE ? OR p.email LIKE ?)
+        GROUP BY p.id
+        ORDER BY total_books_taken DESC, p.name ASC
+        LIMIT ?
+    """
+    rows = conn.execute(sql, (today, q, q, q, q, limit)).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
 def mark_fine_paid(transaction_id):
     conn = get_connection()
     conn.execute("UPDATE transactions SET fine_paid=1 WHERE id=?", (transaction_id,))

@@ -22,7 +22,7 @@ from library_app.database import (
     get_patron_active_books, get_all_active_transactions,
     get_overdue_transactions, get_transaction_history, get_patron_history,
     get_dashboard_stats, get_most_borrowed_books, get_most_active_patrons,
-    mark_fine_paid
+    mark_fine_paid, search_book_borrow_stats, search_patron_borrow_stats
 )
 from library_app.utils.excel_importer import (
     import_books_from_excel, import_students_from_excel, import_staff_from_excel
@@ -673,6 +673,8 @@ def reports_page():
     history = get_transaction_history(100)
     top_books = get_most_borrowed_books(10)
     top_patrons = get_most_active_patrons(10)
+    book_stats = search_book_borrow_stats("", limit=50)
+    patron_stats = search_patron_borrow_stats("", limit=50)
     fine_rate = float(get_setting("fine_per_day", "2.0"))
     today = datetime.now()
 
@@ -685,8 +687,50 @@ def reports_page():
         due = datetime.strptime(txn["due_date"], "%Y-%m-%d")
         txn["days_left"] = (due - today).days
 
-    return render_template("reports.html", overdue=overdue, active=active,
-                           history=history, top_books=top_books, top_patrons=top_patrons)
+    return render_template(
+        "reports.html",
+        overdue=overdue,
+        active=active,
+        history=history,
+        top_books=top_books,
+        top_patrons=top_patrons,
+        book_stats=book_stats,
+        patron_stats=patron_stats
+    )
+
+
+@app.route("/reports/pdf")
+def reports_pdf():
+    if not require_staff():
+        return redirect(url_for("staff_login", next=request.path))
+    from library_app.utils.report_pdf import generate_circulation_report_pdf
+    pdf_bytes = generate_circulation_report_pdf()
+    as_attachment = request.args.get("download") == "1"
+    stamp = datetime.now().strftime("%Y%m%d_%H%M")
+    return send_file(
+        io.BytesIO(pdf_bytes),
+        mimetype="application/pdf",
+        as_attachment=as_attachment,
+        download_name=f"SRM_Library_Circulation_Report_{stamp}.pdf"
+    )
+
+
+@app.route("/api/reports/search_books")
+def api_reports_search_books():
+    if not require_staff():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+    q = request.args.get("q", "").strip()
+    data = search_book_borrow_stats(q, limit=100)
+    return jsonify({"success": True, "results": data})
+
+
+@app.route("/api/reports/search_patrons")
+def api_reports_search_patrons():
+    if not require_staff():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+    q = request.args.get("q", "").strip()
+    data = search_patron_borrow_stats(q, limit=100)
+    return jsonify({"success": True, "results": data})
 
 
 @app.route("/api/send_overdue_emails", methods=["POST"])
