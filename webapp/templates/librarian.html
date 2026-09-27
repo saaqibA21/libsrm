@@ -1,0 +1,440 @@
+{% extends "base.html" %}
+{% block title %}Librarian Desk — SRM EEE Library{% endblock %}
+{% block page_title %}Librarian Operations Desk{% endblock %}
+{% block content %}
+
+<!-- Hero Header (Ostra Style) -->
+<div style="background: linear-gradient(135deg, #E6EFE4 0%, #D8E5D5 100%); border: 1px solid #D1E0CE; border-radius: 24px; padding: 32px 36px; margin-bottom: 24px; position: relative; overflow: hidden; box-shadow: var(--shadow-sm);">
+  <div style="max-width: 720px; position: relative; z-index: 2;">
+    <div style="display:inline-flex; align-items:center; gap:8px; background: rgba(255,255,255,0.7); backdrop-filter: blur(8px); padding: 5px 14px; border-radius: 9999px; font-size: 11.5px; font-weight: 600; color: var(--accent-text); margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.6);">
+      <span style="width:6px; height:6px; background:#166534; border-radius:50%;"></span> Librarian Staff Mode Active • SRM EEE Department
+    </div>
+    <h1 class="serif-heading" style="font-size: 32px; line-height: 1.18; color: #16291C; margin-bottom: 10px;">
+      Circulation Desk & <em>Data Management Hub</em>
+    </h1>
+    <p style="font-size: 13.5px; line-height: 1.6; color: #435A48; margin-bottom: 22px;">
+      Issue and return books with USB barcode scanning, upload new Excel rosters with <strong>instant database updates & auto-generated barcodes</strong>, and print print-ready label sheets.
+    </p>
+
+    <!-- Quick Action Pills -->
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <a href="/issue" class="btn btn-primary btn-lg" style="box-shadow: 0 4px 14px rgba(28,48,34,0.25);">
+        <i class="fa fa-arrow-up-right-from-square"></i> Issue Book
+      </a>
+      <a href="/return" class="btn btn-warning btn-lg" style="box-shadow: 0 4px 14px rgba(160,100,52,0.25);">
+        <i class="fa fa-arrow-down-left-and-up-right-to-center"></i> Return Book
+      </a>
+      <a href="#excel-hub" class="btn btn-success btn-lg" style="box-shadow: 0 4px 14px rgba(35,67,43,0.25);">
+        <i class="fa fa-file-excel"></i> Upload Excels & Auto-Barcode
+      </a>
+      <a href="/books/barcodes" class="btn btn-outline" style="background:#fff;">
+        <i class="fa fa-print"></i> Master Book Barcodes PDF
+      </a>
+      <a href="/patrons/barcodes" class="btn btn-outline" style="background:#fff;">
+        <i class="fa fa-id-card"></i> Master Patron ID Barcodes PDF
+      </a>
+    </div>
+  </div>
+  <div style="position: absolute; right: 25px; bottom: -25px; font-size: 170px; color: rgba(43, 70, 48, 0.05); pointer-events: none; z-index: 1;">
+    <i class="fa fa-shield-halved"></i>
+  </div>
+</div>
+
+<!-- Stats Grid -->
+<div class="stats-grid" id="statsGrid">
+  <div class="stat-card">
+    <div class="icon-pill"><i class="fa fa-book"></i></div>
+    <div class="num" id="s-total_books">{{ stats.total_books }}</div>
+    <div class="lbl">Total Books</div>
+  </div>
+  <div class="stat-card">
+    <div class="icon-pill" style="background:#F0FDF4; color:#166534;"><i class="fa fa-circle-check"></i></div>
+    <div class="num c-green" id="s-available_books">{{ stats.available_books }}</div>
+    <div class="lbl">Available on Shelf</div>
+  </div>
+  <div class="stat-card">
+    <div class="icon-pill" style="background:#ECFEFF; color:#0E7490;"><i class="fa fa-hand-holding-hand"></i></div>
+    <div class="num c-cyan" id="s-issued_books">{{ stats.issued_books }}</div>
+    <div class="lbl">Currently Borrowed</div>
+  </div>
+  <div class="stat-card">
+    <div class="icon-pill" style="background:#FAF5FF; color:#7E22CE;"><i class="fa fa-users"></i></div>
+    <div class="num c-purple" id="s-total_patrons">{{ stats.total_patrons }}</div>
+    <div class="lbl">Total Patrons</div>
+  </div>
+  <div class="stat-card">
+    <div class="icon-pill" style="background:#FEF2F2; color:#991B1B;"><i class="fa fa-triangle-exclamation"></i></div>
+    <div class="num c-red" id="s-overdue">{{ stats.overdue }}</div>
+    <div class="lbl">Overdue Items</div>
+  </div>
+  <div class="stat-card">
+    <div class="icon-pill" style="background:#EFF6FF; color:#1E40AF;"><i class="fa fa-clipboard-list"></i></div>
+    <div class="num c-blue" id="s-issued_today">{{ stats.issued_today }}</div>
+    <div class="lbl">Issued Today</div>
+  </div>
+  <div class="stat-card">
+    <div class="icon-pill" style="background:#F0FDF4; color:#166534;"><i class="fa fa-rotate-left"></i></div>
+    <div class="num c-green" id="s-returned_today">{{ stats.returned_today }}</div>
+    <div class="lbl">Returned Today</div>
+  </div>
+  <div class="stat-card">
+    <div class="icon-pill" style="background:#FFFBEB; color:#B45309;"><i class="fa fa-coins"></i></div>
+    <div class="num c-yellow" id="s-pending_fines">₹{{ "%.0f"|format(stats.pending_fines) }}</div>
+    <div class="lbl">Pending Fines</div>
+  </div>
+</div>
+
+<!-- EXCEL UPLOAD & AUTO-BARCODE GENERATION HUB -->
+<div class="card" id="excel-hub" style="margin-bottom:28px; border-radius:22px; padding:28px; box-shadow:var(--shadow-md);">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
+    <div>
+      <div class="card-title" style="margin-bottom:4px;">
+        <i class="fa fa-file-excel" style="color:#166534;"></i> Excel Data Import & Barcode Generator Hub
+      </div>
+      <p style="font-size:13px; color:var(--muted);">
+        Upload your Excel spreadsheets below. The system automatically inserts new records into the database and generates unique <strong>Code 128 barcodes</strong> immediately.
+      </p>
+    </div>
+    <span class="badge badge-info"><i class="fa fa-bolt"></i> Real-time Database Sync</span>
+  </div>
+
+  <!-- Import Tabs -->
+  <div class="tab-bar" style="margin-bottom:20px;">
+    <button class="tab-btn active" data-tab="tab-imp-students"><i class="fa fa-graduation-cap"></i> Upload Students</button>
+    <button class="tab-btn" data-tab="tab-imp-staff"><i class="fa fa-chalkboard-user"></i> Upload Faculty & Staff</button>
+    <button class="tab-btn" data-tab="tab-imp-books"><i class="fa fa-book"></i> Upload Books Catalog</button>
+  </div>
+
+  <!-- TAB 1: STUDENTS IMPORT -->
+  <div class="tab-pane active" id="tab-imp-students">
+    <form id="studentImportForm" onsubmit="handleStudentUpload(event)" style="background:var(--card2); border:1px solid var(--border); border-radius:18px; padding:24px;">
+      <div style="font-weight:700; font-size:14px; margin-bottom:12px; color:var(--text);">
+        🎓 Import Class Students (.xlsx, .xls, .docx)
+      </div>
+      <p style="font-size:12.5px; color:var(--muted); margin-bottom:16px;">
+        Upload a class namelist. Every student will be assigned a unique barcode (<code>ST{RegisterNumber}</code>) automatically.
+      </p>
+
+      <div class="form-row cols-3" style="margin-bottom:16px;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Class Year</label>
+          <select name="year" class="form-control" required>
+            <option value="I">Year I</option>
+            <option value="II">Year II</option>
+            <option value="III">Year III</option>
+            <option value="IV">Year IV</option>
+            <option value="RS">Research Scholars</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Section</label>
+          <select name="section" class="form-control" required>
+            <option value="A">Section A</option>
+            <option value="B">Section B</option>
+            <option value="C">Section C</option>
+            <option value="D">Section D</option>
+            <option value="General">General / All</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Select Spreadsheet File</label>
+          <input type="file" name="file" class="form-control" accept=".xlsx,.xls,.docx" required>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-top:16px;">
+        <button type="submit" id="btnStudentImport" class="btn btn-success">
+          <i class="fa fa-cloud-arrow-up"></i> Upload & Auto-Generate Student Barcodes
+        </button>
+        <span style="font-size:12px; color:var(--muted);">Supports Excel sheets & Word (.docx) tables with Reg No & Name</span>
+      </div>
+    </form>
+
+    <!-- Result Banner for Students -->
+    <div id="studentResultBox" style="display:none; margin-top:16px;"></div>
+  </div>
+
+  <!-- TAB 2: STAFF IMPORT -->
+  <div class="tab-pane" id="tab-imp-staff">
+    <form id="staffImportForm" onsubmit="handleStaffUpload(event)" style="background:var(--card2); border:1px solid var(--border); border-radius:18px; padding:24px;">
+      <div style="font-weight:700; font-size:14px; margin-bottom:12px; color:var(--text);">
+        👨‍🏫 Import Teaching & Non-Teaching Faculty (.xls, .xlsx)
+      </div>
+      <p style="font-size:12.5px; color:var(--muted); margin-bottom:16px;">
+        Upload faculty or staff rosters. Each member will be assigned a unique staff barcode (<code>TC{EmployeeID}</code>) automatically.
+      </p>
+
+      <div class="form-row cols-2" style="margin-bottom:16px;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Select Faculty Excel File</label>
+          <input type="file" name="file" class="form-control" accept=".xlsx,.xls" required>
+        </div>
+        <div style="display:flex; align-items:flex-end;">
+          <button type="submit" id="btnStaffImport" class="btn btn-success" style="height:42px; width:100%; justify-content:center;">
+            <i class="fa fa-cloud-arrow-up"></i> Upload & Auto-Generate Staff Barcodes
+          </button>
+        </div>
+      </div>
+    </form>
+
+    <div id="staffResultBox" style="display:none; margin-top:16px;"></div>
+  </div>
+
+  <!-- TAB 3: BOOKS IMPORT -->
+  <div class="tab-pane" id="tab-imp-books">
+    <form id="bookImportForm" onsubmit="handleBookUpload(event)" style="background:var(--card2); border:1px solid var(--border); border-radius:18px; padding:24px;">
+      <div style="font-weight:700; font-size:14px; margin-bottom:12px; color:var(--text);">
+        📚 Import Books Accession Register (.xlsx, .xls)
+      </div>
+      <p style="font-size:12.5px; color:var(--muted); margin-bottom:16px;">
+        Upload new book accession lists. Each book will be assigned a barcode (<code>BK{AccountNo}</code>) and immediately become searchable in the public catalog.
+      </p>
+
+      <div class="form-row cols-2" style="margin-bottom:16px;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Select Books Excel File</label>
+          <input type="file" name="file" class="form-control" accept=".xlsx,.xls" required>
+        </div>
+        <div style="display:flex; align-items:flex-end;">
+          <button type="submit" id="btnBookImport" class="btn btn-success" style="height:42px; width:100%; justify-content:center;">
+            <i class="fa fa-cloud-arrow-up"></i> Upload & Auto-Generate Book Barcodes
+          </button>
+        </div>
+      </div>
+    </form>
+
+    <div id="bookResultBox" style="display:none; margin-top:16px;"></div>
+  </div>
+</div>
+
+<!-- Two-Column Circulation & Activity Section -->
+<div class="two-col">
+  <!-- Recent Circulation Table -->
+  <div class="card" style="border-radius:20px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <div class="card-title" style="margin-bottom:0;">
+        <i class="fa fa-clock-rotate-left" style="color:var(--muted);"></i> Recent Activity
+      </div>
+      <a href="/reports" class="btn btn-outline btn-sm">Full History</a>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Book</th><th>Patron</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody>
+        {% for txn in recent %}
+        <tr>
+          <td style="max-width:170px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600;" title="{{ txn.book_title }}">{{ txn.book_title[:42] }}</td>
+          <td style="color:var(--muted); font-size:12px;">{{ txn.patron_name }}</td>
+          <td>
+            {% if txn.status == 'returned' %}
+              <span class="badge badge-success">Returned</span>
+            {% else %}
+              <span class="badge badge-info">Issued</span>
+            {% endif %}
+          </td>
+          <td style="color:var(--muted); font-size:12px;">{{ txn.return_date or txn.issue_date }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" style="text-align:center; color:var(--muted); padding:28px;">No transactions recorded yet</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Overdue Books Table -->
+  <div class="card" style="border-radius:20px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <div class="card-title" style="margin-bottom:0; color:var(--danger);">
+        <i class="fa fa-bell"></i> Overdue Items
+      </div>
+      {% if overdue %}
+        <button class="btn btn-danger btn-sm" onclick="sendOverdueEmails()"><i class="fa fa-envelope"></i> Email Notices</button>
+      {% endif %}
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Patron</th><th>Book Title</th><th>Due Date</th></tr></thead>
+        <tbody>
+        {% for txn in overdue %}
+        <tr>
+          <td style="font-weight:600;">{{ txn.patron_name }}</td>
+          <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted);">{{ txn.book_title[:40] }}</td>
+          <td><span class="badge badge-danger">{{ txn.due_date }}</span></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3" style="text-align:center; color:var(--success); padding:28px; font-weight:500;">🌿 All books are on schedule — zero overdue items!</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+initTabs('excel-hub');
+
+async function handleStudentUpload(e) {
+  e.preventDefault();
+  const form = document.getElementById('studentImportForm');
+  const btn = document.getElementById('btnStudentImport');
+  const resBox = document.getElementById('studentResultBox');
+  const fd = new FormData(form);
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Processing & Generating Barcodes…';
+  resBox.style.display = 'none';
+
+  try {
+    const res = await fetch('/patrons/import/students', { method: 'POST', body: fd }).then(r => r.json());
+    if (res.success) {
+      let sampleBadges = (res.sample_barcodes || []).map(b => `<code>${b}</code>`).join(' ');
+      resBox.innerHTML = `
+        <div style="background:#F0FDF4; border:1px solid #86EFAC; border-radius:14px; padding:18px 20px;">
+          <div style="font-weight:700; color:#166534; font-size:14.5px; margin-bottom:4px;">
+            <i class="fa fa-circle-check"></i> Successfully Imported ${res.added} Students!
+          </div>
+          <div style="font-size:13px; color:#14532D; margin-bottom:12px;">
+            Total records in file: <strong>${res.total}</strong> • New students added: <strong>${res.added}</strong> • Existing/Duplicates skipped: <strong>${res.skipped}</strong><br>
+            Sample generated barcodes: ${sampleBadges}
+          </div>
+          ${res.pdf_download_url ? `
+            <a href="${res.pdf_download_url}" class="btn btn-primary btn-sm" style="background:#166534;">
+              <i class="fa fa-print"></i> Download & Print Barcode Labels for this Upload (PDF)
+            </a>
+          ` : ''}
+        </div>
+      `;
+      resBox.style.display = 'block';
+      showToast(`✅ ${res.added} students added with new barcodes!`, 'success');
+      form.reset();
+      refreshStats();
+    } else {
+      showToast(res.message || 'Import failed', 'error');
+    }
+  } catch (err) {
+    showToast('Failed to upload student file', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa fa-cloud-arrow-up"></i> Upload & Auto-Generate Student Barcodes';
+  }
+}
+
+async function handleStaffUpload(e) {
+  e.preventDefault();
+  const form = document.getElementById('staffImportForm');
+  const btn = document.getElementById('btnStaffImport');
+  const resBox = document.getElementById('staffResultBox');
+  const fd = new FormData(form);
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Processing & Generating Staff Barcodes…';
+  resBox.style.display = 'none';
+
+  try {
+    const res = await fetch('/patrons/import/staff', { method: 'POST', body: fd }).then(r => r.json());
+    if (res.success) {
+      let sampleBadges = (res.sample_barcodes || []).map(b => `<code>${b}</code>`).join(' ');
+      resBox.innerHTML = `
+        <div style="background:#F0FDF4; border:1px solid #86EFAC; border-radius:14px; padding:18px 20px;">
+          <div style="font-weight:700; color:#166534; font-size:14.5px; margin-bottom:4px;">
+            <i class="fa fa-circle-check"></i> Successfully Imported ${res.added} Staff Members!
+          </div>
+          <div style="font-size:13px; color:#14532D; margin-bottom:12px;">
+            Total records: <strong>${res.total}</strong> • New staff added: <strong>${res.added}</strong> • Duplicates skipped: <strong>${res.skipped}</strong><br>
+            Sample generated barcodes: ${sampleBadges}
+          </div>
+          ${res.pdf_download_url ? `
+            <a href="${res.pdf_download_url}" class="btn btn-primary btn-sm" style="background:#166534;">
+              <i class="fa fa-print"></i> Download & Print Barcode Labels for this Upload (PDF)
+            </a>
+          ` : ''}
+        </div>
+      `;
+      resBox.style.display = 'block';
+      showToast(`✅ ${res.added} staff added with new barcodes!`, 'success');
+      form.reset();
+      refreshStats();
+    } else {
+      showToast(res.message || 'Import failed', 'error');
+    }
+  } catch (err) {
+    showToast('Failed to upload staff file', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa fa-cloud-arrow-up"></i> Upload & Auto-Generate Staff Barcodes';
+  }
+}
+
+async function handleBookUpload(e) {
+  e.preventDefault();
+  const form = document.getElementById('bookImportForm');
+  const btn = document.getElementById('btnBookImport');
+  const resBox = document.getElementById('bookResultBox');
+  const fd = new FormData(form);
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Processing & Generating Book Barcodes…';
+  resBox.style.display = 'none';
+
+  try {
+    const res = await fetch('/books/import', { method: 'POST', body: fd }).then(r => r.json());
+    if (res.success) {
+      let sampleBadges = (res.sample_barcodes || []).map(b => `<code>${b}</code>`).join(' ');
+      resBox.innerHTML = `
+        <div style="background:#F0FDF4; border:1px solid #86EFAC; border-radius:14px; padding:18px 20px;">
+          <div style="font-weight:700; color:#166534; font-size:14.5px; margin-bottom:4px;">
+            <i class="fa fa-circle-check"></i> Successfully Imported ${res.added} Books into Catalog!
+          </div>
+          <div style="font-size:13px; color:#14532D; margin-bottom:12px;">
+            Total found in Excel: <strong>${res.total}</strong> • New books added: <strong>${res.added}</strong> • Duplicates skipped: <strong>${res.skipped}</strong><br>
+            Sample generated barcodes: ${sampleBadges}<br>
+            <em>All newly added books are immediately searchable in the Public Catalog!</em>
+          </div>
+          ${res.pdf_download_url ? `
+            <a href="${res.pdf_download_url}" class="btn btn-primary btn-sm" style="background:#166534;">
+              <i class="fa fa-print"></i> Download & Print Barcode Labels for this Upload (PDF)
+            </a>
+          ` : ''}
+        </div>
+      `;
+      resBox.style.display = 'block';
+      showToast(`✅ ${res.added} books added to catalog with barcodes!`, 'success');
+      form.reset();
+      refreshStats();
+    } else {
+      showToast(res.message || 'Import failed', 'error');
+    }
+  } catch (err) {
+    showToast('Failed to upload books file', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa fa-cloud-arrow-up"></i> Upload & Auto-Generate Book Barcodes';
+  }
+}
+
+async function sendOverdueEmails() {
+  if (!confirm('Send overdue email notices to all patrons with late books?')) return;
+  const res = await postJSON('/api/send_overdue_emails', {});
+  if (res.success) showToast(`✅ Sent: ${res.sent}, Failed: ${res.failed}`, res.failed>0?'info':'success');
+  else showToast(res.message, 'error');
+}
+
+async function refreshStats() {
+  const data = await fetch('/api/stats').then(r=>r.json());
+  document.getElementById('s-total_books').textContent = data.total_books;
+  document.getElementById('s-available_books').textContent = data.available_books;
+  document.getElementById('s-issued_books').textContent = data.issued_books;
+  document.getElementById('s-total_patrons').textContent = data.total_patrons;
+  document.getElementById('s-overdue').textContent = data.overdue;
+  document.getElementById('s-issued_today').textContent = data.issued_today;
+  document.getElementById('s-returned_today').textContent = data.returned_today;
+  document.getElementById('s-pending_fines').textContent = '₹' + Math.round(data.pending_fines);
+}
+setInterval(refreshStats, 30000);
+</script>
+{% endblock %}

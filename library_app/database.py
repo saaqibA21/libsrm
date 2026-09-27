@@ -129,6 +129,12 @@ def get_all_settings():
 
 def add_book(barcode, title, publisher="", authors="", edition="", account_number=""):
     conn = get_connection()
+    if not barcode:
+        clean_acc = (account_number or "").strip()
+        if clean_acc:
+            barcode = f"BK{clean_acc}"
+        else:
+            barcode = f"BK{int(datetime.now().timestamp() * 1000)}"
     try:
         conn.execute("""
             INSERT INTO books (barcode, account_number, title, publisher, authors, edition)
@@ -219,6 +225,13 @@ def add_patron(barcode, register_number, name, patron_type="student",
                year="", section="", mobile="", email="",
                parent_mobile="", parent_email=""):
     conn = get_connection()
+    if not barcode:
+        clean_reg = (register_number or "").strip().replace(" ", "").replace("/", "")
+        prefix = "ST" if patron_type == "student" else "TC"
+        if clean_reg:
+            barcode = f"{prefix}{clean_reg}"
+        else:
+            barcode = f"{prefix}{int(datetime.now().timestamp() * 1000)}"
     try:
         conn.execute("""
             INSERT INTO patrons

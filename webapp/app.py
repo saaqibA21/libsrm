@@ -166,16 +166,32 @@ def require_staff():
     return session.get("is_staff", False)
 
 
-# ─── Librarian Desk: Dashboard ─────────────────────────────────────────────────
+# ─── Librarian Desk: Dashboard & Hub ───────────────────────────────────────────
 
-@app.route("/dashboard")
-def dashboard():
+@app.route("/librarian")
+def librarian_page():
     if not require_staff():
         return redirect(url_for("staff_login", next=request.path))
     stats = get_dashboard_stats()
     overdue = get_overdue_transactions()[:10]
     recent = get_transaction_history(limit=10)
-    return render_template("dashboard.html", stats=stats, overdue=overdue, recent=recent)
+    return render_template("librarian.html", stats=stats, overdue=overdue, recent=recent)
+
+
+@app.route("/dashboard")
+def dashboard():
+    return redirect(url_for("librarian_page"))
+
+
+@app.route("/api/download/last_import/<import_type>")
+def download_last_import(import_type):
+    if not require_staff():
+        return jsonify({"error": "Unauthorized"}), 403
+    base = os.path.dirname(__file__)
+    pdf_path = os.path.join(base, f"_last_{import_type}_barcodes.pdf")
+    if os.path.exists(pdf_path):
+        return send_file(pdf_path, as_attachment=True, download_name=f"new_{import_type}_barcodes.pdf", mimetype="application/pdf")
+    return jsonify({"error": "No recent import found"}), 404
 
 
 @app.route("/api/stats")
@@ -312,16 +328,43 @@ def import_books_route():
     f = request.files.get("file")
     if not f:
         return jsonify({"success": False, "message": "No file uploaded"})
-    tmp = os.path.join(os.path.dirname(__file__), "_tmp_import.xlsx")
+    ext = f.filename.rsplit(".", 1)[-1].lower() if "." in f.filename else "xlsx"
+    tmp = os.path.join(os.path.dirname(__file__), f"_tmp_import.{ext}")
     f.save(tmp)
     books, errors = import_books_from_excel(tmp)
     if os.path.exists(tmp): os.remove(tmp)
     added = skipped = 0
+    added_items = []
     for book in books:
         ok, _ = add_book(**book)
-        if ok: added += 1
-        else: skipped += 1
-    return jsonify({"success": True, "added": added, "skipped": skipped, "total": len(books)})
+        if ok:
+            added += 1
+            added_items.append({
+                "barcode": book["barcode"],
+                "name": book["title"][:45],
+                "extra": f"Acc: {book.get('account_number','')} | {(book.get('authors','') or '')[:30]}"
+            })
+        else:
+            skipped += 1
+
+    pdf_available = False
+    if added_items:
+        try:
+            from library_app.utils.barcode_utils import generate_barcode_pdf
+            batch_pdf = os.path.join(os.path.dirname(__file__), "_last_books_barcodes.pdf")
+            generate_barcode_pdf(added_items, batch_pdf, "book")
+            pdf_available = True
+        except Exception:
+            pass
+
+    return jsonify({
+        "success": True,
+        "added": added,
+        "skipped": skipped,
+        "total": len(books),
+        "pdf_download_url": "/api/download/last_import/books" if pdf_available else None,
+        "sample_barcodes": [item["barcode"] for item in added_items[:5]]
+    })
 
 
 @app.route("/books/barcodes")
@@ -412,16 +455,45 @@ def import_students_route():
     section = request.form.get("section", "A")
     if not f:
         return jsonify({"success": False, "message": "No file uploaded"})
-    tmp = os.path.join(os.path.dirname(__file__), "_tmp_students.xlsx")
+    ext = f.filename.rsplit(".", 1)[-1].lower() if "." in f.filename else "xlsx"
+    tmp = os.path.join(os.path.dirname(__file__), f"_tmp_students.{ext}")
     f.save(tmp)
     patrons, errors = import_students_from_excel(tmp, year, section)
     if os.path.exists(tmp): os.remove(tmp)
     added = skipped = 0
+    added_items = []
     for p in patrons:
         ok, _ = add_patron(**p)
-        if ok: added += 1
-        else: skipped += 1
-    return jsonify({"success": True, "added": added, "skipped": skipped})
+        if ok:
+            added += 1
+            added_items.append({
+                "barcode": p["barcode"],
+                "name": p["name"],
+                "extra": f"Student - Yr {year} Sec {section} | {p.get('register_number','')}"
+            })
+        else:
+            skipped += 1
+
+    pdf_available = False
+    if added_items:
+        try:
+            from library_app.utils.barcode_utils import generate_barcode_pdf
+            batch_pdf = os.path.join(os.path.dirname(__file__), "_last_students_barcodes.pdf")
+            generate_barcode_pdf(added_items, batch_pdf, "patron")
+            pdf_available = True
+        except Exception:
+            pass
+
+    return jsonify({
+        "success": True,
+        "added": added,
+        "skipped": skipped,
+        "total": len(patrons),
+        "year": year,
+        "section": section,
+        "pdf_download_url": "/api/download/last_import/students" if pdf_available else None,
+        "sample_barcodes": [item["barcode"] for item in added_items[:5]]
+    })
 
 
 @app.route("/patrons/import/staff", methods=["POST"])
@@ -431,17 +503,44 @@ def import_staff_route():
     f = request.files.get("file")
     if not f:
         return jsonify({"success": False, "message": "No file uploaded"})
-    ext = f.filename.rsplit(".", 1)[-1].lower()
+    ext = f.filename.rsplit(".", 1)[-1].lower() if "." in f.filename else "xlsx"
     tmp = os.path.join(os.path.dirname(__file__), f"_tmp_staff.{ext}")
     f.save(tmp)
     patrons, errors = import_staff_from_excel(tmp)
     if os.path.exists(tmp): os.remove(tmp)
     added = skipped = 0
+    added_items = []
     for p in patrons:
         ok, _ = add_patron(**p)
-        if ok: added += 1
-        else: skipped += 1
-    return jsonify({"success": True, "added": added, "skipped": skipped})
+        if ok:
+            added += 1
+            ptype = (p.get("patron_type", "") or "").title()
+            added_items.append({
+                "barcode": p["barcode"],
+                "name": p["name"],
+                "extra": f"{ptype} | {p.get('register_number','')}"
+            })
+        else:
+            skipped += 1
+
+    pdf_available = False
+    if added_items:
+        try:
+            from library_app.utils.barcode_utils import generate_barcode_pdf
+            batch_pdf = os.path.join(os.path.dirname(__file__), "_last_staff_barcodes.pdf")
+            generate_barcode_pdf(added_items, batch_pdf, "patron")
+            pdf_available = True
+        except Exception:
+            pass
+
+    return jsonify({
+        "success": True,
+        "added": added,
+        "skipped": skipped,
+        "total": len(patrons),
+        "pdf_download_url": "/api/download/last_import/staff" if pdf_available else None,
+        "sample_barcodes": [item["barcode"] for item in added_items[:5]]
+    })
 
 
 @app.route("/patrons/barcodes")
