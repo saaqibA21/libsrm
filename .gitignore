@@ -1,0 +1,23 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Logs and databases
+*.log
+_tmp*
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Large transient artifacts
+*.pdf
+*.zip
+sample_*.pdf
+test_*.pdf

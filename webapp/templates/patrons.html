@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+{% block title %}Patrons — SRM Library{% endblock %}
+{% block page_title %}👥 Patrons{% endblock %}
+{% block content %}
+
+<div class="toolbar">
+  <form method="get" style="display:contents;">
+    <div class="search-box">
+      <i class="fa fa-search"></i>
+      <input name="q" value="{{ q }}" placeholder="Search by name, reg. no., barcode…">
+    </div>
+    <select name="type" class="form-control" style="width:140px;" onchange="this.form.submit()">
+      <option value="">All Types</option>
+      <option value="student" {% if ptype=='student' %}selected{% endif %}>Students</option>
+      <option value="teacher" {% if ptype=='teacher' %}selected{% endif %}>Teachers</option>
+    </select>
+    <button type="submit" class="btn btn-primary"><i class="fa fa-search"></i> Search</button>
+  </form>
+  <button class="btn btn-success" onclick="openAddModal()"><i class="fa fa-plus"></i> Add Patron</button>
+  <button class="btn btn-outline" onclick="openModal('importStudModal')"><i class="fa fa-upload"></i> Import Students</button>
+  <button class="btn btn-outline" onclick="openModal('importStaffModal')"><i class="fa fa-upload"></i> Import Staff</button>
+  <a href="/patrons/barcodes" class="btn btn-outline"><i class="fa fa-barcode"></i> Print ID Cards PDF</a>
+</div>
+
+<div style="margin-bottom:14px;font-size:13px;color:var(--muted);">
+  Total: <strong style="color:var(--text)">{{ counts.total }}</strong> &nbsp;•&nbsp;
+  Students: <strong style="color:var(--info)">{{ counts.students }}</strong> &nbsp;•&nbsp;
+  Teachers: <strong style="color:var(--purple, #a855f7)">{{ counts.teachers }}</strong>
+  &nbsp;&nbsp;<span>Showing {{ patrons|length }} results</span>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Barcode</th><th>Reg. No.</th><th>Name</th><th>Type</th><th>Year</th><th>Section</th><th>Mobile</th><th>Email</th><th>Actions</th></tr></thead>
+    <tbody>
+    {% for p in patrons %}
+    <tr>
+      <td><code style="font-size:11px;color:var(--info)">{{ p.barcode }}</code></td>
+      <td class="text-sm">{{ p.register_number or '—' }}</td>
+      <td style="font-weight:600">{{ p.name }}</td>
+      <td>
+        {% if p.patron_type == 'teacher' %}
+          <span class="badge badge-purple">Teacher</span>
+        {% else %}
+          <span class="badge badge-info">Student</span>
+        {% endif %}
+      </td>
+      <td class="text-muted text-sm">{{ p.year or '—' }}</td>
+      <td class="text-muted text-sm">{{ p.section or '—' }}</td>
+      <td class="text-sm">{{ p.mobile or '—' }}</td>
+      <td class="text-sm text-muted">{{ p.email or '—' }}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-outline btn-sm" onclick="viewHistory({{ p.id }}, '{{ p.name|e }}')"><i class="fa fa-history"></i></button>
+        <button class="btn btn-outline btn-sm" onclick="editPatron({{ p.id }})"><i class="fa fa-edit"></i></button>
+        <button class="btn btn-danger btn-sm" onclick="deletePatron({{ p.id }}, '{{ p.name|e }}')"><i class="fa fa-trash"></i></button>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--muted)">No patrons found. Import from Excel or add manually.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Add/Edit Patron Modal -->
+<div class="modal-overlay" id="patronModal">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <h3 id="patronModalTitle">➕ Add New Patron</h3>
+      <button class="modal-close" onclick="closeModal('patronModal')">✕</button>
+    </div>
+    <input type="hidden" id="editPatronId" value="">
+    <div class="form-row cols-2">
+      <div class="form-group"><label>Barcode *</label><input class="form-control" id="fp-barcode" placeholder="e.g. STRA2611005010001"></div>
+      <div class="form-group"><label>Reg. Number *</label><input class="form-control" id="fp-reg" placeholder="Register / Employee number"></div>
+    </div>
+    <div class="form-group"><label>Full Name *</label><input class="form-control" id="fp-name"></div>
+    <div class="form-row cols-3">
+      <div class="form-group"><label>Type</label>
+        <select class="form-control" id="fp-type"><option value="student">Student</option><option value="teacher">Teacher</option></select>
+      </div>
+      <div class="form-group"><label>Year</label>
+        <select class="form-control" id="fp-year"><option value="">—</option><option>I</option><option>II</option><option>III</option><option>IV</option></select>
+      </div>
+      <div class="form-group"><label>Section</label><input class="form-control" id="fp-section" placeholder="A / B / C / D"></div>
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group"><label>Mobile</label><input class="form-control" id="fp-mobile"></div>
+      <div class="form-group"><label>Email</label><input class="form-control" id="fp-email" type="email"></div>
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group"><label>Parent Mobile</label><input class="form-control" id="fp-pmobile"></div>
+      <div class="form-group"><label>Parent Email</label><input class="form-control" id="fp-pemail" type="email"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('patronModal')">Cancel</button>
+      <button class="btn btn-success" onclick="savePatron()"><i class="fa fa-save"></i> Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Import Students Modal -->
+<div class="modal-overlay" id="importStudModal">
+  <div class="modal">
+    <div class="modal-header"><h3>📥 Import Students from Excel</h3><button class="modal-close" onclick="closeModal('importStudModal')">✕</button></div>
+    <div class="form-group"><label>Excel File</label><input type="file" class="form-control" id="studFile" accept=".xlsx,.xls"></div>
+    <div class="form-row cols-2">
+      <div class="form-group"><label>Year</label>
+        <select class="form-control" id="studYear"><option>I</option><option>II</option><option>III</option><option>IV</option></select>
+      </div>
+      <div class="form-group"><label>Section</label><input class="form-control" id="studSection" placeholder="A" value="A"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('importStudModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="doImportStudents()"><i class="fa fa-upload"></i> Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- Import Staff Modal -->
+<div class="modal-overlay" id="importStaffModal">
+  <div class="modal">
+    <div class="modal-header"><h3>📥 Import Staff from Excel</h3><button class="modal-close" onclick="closeModal('importStaffModal')">✕</button></div>
+    <p class="text-muted text-sm" style="margin-bottom:14px">Select the "Teaching and non teaching details" Excel file.</p>
+    <div class="form-group"><label>Excel File</label><input type="file" class="form-control" id="staffFile" accept=".xlsx,.xls"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('importStaffModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="doImportStaff()"><i class="fa fa-upload"></i> Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- History Modal -->
+<div class="modal-overlay" id="historyModal">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-header"><h3 id="historyTitle">📋 Borrowing History</h3><button class="modal-close" onclick="closeModal('historyModal')">✕</button></div>
+    <div class="table-wrap" style="max-height:400px;overflow-y:auto">
+      <table><thead><tr><th>Book</th><th>Issue Date</th><th>Due Date</th><th>Return Date</th><th>Fine</th></tr></thead>
+      <tbody id="historyTbody"></tbody></table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+function openAddModal() {
+  document.getElementById('editPatronId').value='';
+  document.getElementById('patronModalTitle').textContent='➕ Add New Patron';
+  document.getElementById('fp-barcode').readOnly=false;
+  ['fp-barcode','fp-reg','fp-name','fp-section','fp-mobile','fp-email','fp-pmobile','fp-pemail'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fp-type').value='student';
+  document.getElementById('fp-year').value='';
+  openModal('patronModal');
+}
+
+async function editPatron(id) {
+  const p = await fetch(`/patrons/get/${id}`).then(r=>r.json());
+  document.getElementById('editPatronId').value=id;
+  document.getElementById('patronModalTitle').textContent='✏️ Edit Patron';
+  document.getElementById('fp-barcode').value=p.barcode||''; document.getElementById('fp-barcode').readOnly=true;
+  document.getElementById('fp-reg').value=p.register_number||'';
+  document.getElementById('fp-name').value=p.name||'';
+  document.getElementById('fp-type').value=p.patron_type||'student';
+  document.getElementById('fp-year').value=p.year||'';
+  document.getElementById('fp-section').value=p.section||'';
+  document.getElementById('fp-mobile').value=p.mobile||'';
+  document.getElementById('fp-email').value=p.email||'';
+  document.getElementById('fp-pmobile').value=p.parent_mobile||'';
+  document.getElementById('fp-pemail').value=p.parent_email||'';
+  openModal('patronModal');
+}
+
+async function savePatron() {
+  const id = document.getElementById('editPatronId').value;
+  const fd = new FormData();
+  ['barcode','reg','name','type','year','section','mobile','email','pmobile','pemail'].forEach(k => {
+    fd.append(k==='reg'?'register_number':k==='type'?'patron_type':k==='pmobile'?'parent_mobile':k==='pemail'?'parent_email':k,
+      document.getElementById(`fp-${k}`).value);
+  });
+  if (!fd.get('name')) { showToast('Name is required','error'); return; }
+  const url = id ? `/patrons/edit/${id}` : '/patrons/add';
+  const res = await postForm(url, fd);
+  if (res.success) { showToast(res.message,'success'); closeModal('patronModal'); setTimeout(()=>location.reload(),800); }
+  else showToast(res.message,'error');
+}
+
+async function deletePatron(id, name) {
+  if (!confirm(`Delete patron: "${name}"?`)) return;
+  const res = await postForm(`/patrons/delete/${id}`, new FormData());
+  if (res.success) { showToast('Patron deleted','success'); setTimeout(()=>location.reload(),600); }
+  else showToast(res.message,'error');
+}
+
+async function viewHistory(id, name) {
+  document.getElementById('historyTitle').textContent = `📋 History: ${name}`;
+  const data = await fetch(`/patrons/history/${id}`).then(r=>r.json());
+  const tbody = document.getElementById('historyTbody');
+  tbody.innerHTML = '';
+  if (!data.history.length) { tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted)">No borrowing history</td></tr>'; }
+  data.history.forEach(h => {
+    const color = h.status==='issued' ? 'var(--info)' : 'var(--text)';
+    tbody.innerHTML += `<tr style="color:${color}">
+      <td>${h.book_title}</td><td>${h.issue_date}</td><td>${h.due_date}</td>
+      <td>${h.return_date||'—'}</td><td>₹${(h.fine_amount||0).toFixed(2)}</td></tr>`;
+  });
+  openModal('historyModal');
+}
+
+async function doImportStudents() {
+  const file = document.getElementById('studFile').files[0];
+  if (!file) { showToast('Select a file','error'); return; }
+  const fd = new FormData(); fd.append('file',file);
+  fd.append('year', document.getElementById('studYear').value);
+  fd.append('section', document.getElementById('studSection').value || 'A');
+  const res = await postForm('/patrons/import/students', fd);
+  if (res.success) { showToast(`✅ Imported ${res.added} students (${res.skipped} skipped)`,'success'); closeModal('importStudModal'); setTimeout(()=>location.reload(),1200); }
+  else showToast(res.message,'error');
+}
+
+async function doImportStaff() {
+  const file = document.getElementById('staffFile').files[0];
+  if (!file) { showToast('Select a file','error'); return; }
+  const fd = new FormData(); fd.append('file',file);
+  const res = await postForm('/patrons/import/staff', fd);
+  if (res.success) { showToast(`✅ Imported ${res.added} staff (${res.skipped} skipped)`,'success'); closeModal('importStaffModal'); setTimeout(()=>location.reload(),1200); }
+  else showToast(res.message,'error');
+}
+</script>
+{% endblock %}

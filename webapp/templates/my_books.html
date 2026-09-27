@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}Check My Borrowed Books — SRM EEE Library{% endblock %}
+{% block page_title %}Check My Books{% endblock %}
+{% block content %}
+
+<!-- Hero Banner -->
+<div style="background: linear-gradient(135deg, #E6EFE4 0%, #D8E5D5 100%); border: 1px solid #D1E0CE; border-radius: 24px; padding: 32px 36px; margin-bottom: 24px; box-shadow: var(--shadow-sm);">
+  <div style="max-width: 650px;">
+    <div style="display:inline-flex; align-items:center; gap:8px; background: rgba(255,255,255,0.7); backdrop-filter: blur(8px); padding: 4px 12px; border-radius: 9999px; font-size: 11px; font-weight: 600; color: var(--accent-text); margin-bottom: 10px;">
+      <i class="fa fa-id-card"></i> Student & Faculty Self-Check Portal
+    </div>
+    <h1 class="serif-heading" style="font-size: 28px; line-height: 1.2; color: #16291C; margin-bottom: 10px;">
+      Check Your <em>Borrowed Books & Due Dates</em>
+    </h1>
+    <p style="font-size: 13.5px; line-height: 1.6; color: #435A48; margin-bottom: 20px;">
+      Enter your SRM Register Number (e.g. <code>RA2611005010001</code>) or Employee ID to see all textbooks currently issued under your name and check return due dates.
+    </p>
+
+    <!-- Search Form -->
+    <form method="get" action="/my-books" style="display:flex; gap:10px; flex-wrap:wrap; max-width:540px;">
+      <div class="search-box" style="flex:1; min-width:260px; background:#fff;">
+        <i class="fa fa-magnifying-glass"></i>
+        <input type="text" name="reg" value="{{ reg }}" placeholder="Enter Register Number (e.g. RA2611005010001)…" required autofocus>
+      </div>
+      <button type="submit" class="btn btn-primary" style="padding:10px 22px;">Check Loans</button>
+      {% if searched %}
+        <a href="/my-books" class="btn btn-outline" style="padding:10px 16px;"><i class="fa fa-xmark"></i> Clear</a>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+{% if searched %}
+  {% if patron %}
+    <!-- Patron Profile Card -->
+    <div class="card" style="margin-bottom:22px; border-radius:18px; padding:22px 26px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
+        <div style="display:flex; align-items:center; gap:16px;">
+          <div style="width:48px; height:48px; border-radius:50%; background:var(--accent-light); color:var(--accent-text); display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:700;">
+            {{ patron.name[:1] }}
+          </div>
+          <div>
+            <h2 class="serif-heading" style="font-size:20px; margin-bottom:3px; color:var(--text);">{{ patron.name }}</h2>
+            <div style="font-size:12.5px; color:var(--muted);">
+              <strong>{{ patron.register_number }}</strong>
+              {% if patron.year %} • Year {{ patron.year }} Sec {{ patron.section }}{% endif %}
+              • <span class="badge badge-{% if patron.patron_type=='teacher' %}purple{% else %}info{% endif %}">{{ patron.patron_type.title() }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:14px; text-align:right;">
+          <div style="background:var(--card2); border:1px solid var(--border); border-radius:14px; padding:10px 18px;">
+            <div style="font-size:20px; font-weight:700; color:var(--primary); line-height:1;">{{ loans|length }}</div>
+            <div style="font-size:10.5px; color:var(--muted); text-transform:uppercase; font-weight:600; margin-top:4px;">Books Held</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Loans Section -->
+    {% if loans %}
+      <div class="card" style="border-radius:18px;">
+        <div class="card-title" style="margin-bottom:16px;">
+          <i class="fa fa-book-bookmark" style="color:var(--accent);"></i> Currently Issued Books ({{ loans|length }})
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Book Title</th>
+                <th>Authors</th>
+                <th>Acc No.</th>
+                <th>Borrowed On</th>
+                <th>Due Date</th>
+                <th>Status / Days Left</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for l in loans %}
+              <tr>
+                <td style="font-weight:600; max-width:240px; color:var(--text);">{{ l.book_title }}</td>
+                <td style="font-size:12px; color:var(--muted);">{{ l.book_authors or '—' }}</td>
+                <td><code>{{ l.book_account_number or '—' }}</code></td>
+                <td style="font-size:12.5px; color:var(--muted);">{{ l.issue_date }}</td>
+                <td style="font-size:12.5px; font-weight:600;">{{ l.due_date }}</td>
+                <td>
+                  <span class="badge {{ l.status_class }}">{{ l.status_label }}</span>
+                  {% if l.calculated_fine > 0 %}
+                    <span style="font-size:11px; font-weight:700; color:var(--danger); margin-left:6px;">
+                      (Fine: ₹{{ "%.2f"|format(l.calculated_fine) }})
+                    </span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div style="margin-top:16px; padding:14px; background:var(--card2); border:1px solid var(--border); border-radius:12px; font-size:12px; color:var(--muted); display:flex; align-items:center; gap:10px;">
+          <i class="fa fa-circle-info" style="color:var(--accent); font-size:16px;"></i>
+          <span>Please return or renew textbooks on or before the due date to avoid overdue fines of ₹2.00/day. Visit the EEE Department Library during working hours.</span>
+        </div>
+      </div>
+    {% else %}
+      <div class="card" style="text-align:center; padding:50px 20px; border-radius:18px;">
+        <div style="font-size:42px; color:#166534; margin-bottom:12px;"><i class="fa fa-circle-check"></i></div>
+        <h3 class="serif-heading" style="font-size:20px; margin-bottom:6px;">No Books Currently Issued</h3>
+        <p style="font-size:13px; color:var(--muted); max-width:440px; margin:0 auto 16px;">
+          You do not have any overdue or active textbooks checked out from the SRM EEE Library.
+        </p>
+        <a href="/" class="btn btn-primary btn-sm">Explore Books to Borrow</a>
+      </div>
+    {% endif %}
+
+  {% else %}
+    <!-- Not Found -->
+    <div class="card" style="text-align:center; padding:50px 20px; border-radius:18px;">
+      <div style="font-size:42px; color:var(--warning); margin-bottom:12px;"><i class="fa fa-triangle-exclamation"></i></div>
+      <h3 class="serif-heading" style="font-size:20px; margin-bottom:6px;">Patron Record Not Found</h3>
+      <p style="font-size:13px; color:var(--muted); max-width:440px; margin:0 auto 16px;">
+        We could not find any student or staff record matching <strong>"{{ reg }}"</strong>. Please check your register number or visit the librarian desk.
+      </p>
+      <a href="/my-books" class="btn btn-outline btn-sm">Try Again</a>
+    </div>
+  {% endif %}
+{% else %}
+  <!-- Initial State Guide -->
+  <div class="two-col">
+    <div class="card" style="border-radius:18px;">
+      <div class="card-title"><i class="fa fa-question-circle" style="color:var(--muted);"></i> How to Check Your Books</div>
+      <p style="font-size:13px; color:var(--muted); line-height:1.6; margin-bottom:14px;">
+        1. Find your <strong>SRM Register Number</strong> (e.g. <code>RA2611005010001</code>) on your student ID card.<br>
+        2. Type it into the search box above and click <strong>Check Loans</strong>.<br>
+        3. You will immediately see which books you have borrowed and when they must be returned.
+      </p>
+      <div style="background:var(--accent-light); border:1px solid #D4E2D1; border-radius:12px; padding:12px 14px; font-size:12px; color:var(--accent-text);">
+        💡 <strong>Tip:</strong> Faculty and staff can enter their <strong>Employee ID number</strong> (e.g. <code>100278</code>).
+      </div>
+    </div>
+
+    <div class="card" style="border-radius:18px;">
+      <div class="card-title"><i class="fa fa-clock" style="color:var(--muted);"></i> Library Loan Policy</div>
+      <ul style="font-size:13px; color:var(--muted); line-height:1.8; padding-left:18px;">
+        <li><strong>Students:</strong> 15 days loan period</li>
+        <li><strong>Faculty & Staff:</strong> 30 days loan period</li>
+        <li><strong>Overdue Fine:</strong> ₹2.00 per day after due date</li>
+        <li>Books can be renewed if no other student has requested them</li>
+      </ul>
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}

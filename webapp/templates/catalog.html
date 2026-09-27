@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+{% block title %}Book Catalog & Live Availability — SRM EEE Library{% endblock %}
+{% block page_title %}Catalog & Availability{% endblock %}
+{% block content %}
+
+<!-- Hero Banner (Ostra Style) -->
+<div style="background: linear-gradient(135deg, #E6EFE4 0%, #D8E5D5 100%); border: 1px solid #D1E0CE; border-radius: 24px; padding: 34px 38px; margin-bottom: 26px; position: relative; overflow: hidden; box-shadow: var(--shadow-sm);">
+  <div style="max-width: 720px; position: relative; z-index: 2;">
+    <div style="display:inline-flex; align-items:center; gap:8px; background: rgba(255,255,255,0.7); backdrop-filter: blur(8px); padding: 5px 14px; border-radius: 9999px; font-size: 11.5px; font-weight: 600; color: var(--accent-text); margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.6);">
+      <span style="width:6px; height:6px; background:#166534; border-radius:50%;"></span> Live Circulation Catalog • SRMIST Kattankulathur
+    </div>
+    <h1 class="serif-heading" style="font-size: 32px; line-height: 1.18; color: #16291C; margin-bottom: 10px;">
+      Find Books & Check <em>Real-Time Availability</em>
+    </h1>
+    <p style="font-size: 13.5px; line-height: 1.6; color: #435A48; margin-bottom: 22px;">
+      Search all <strong>{{ counts.total }}</strong> department textbooks. See which copies are currently available on the shelf or view the exact date when a borrowed book is expected to be returned.
+    </p>
+
+    <!-- Search Form -->
+    <form method="get" action="/" style="display:flex; gap:10px; flex-wrap:wrap; max-width:620px;">
+      <div class="search-box" style="flex:1; min-width:260px; box-shadow:0 4px 14px rgba(22,41,28,0.08); background:#fff;">
+        <i class="fa fa-magnifying-glass"></i>
+        <input type="text" name="q" value="{{ q }}" placeholder="Search by book title, author, account number, or publisher…">
+      </div>
+      <button type="submit" class="btn btn-primary" style="padding:11px 24px;">Search</button>
+      {% if q or status %}
+        <a href="/" class="btn btn-outline" style="padding:11px 18px;"><i class="fa fa-xmark"></i> Clear</a>
+      {% endif %}
+    </form>
+  </div>
+  <div style="position: absolute; right: 25px; bottom: -25px; font-size: 170px; color: rgba(43, 70, 48, 0.05); pointer-events: none; z-index: 1;">
+    <i class="fa fa-book-open-reader"></i>
+  </div>
+</div>
+
+<!-- Availability Filter Pills -->
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+  <div style="display:flex; gap:8px; flex-wrap:wrap;">
+    <a href="/?q={{ q }}" class="btn {% if not status %}btn-primary{% else %}btn-outline{% endif %} btn-sm">
+      All Books ({{ counts.total }})
+    </a>
+    <a href="/?q={{ q }}&status=available" class="btn {% if status=='available' %}btn-success{% else %}btn-outline{% endif %} btn-sm" style="{% if status!='available' %}color:#166534;{% endif %}">
+      <i class="fa fa-circle-check"></i> Available on Shelf ({{ counts.available }})
+    </a>
+    <a href="/?q={{ q }}&status=issued" class="btn {% if status=='issued' %}btn-warning{% else %}btn-outline{% endif %} btn-sm" style="{% if status!='issued' %}color:#A06434;{% endif %}">
+      <i class="fa fa-clock"></i> Currently Borrowed ({{ counts.issued }})
+    </a>
+  </div>
+  <div style="font-size:12.5px; color:var(--muted); font-weight:500;">
+    Showing <strong>{{ books|length }}</strong> of <strong>{{ total_matches }}</strong> books (Page {{ page }} of {{ total_pages }})
+  </div>
+</div>
+
+<!-- Books Grid -->
+<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:18px; margin-bottom:30px;">
+  {% for b in books %}
+  <div class="card" style="display:flex; flex-direction:column; justify-content:space-between; border-radius:18px; padding:20px; transition:all 0.2s ease;">
+    <div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <code>Acc: {{ b.account_number or '—' }}</code>
+        {% if b.edition and b.edition != 'NIL' %}
+          <span style="font-size:11px; font-weight:600; color:var(--muted); background:var(--card2); border:1px solid var(--border); padding:2px 8px; border-radius:6px;">{{ b.edition }}</span>
+        {% endif %}
+      </div>
+
+      <h3 class="serif-heading" style="font-size:16px; font-weight:600; line-height:1.35; color:var(--text); margin-bottom:8px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;" title="{{ b.title }}">
+        {{ b.title }}
+      </h3>
+
+      <div style="font-size:12.5px; color:var(--muted); margin-bottom:6px; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden;">
+        <i class="fa fa-user-pen" style="font-size:11px; margin-right:4px;"></i> {{ b.authors or 'Author not listed' }}
+      </div>
+
+      {% if b.publisher and b.publisher != 'NIL' %}
+      <div style="font-size:11.5px; color:var(--muted-light); margin-bottom:14px;">
+        <i class="fa fa-building-columns" style="font-size:10px; margin-right:4px;"></i> {{ b.publisher }}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Live Availability Status Box -->
+    <div style="margin-top:14px; border-top:1px solid var(--border-subtle); padding-top:14px;">
+      {% if b.status == 'available' %}
+        <div style="background:#F0FDF4; border:1px solid #86EFAC; border-radius:12px; padding:10px 12px; display:flex; align-items:center; justify-content:space-between;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <i class="fa fa-circle-check" style="color:#166534; font-size:15px;"></i>
+            <div>
+              <div style="font-size:12px; font-weight:700; color:#166534;">Available on Shelf</div>
+              <div style="font-size:10.5px; color:#365314;">Ready to borrow in library</div>
+            </div>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="showBookDetails({{ b.id }})" style="padding:4px 10px; font-size:11px;">Details</button>
+        </div>
+      {% else %}
+        <div style="background:#FFFBEB; border:1px solid #FDE68A; border-radius:12px; padding:10px 12px; display:flex; align-items:center; justify-content:space-between;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <i class="fa fa-clock" style="color:#9A3412; font-size:15px;"></i>
+            <div>
+              <div style="font-size:12px; font-weight:700; color:#9A3412;">Currently Borrowed</div>
+              <div style="font-size:10.5px; color:#78350F; font-weight:600;">{{ b.availability_badge }}</div>
+            </div>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="showBookDetails({{ b.id }})" style="padding:4px 10px; font-size:11px;">Details</button>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+  <div style="grid-column: 1 / -1; text-align:center; padding:60px 20px; background:#fff; border-radius:20px; border:1px solid var(--border);">
+    <div style="font-size:48px; color:var(--muted); margin-bottom:14px;"><i class="fa fa-book-bookmark"></i></div>
+    <h3 class="serif-heading" style="font-size:20px; margin-bottom:8px;">No books found matching your search</h3>
+    <p style="font-size:13.5px; color:var(--muted); margin-bottom:18px;">Try searching with a different keyword, author name, or clear filters.</p>
+    <a href="/" class="btn btn-primary btn-sm">View All Books</a>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if total_pages > 1 %}
+<div style="display:flex; justify-content:center; align-items:center; gap:8px; margin-bottom:40px;">
+  {% if page > 1 %}
+    <a href="/?q={{ q }}&status={{ status }}&page={{ page - 1 }}" class="btn btn-outline btn-sm">
+      <i class="fa fa-chevron-left"></i> Previous
+    </a>
+  {% endif %}
+
+  <span style="font-size:12.5px; color:var(--muted); font-weight:600; padding:0 12px;">
+    Page {{ page }} of {{ total_pages }}
+  </span>
+
+  {% if page < total_pages %}
+    <a href="/?q={{ q }}&status={{ status }}&page={{ page + 1 }}" class="btn btn-outline btn-sm">
+      Next <i class="fa fa-chevron-right"></i>
+    </a>
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- Public Book Details Modal -->
+<div class="modal-overlay" id="bookModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="serif-heading" id="m-title">Book Details</h3>
+      <button class="modal-close" onclick="closeModal('bookModal')">✕</button>
+    </div>
+    
+    <div id="m-loading" style="text-align:center; padding:30px; color:var(--muted);">
+      <i class="fa fa-spinner fa-spin" style="font-size:24px;"></i><br><br>Loading book details…
+    </div>
+
+    <div id="m-content" style="display:none;">
+      <!-- Availability Highlight Box -->
+      <div id="m-avail-box" style="border-radius:14px; padding:14px 16px; margin-bottom:18px;"></div>
+
+      <div class="info-card" style="margin-bottom:18px;">
+        <div class="info-row"><span class="lbl">Account No.</span><span class="val" id="m-acc"></span></div>
+        <div class="info-row"><span class="lbl">Barcode ID</span><span class="val" id="m-barcode"></span></div>
+        <div class="info-row"><span class="lbl">Authors</span><span class="val" id="m-authors"></span></div>
+        <div class="info-row"><span class="lbl">Publisher</span><span class="val" id="m-pub"></span></div>
+        <div class="info-row"><span class="lbl">Edition</span><span class="val" id="m-edition"></span></div>
+      </div>
+
+      <div style="font-size:12px; font-weight:700; color:var(--muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">
+        Circulation History (Past 10 Borrows)
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Issue Date</th><th>Due Date</th><th>Return Date</th><th>Status</th></tr></thead>
+          <tbody id="m-history-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-primary btn-sm" onclick="closeModal('bookModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+async function showBookDetails(bookId) {
+  openModal('bookModal');
+  document.getElementById('m-loading').style.display = 'block';
+  document.getElementById('m-content').style.display = 'none';
+
+  try {
+    const data = await fetch(`/api/public/book/${bookId}`).then(r => r.json());
+    if (!data.found) {
+      showToast('Book details not found', 'error');
+      closeModal('bookModal');
+      return;
+    }
+    const b = data.book;
+    document.getElementById('m-title').textContent = b.title;
+    document.getElementById('m-acc').textContent = b.account_number || '—';
+    document.getElementById('m-barcode').innerHTML = `<code>${b.barcode}</code>`;
+    document.getElementById('m-authors').textContent = b.authors || '—';
+    document.getElementById('m-pub').textContent = b.publisher || '—';
+    document.getElementById('m-edition').textContent = b.edition || '—';
+
+    const availBox = document.getElementById('m-avail-box');
+    if (b.status === 'available') {
+      availBox.style.background = '#F0FDF4';
+      availBox.style.border = '1px solid #86EFAC';
+      availBox.innerHTML = `
+        <div style="font-weight:700; color:#166534; font-size:14px;"><i class="fa fa-circle-check"></i> Available on Shelf</div>
+        <div style="font-size:12px; color:#365314; margin-top:3px;">This textbook is currently in the department library and ready to be borrowed.</div>
+      `;
+    } else {
+      availBox.style.background = '#FFFBEB';
+      availBox.style.border = '1px solid #FDE68A';
+      availBox.innerHTML = `
+        <div style="font-weight:700; color:#9A3412; font-size:14px;"><i class="fa fa-clock"></i> Currently Borrowed</div>
+        <div style="font-size:12px; color:#78350F; margin-top:3px; font-weight:600;">${b.availability_badge}</div>
+        <div style="font-size:11px; color:#92400E; margin-top:2px;">Issued on: ${b.issue_date || '—'}</div>
+      `;
+    }
+
+    const tbody = document.getElementById('m-history-tbody');
+    tbody.innerHTML = '';
+    if (!data.history || data.history.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--muted); padding:16px;">No previous borrow records</td></tr>';
+    } else {
+      data.history.forEach(h => {
+        const badge = h.status === 'returned'
+          ? '<span class="badge badge-success">Returned</span>'
+          : '<span class="badge badge-warning">Active Loan</span>';
+        tbody.innerHTML += `
+          <tr>
+            <td>${h.issue_date}</td>
+            <td>${h.due_date}</td>
+            <td>${h.return_date || '—'}</td>
+            <td>${badge}</td>
+          </tr>
+        `;
+      });
+    }
+
+    document.getElementById('m-loading').style.display = 'none';
+    document.getElementById('m-content').style.display = 'block';
+  } catch (err) {
+    showToast('Failed to load book details', 'error');
+    closeModal('bookModal');
+  }
+}
+</script>
+{% endblock %}

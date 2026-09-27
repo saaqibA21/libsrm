@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}Books — SRM Library{% endblock %}
+{% block page_title %}📚 Books Catalog{% endblock %}
+{% block content %}
+
+<!-- Toolbar -->
+<div class="toolbar">
+  <form method="get" style="display:contents;">
+    <div class="search-box">
+      <i class="fa fa-search"></i>
+      <input name="q" value="{{ q }}" placeholder="Search by title, author, barcode, account no…">
+    </div>
+    <select name="status" class="form-control" style="width:140px;" onchange="this.form.submit()">
+      <option value="">All Status</option>
+      <option value="available" {% if status=='available' %}selected{% endif %}>Available</option>
+      <option value="issued" {% if status=='issued' %}selected{% endif %}>Issued</option>
+    </select>
+    <button type="submit" class="btn btn-primary"><i class="fa fa-search"></i> Search</button>
+  </form>
+  <button class="btn btn-success" onclick="openModal('addBookModal')"><i class="fa fa-plus"></i> Add Book</button>
+  <button class="btn btn-outline" onclick="openImport()"><i class="fa fa-upload"></i> Import Excel</button>
+  <a href="/books/barcodes" class="btn btn-outline"><i class="fa fa-barcode"></i> Print Barcodes PDF</a>
+</div>
+
+<!-- Counts -->
+<div style="margin-bottom:14px;font-size:13px;color:var(--muted);">
+  Total: <strong style="color:var(--text)">{{ counts.total }}</strong> &nbsp;•&nbsp;
+  Available: <strong style="color:var(--success)">{{ counts.available }}</strong> &nbsp;•&nbsp;
+  Issued: <strong style="color:var(--danger)">{{ counts.issued }}</strong>
+  &nbsp;&nbsp;<span style="color:var(--muted)">Showing {{ books|length }} results</span>
+</div>
+
+<!-- Table -->
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr><th>Barcode</th><th>Account No.</th><th>Title</th><th>Authors</th><th>Publisher</th><th>Edition</th><th>Status</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+    {% for book in books %}
+    <tr>
+      <td><code style="font-size:11px;color:var(--info)">{{ book.barcode }}</code></td>
+      <td class="text-muted text-sm">{{ book.account_number or '—' }}</td>
+      <td style="max-width:220px;font-weight:500">{{ book.title[:60] }}{% if book.title|length > 60 %}…{% endif %}</td>
+      <td class="text-muted text-sm">{{ (book.authors or '—')[:40] }}</td>
+      <td class="text-muted text-sm">{{ (book.publisher or '—')[:25] }}</td>
+      <td class="text-muted text-sm">{{ book.edition or '—' }}</td>
+      <td>
+        {% if book.status == 'available' %}
+          <span class="badge badge-success">Available</span>
+        {% else %}
+          <span class="badge badge-danger">Issued</span>
+        {% endif %}
+      </td>
+      <td>
+        <button class="btn btn-outline btn-sm" onclick="editBook({{ book.id }})"><i class="fa fa-edit"></i></button>
+        <button class="btn btn-danger btn-sm" onclick="deleteBook({{ book.id }}, '{{ book.title[:30]|e }}')"><i class="fa fa-trash"></i></button>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted)">
+      No books found. <a href="/books" style="color:var(--primary)">Clear search</a> or import from Excel.
+    </td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Add Book Modal -->
+<div class="modal-overlay" id="addBookModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="bookModalTitle">➕ Add New Book</h3>
+      <button class="modal-close" onclick="closeModal('addBookModal')">✕</button>
+    </div>
+    <input type="hidden" id="editBookId" value="">
+    <div class="form-row cols-2">
+      <div class="form-group"><label>Barcode *</label><input class="form-control" id="f-barcode" placeholder="e.g. BK131853"></div>
+      <div class="form-group"><label>Account No.</label><input class="form-control" id="f-accnum" placeholder="e.g. 131853"></div>
+    </div>
+    <div class="form-group"><label>Title *</label><input class="form-control" id="f-title" placeholder="Book title"></div>
+    <div class="form-group"><label>Authors</label><input class="form-control" id="f-authors" placeholder="Comma-separated"></div>
+    <div class="form-row cols-2">
+      <div class="form-group"><label>Publisher</label><input class="form-control" id="f-publisher"></div>
+      <div class="form-group"><label>Edition</label><input class="form-control" id="f-edition" placeholder="e.g. 3rd"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('addBookModal')">Cancel</button>
+      <button class="btn btn-success" onclick="saveBook()"><i class="fa fa-save"></i> Save Book</button>
+    </div>
+  </div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal-overlay" id="importModal">
+  <div class="modal">
+    <div class="modal-header"><h3>📥 Import Books from Excel</h3><button class="modal-close" onclick="closeModal('importModal')">✕</button></div>
+    <p class="text-muted text-sm" style="margin-bottom:16px;">Select the "DEPT LIBRARY FINAL" Excel file. Books will be imported automatically.</p>
+    <div class="form-group"><label>Excel File</label><input type="file" class="form-control" id="importFile" accept=".xlsx,.xls"></div>
+    <div id="importProgress" style="display:none;margin-top:10px;">
+      <div style="color:var(--info)">⏳ Importing… please wait…</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('importModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="doImport()"><i class="fa fa-upload"></i> Import Now</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+function openImport() { document.getElementById('importFile').value=''; openModal('importModal'); }
+
+async function saveBook() {
+  const id = document.getElementById('editBookId').value;
+  const fd = new FormData();
+  fd.append('barcode', document.getElementById('f-barcode').value.trim());
+  fd.append('account_number', document.getElementById('f-accnum').value.trim());
+  fd.append('title', document.getElementById('f-title').value.trim());
+  fd.append('authors', document.getElementById('f-authors').value.trim());
+  fd.append('publisher', document.getElementById('f-publisher').value.trim());
+  fd.append('edition', document.getElementById('f-edition').value.trim());
+  if (!fd.get('title')) { showToast('Title is required', 'error'); return; }
+  const url = id ? `/books/edit/${id}` : '/books/add';
+  const res = await postForm(url, fd);
+  if (res.success) { showToast(res.message, 'success'); closeModal('addBookModal'); setTimeout(()=>location.reload(), 800); }
+  else showToast(res.message, 'error');
+}
+
+async function editBook(id) {
+  const book = await fetch(`/books/get/${id}`).then(r=>r.json());
+  document.getElementById('editBookId').value = id;
+  document.getElementById('bookModalTitle').textContent = '✏️ Edit Book';
+  document.getElementById('f-barcode').value = book.barcode || '';
+  document.getElementById('f-barcode').readOnly = true;
+  document.getElementById('f-accnum').value = book.account_number || '';
+  document.getElementById('f-title').value = book.title || '';
+  document.getElementById('f-authors').value = book.authors || '';
+  document.getElementById('f-publisher').value = book.publisher || '';
+  document.getElementById('f-edition').value = book.edition || '';
+  openModal('addBookModal');
+}
+
+async function deleteBook(id, title) {
+  if (!confirm(`Delete book: "${title}"?`)) return;
+  const res = await postForm(`/books/delete/${id}`, new FormData());
+  if (res.success) { showToast('Book deleted', 'success'); setTimeout(()=>location.reload(), 600); }
+  else showToast(res.message, 'error');
+}
+
+async function doImport() {
+  const file = document.getElementById('importFile').files[0];
+  if (!file) { showToast('Select a file first', 'error'); return; }
+  document.getElementById('importProgress').style.display = 'block';
+  const fd = new FormData(); fd.append('file', file);
+  const res = await postForm('/books/import', fd);
+  document.getElementById('importProgress').style.display = 'none';
+  if (res.success) {
+    showToast(`✅ Imported ${res.added} books! (${res.skipped} duplicates skipped)`, 'success');
+    closeModal('importModal');
+    setTimeout(()=>location.reload(), 1200);
+  } else showToast(res.message, 'error');
+}
+</script>
+{% endblock %}

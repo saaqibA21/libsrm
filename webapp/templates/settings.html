@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Settings — SRM Library{% endblock %}
+{% block page_title %}⚙️ Settings{% endblock %}
+{% block content %}
+
+<div id="tabContainer">
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="tab-library">📚 Library</button>
+    <button class="tab-btn" data-tab="tab-email">📧 Email</button>
+    <button class="tab-btn" data-tab="tab-about">ℹ️ About</button>
+  </div>
+
+  <!-- Library Settings -->
+  <div class="tab-pane active" id="tab-library">
+    <form id="libraryForm">
+      <div class="card" style="max-width:600px">
+        <div class="card-title">Library Information</div>
+        <div class="form-group"><label>Library Name</label>
+          <input class="form-control" name="library_name" value="{{ settings.library_name }}"></div>
+        <div class="form-group"><label>Librarian Desk PIN</label>
+          <input class="form-control" type="password" name="staff_pin" value="{{ settings.staff_pin or '1234' }}" placeholder="Default: 1234"></div>
+        <hr class="divider">
+        <div class="card-title">Loan Periods</div>
+        <div class="form-row cols-2">
+          <div class="form-group"><label>Student Loan Period (days)</label>
+            <input class="form-control" type="number" name="loan_period_student" value="{{ settings.loan_period_student }}" min="1"></div>
+          <div class="form-group"><label>Teacher Loan Period (days)</label>
+            <input class="form-control" type="number" name="loan_period_teacher" value="{{ settings.loan_period_teacher }}" min="1"></div>
+        </div>
+        <div class="form-group"><label>Fine per Day (₹)</label>
+          <input class="form-control" type="number" name="fine_per_day" value="{{ settings.fine_per_day }}" step="0.5" min="0"></div>
+        <div style="margin-top:20px">
+          <button type="button" class="btn btn-success" onclick="saveLibrarySettings()"><i class="fa fa-save"></i> Save Settings</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Email Settings -->
+  <div class="tab-pane" id="tab-email">
+    <form id="emailForm">
+      <div class="card" style="max-width:600px">
+        <div class="card-title">Email / SMTP Configuration</div>
+        <div class="form-row cols-2">
+          <div class="form-group"><label>SMTP Host</label>
+            <input class="form-control" name="email_host" value="{{ settings.email_host }}" placeholder="smtp.gmail.com"></div>
+          <div class="form-group"><label>SMTP Port</label>
+            <input class="form-control" type="number" name="email_port" value="{{ settings.email_port }}" placeholder="587"></div>
+        </div>
+        <div class="form-group"><label>Email Address</label>
+          <input class="form-control" name="email_user" value="{{ settings.email_user }}" placeholder="your@gmail.com"></div>
+        <div class="form-group"><label>App Password</label>
+          <input class="form-control" type="password" name="email_password" value="{{ settings.email_password }}" placeholder="Gmail App Password (not your main password)"></div>
+        <div class="form-group"><label>From Address (optional)</label>
+          <input class="form-control" name="email_from" value="{{ settings.email_from }}" placeholder="Leave blank to use email address above"></div>
+
+        <div style="background:rgba(6,182,212,.1);border:1px solid var(--info);border-radius:8px;padding:12px;margin:14px 0;font-size:12px;color:var(--info)">
+          💡 <strong>Gmail Setup:</strong> Go to Google Account → Security → Enable 2-Step Verification → App Passwords → Generate a password for "Mail" and paste it above.
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:4px">
+          <button type="button" class="btn btn-outline" onclick="testEmail()"><i class="fa fa-envelope"></i> Send Test Email</button>
+          <button type="button" class="btn btn-success" onclick="saveEmailSettings()"><i class="fa fa-save"></i> Save Email Settings</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- About -->
+  <div class="tab-pane" id="tab-about">
+    <div class="card" style="max-width:500px;text-align:center;padding:40px">
+      <div style="font-size:48px;margin-bottom:16px">📚</div>
+      <h2 style="font-size:20px;margin-bottom:8px">SRM EEE Library Management System</h2>
+      <p class="text-muted" style="margin-bottom:8px">Version 1.0 &nbsp;•&nbsp; Web Edition</p>
+      <p class="text-muted text-sm" style="line-height:1.6">
+        A barcode-based library system for SRM EEE Department.<br>
+        Supports students, staff, book issue/return, fines, and email reminders.<br><br>
+        Built with Python Flask + SQLite.
+      </p>
+      <hr class="divider">
+      <div class="text-muted text-sm">Database: <code>library.db</code> in the project folder</div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+initTabs('tabContainer');
+
+async function saveLibrarySettings() {
+  const fd = new FormData(document.getElementById('libraryForm'));
+  const res = await fetch('/settings', {method:'POST', body:fd}).then(r=>r.json());
+  showToast(res.message, res.success ? 'success' : 'error');
+}
+
+async function saveEmailSettings() {
+  const fd = new FormData(document.getElementById('emailForm'));
+  const res = await fetch('/settings', {method:'POST', body:fd}).then(r=>r.json());
+  showToast(res.message, res.success ? 'success' : 'error');
+}
+
+async function testEmail() {
+  const form = document.getElementById('emailForm');
+  const fd = new FormData(form);
+  const data = {};
+  fd.forEach((v, k) => data[k] = v);
+  showToast('Sending test email…', 'info');
+  const res = await postJSON('/api/test_email', data);
+  showToast(res.message, res.success ? 'success' : 'error');
+}
+</script>
+{% endblock %}

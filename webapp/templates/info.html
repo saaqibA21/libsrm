@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Rules & Timings — SRM EEE Library{% endblock %}
+{% block page_title %}Rules & Information{% endblock %}
+{% block content %}
+
+<div style="max-width: 860px; margin: 0 auto;">
+  <!-- Header -->
+  <div style="background: linear-gradient(135deg, #E6EFE4 0%, #D8E5D5 100%); border: 1px solid #D1E0CE; border-radius: 24px; padding: 32px 36px; margin-bottom: 24px;">
+    <h1 class="serif-heading" style="font-size: 28px; color: #16291C; margin-bottom: 8px;">
+      SRM EEE Department <em>Library Guidelines</em>
+    </h1>
+    <p style="font-size: 13.5px; color: #435A48; line-height: 1.6;">
+      Information on circulation policies, loan periods, overdue fines, and how to access the digital catalog from any mobile or laptop on the college network.
+    </p>
+  </div>
+
+  <div class="two-col" style="margin-bottom: 24px;">
+    <div class="card" style="border-radius: 18px;">
+      <div class="card-title"><i class="fa fa-clock" style="color:var(--accent);"></i> Working Hours</div>
+      <div class="info-card">
+        <div class="info-row"><span class="lbl">Monday – Friday</span><span class="val">8:30 AM – 5:00 PM</span></div>
+        <div class="info-row"><span class="lbl">Saturday</span><span class="val">9:00 AM – 1:00 PM</span></div>
+        <div class="info-row"><span class="lbl">Sunday & Holidays</span><span class="val" style="color:var(--muted);">Closed</span></div>
+        <div class="info-row"><span class="lbl">Location</span><span class="val">Department of EEE, SRMIST</span></div>
+      </div>
+    </div>
+
+    <div class="card" style="border-radius: 18px;">
+      <div class="card-title"><i class="fa fa-scale-balanced" style="color:var(--accent);"></i> Lending Policy</div>
+      <div class="info-card">
+        <div class="info-row"><span class="lbl">Undergraduate (B.Tech)</span><span class="val">{{ settings.loan_period_student }} Days (Max 3 Books)</span></div>
+        <div class="info-row"><span class="lbl">Faculty & Staff</span><span class="val">{{ settings.loan_period_teacher }} Days (Max 5 Books)</span></div>
+        <div class="info-row"><span class="lbl">Overdue Fine</span><span class="val" style="color:var(--danger); font-weight:700;">₹{{ settings.fine_per_day }} per day</span></div>
+        <div class="info-row"><span class="lbl">Renewal</span><span class="val">Permitted once if no active reservation</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="border-radius: 18px; margin-bottom: 24px;">
+    <div class="card-title"><i class="fa fa-wifi" style="color:var(--accent);"></i> Accessing this Website from Other Devices</div>
+    <p style="font-size: 13.5px; color: var(--muted); line-height: 1.6; margin-bottom: 14px;">
+      Anyone connected to the same college Wi-Fi or local area network can browse the catalog and check book availability directly from their smartphone or laptop:
+    </p>
+
+    <div style="background: var(--card2); border: 1px solid var(--border); border-radius: 14px; padding: 18px 22px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
+      <div>
+        <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--muted);">Direct URL for Phones & Laptops</div>
+        <div style="font-size: 18px; font-weight: 700; color: var(--primary); font-family: 'Consolas', monospace; margin-top: 2px;">
+          http://{{ lan_ip }}:5000
+        </div>
+      </div>
+      <span class="badge badge-success" style="font-size: 12px; padding: 6px 14px;"><i class="fa fa-check-circle"></i> Online & Listening</span>
+    </div>
+
+    <p style="font-size: 12px; color: var(--muted); margin-top: 14px; line-height: 1.5;">
+      💡 Just open Google Chrome, Safari, or Microsoft Edge on any phone or laptop on the same network, type <code>http://{{ lan_ip }}:5000</code> in the address bar, and hit Enter.
+    </p>
+  </div>
+</div>
+
+{% endblock %}

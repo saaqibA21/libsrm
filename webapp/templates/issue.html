@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% block title %}Issue Book — SRM Library{% endblock %}
+{% block page_title %}📤 Issue Book{% endblock %}
+{% block content %}
+
+<p class="text-muted" style="margin-bottom:20px;font-size:13px;">Scan or type the book barcode first, then scan the patron barcode, then click Issue.</p>
+
+<div class="two-col">
+
+  <!-- LEFT: Scan Panel -->
+  <div>
+    <!-- Step 1: Book -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title">Step 1 — Scan Book Barcode</div>
+      <div class="scan-box">
+        <i class="fa fa-barcode scan-icon"></i>
+        <input type="text" id="bookBarcode" placeholder="Scan or type book barcode…" autofocus autocomplete="off">
+      </div>
+      <div class="scan-status" id="bookStatus"></div>
+    </div>
+
+    <!-- Step 2: Patron -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title">Step 2 — Scan Patron Barcode</div>
+      <div class="scan-box">
+        <i class="fa fa-user scan-icon"></i>
+        <input type="text" id="patronBarcode" placeholder="Scan or type patron barcode…" disabled autocomplete="off">
+      </div>
+      <div class="scan-status" id="patronStatus"></div>
+    </div>
+
+    <!-- Issue Button -->
+    <button class="btn btn-success btn-lg" id="issueBtn" disabled onclick="doIssue()" style="width:100%;justify-content:center;">
+      <i class="fa fa-upload"></i> ISSUE BOOK
+    </button>
+    <button class="btn btn-outline" onclick="clearAll()" style="width:100%;justify-content:center;margin-top:10px;">
+      <i class="fa fa-refresh"></i> Clear / New Transaction
+    </button>
+
+    <!-- Result -->
+    <div id="resultBox" style="display:none;margin-top:16px;" class="card"></div>
+  </div>
+
+  <!-- RIGHT: Details Panel -->
+  <div>
+    <!-- Book Details -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title"><i class="fa fa-book"></i> Book Details</div>
+      <div class="info-card" id="bookDetails">
+        <div class="info-row"><span class="lbl">Title</span><span class="val" id="d-title">—</span></div>
+        <div class="info-row"><span class="lbl">Account No.</span><span class="val" id="d-accnum">—</span></div>
+        <div class="info-row"><span class="lbl">Authors</span><span class="val" id="d-authors">—</span></div>
+        <div class="info-row"><span class="lbl">Publisher</span><span class="val" id="d-publisher">—</span></div>
+        <div class="info-row"><span class="lbl">Edition</span><span class="val" id="d-edition">—</span></div>
+        <div class="info-row"><span class="lbl">Status</span><span class="val" id="d-status">—</span></div>
+      </div>
+    </div>
+
+    <!-- Patron Details -->
+    <div class="card">
+      <div class="card-title"><i class="fa fa-user"></i> Patron Details</div>
+      <div class="info-card" id="patronDetails">
+        <div class="info-row"><span class="lbl">Name</span><span class="val" id="p-name">—</span></div>
+        <div class="info-row"><span class="lbl">Reg. No.</span><span class="val" id="p-reg">—</span></div>
+        <div class="info-row"><span class="lbl">Type</span><span class="val" id="p-type">—</span></div>
+        <div class="info-row"><span class="lbl">Year / Section</span><span class="val" id="p-year">—</span></div>
+        <div class="info-row"><span class="lbl">Mobile</span><span class="val" id="p-mobile">—</span></div>
+        <div class="info-row"><span class="lbl">Email</span><span class="val" id="p-email">—</span></div>
+        <div class="info-row"><span class="lbl">Books Held</span><span class="val" id="p-held">—</span></div>
+      </div>
+      <div id="activeBooksSection" style="display:none;margin-top:12px;">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;">CURRENTLY ISSUED BOOKS</div>
+        <div class="table-wrap"><table><thead><tr><th>Book</th><th>Due Date</th></tr></thead>
+        <tbody id="activeBooksTbody"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+let bookData = null, patronData = null;
+const bookInput = document.getElementById('bookBarcode');
+const patronInput = document.getElementById('patronBarcode');
+
+bookInput.addEventListener('keydown', e => { if(e.key==='Enter') scanBook(); });
+patronInput.addEventListener('keydown', e => { if(e.key==='Enter') scanPatron(); });
+
+// Also trigger on rapid barcode scanner input (fires quickly then Enter)
+let bookTimer, patronTimer;
+bookInput.addEventListener('input', () => { clearTimeout(bookTimer); bookTimer = setTimeout(()=>{ if(bookInput.value.trim()) scanBook(); }, 300); });
+patronInput.addEventListener('input', () => { clearTimeout(patronTimer); patronTimer = setTimeout(()=>{ if(patronInput.value.trim()) scanPatron(); }, 300); });
+
+async function scanBook() {
+  const barcode = bookInput.value.trim();
+  if (!barcode) return;
+  const data = await fetch(`/api/scan/book/${encodeURIComponent(barcode)}`).then(r=>r.json());
+  if (!data.found) {
+    setStatus('bookStatus', data.message, 'err');
+    clearBookDetails(); return;
+  }
+  bookData = data.book;
+  fillBookDetails(data.book);
+  if (data.book.status !== 'available') {
+    setStatus('bookStatus', '⚠️ This book is currently issued to someone else!', 'warn');
+    patronInput.disabled = true;
+  } else {
+    setStatus('bookStatus', '✅ Book found — now scan patron barcode', 'ok');
+    patronInput.disabled = false;
+    patronInput.focus();
+  }
+}
+
+async function scanPatron() {
+  const barcode = patronInput.value.trim();
+  if (!barcode) return;
+  const data = await fetch(`/api/scan/patron/${encodeURIComponent(barcode)}`).then(r=>r.json());
+  if (!data.found) {
+    setStatus('patronStatus', data.message, 'err');
+    clearPatronDetails(); return;
+  }
+  patronData = data.patron;
+  fillPatronDetails(data.patron, data.active_books);
+  setStatus('patronStatus', `✅ Patron found: ${data.patron.name}`, 'ok');
+  if (bookData && bookData.status === 'available') {
+    document.getElementById('issueBtn').disabled = false;
+  }
+}
+
+async function doIssue() {
+  if (!bookData || !patronData) return;
+  const res = await postJSON('/api/issue', {book_id: bookData.id, patron_id: patronData.id, patron_type: patronData.patron_type});
+  const box = document.getElementById('resultBox');
+  box.style.display = 'block';
+  if (res.success) {
+    box.style.border = '1px solid var(--success)';
+    box.innerHTML = `<div style="color:var(--success);font-size:16px;font-weight:700;">✅ Book Issued Successfully!</div>
+      <div style="margin-top:8px;color:var(--muted);font-size:13px;">${res.message}</div>
+      <div style="margin-top:4px;font-size:13px;">👤 Issued to: <strong>${patronData.name}</strong></div>`;
+    showToast('Book issued successfully!', 'success');
+    document.getElementById('issueBtn').disabled = true;
+    setTimeout(clearAll, 4000);
+  } else {
+    box.style.border = '1px solid var(--danger)';
+    box.innerHTML = `<div style="color:var(--danger);font-weight:700;">❌ ${res.message}</div>`;
+    showToast(res.message, 'error');
+  }
+}
+
+function fillBookDetails(b) {
+  document.getElementById('d-title').textContent = b.title || '—';
+  document.getElementById('d-accnum').textContent = b.account_number || '—';
+  document.getElementById('d-authors').textContent = b.authors || '—';
+  document.getElementById('d-publisher').textContent = b.publisher || '—';
+  document.getElementById('d-edition').textContent = b.edition || '—';
+  const s = document.getElementById('d-status');
+  s.textContent = (b.status || '').toUpperCase();
+  s.style.color = b.status === 'available' ? 'var(--success)' : 'var(--danger)';
+  s.style.fontWeight = '700';
+}
+
+function fillPatronDetails(p, activeBooks) {
+  document.getElementById('p-name').textContent = p.name || '—';
+  document.getElementById('p-reg').textContent = p.register_number || '—';
+  document.getElementById('p-type').textContent = (p.patron_type||'').charAt(0).toUpperCase()+(p.patron_type||'').slice(1);
+  document.getElementById('p-year').textContent = p.year ? `Year ${p.year} — Section ${p.section}` : '—';
+  document.getElementById('p-mobile').textContent = p.mobile || '—';
+  document.getElementById('p-email').textContent = p.email || '—';
+  document.getElementById('p-held').textContent = activeBooks.length;
+  const tbody = document.getElementById('activeBooksTbody');
+  tbody.innerHTML = '';
+  if (activeBooks.length > 0) {
+    document.getElementById('activeBooksSection').style.display = 'block';
+    activeBooks.forEach(b => {
+      const color = b.overdue ? 'var(--danger)' : 'var(--text)';
+      tbody.innerHTML += `<tr><td style="color:${color}">${b.book_title}</td><td style="color:${color}">${b.due_date}</td></tr>`;
+    });
+  }
+}
+
+function clearBookDetails() { ['d-title','d-accnum','d-authors','d-publisher','d-edition','d-status'].forEach(id => document.getElementById(id).textContent = '—'); }
+function clearPatronDetails() { ['p-name','p-reg','p-type','p-year','p-mobile','p-email','p-held'].forEach(id => document.getElementById(id).textContent = '—'); document.getElementById('activeBooksSection').style.display='none'; }
+
+function setStatus(id, msg, type) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = `scan-status ${type}`;
+}
+
+function clearAll() {
+  bookData = null; patronData = null;
+  bookInput.value = ''; patronInput.value = '';
+  patronInput.disabled = true;
+  document.getElementById('issueBtn').disabled = true;
+  document.getElementById('resultBox').style.display = 'none';
+  document.getElementById('bookStatus').textContent = '';
+  document.getElementById('bookStatus').className = 'scan-status';
+  document.getElementById('patronStatus').textContent = '';
+  document.getElementById('patronStatus').className = 'scan-status';
+  clearBookDetails(); clearPatronDetails();
+  bookInput.focus();
+}
+</script>
+{% endblock %}

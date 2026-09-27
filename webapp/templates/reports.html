@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block title %}Reports — SRM Library{% endblock %}
+{% block page_title %}📊 Reports & Analytics{% endblock %}
+{% block content %}
+
+<div id="tabContainer">
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="tab-overdue">⚠️ Overdue ({{ overdue|length }})</button>
+    <button class="tab-btn" data-tab="tab-active">📤 Active Loans ({{ active|length }})</button>
+    <button class="tab-btn" data-tab="tab-history">🕐 History</button>
+    <button class="tab-btn" data-tab="tab-topbooks">🏆 Top Books</button>
+    <button class="tab-btn" data-tab="tab-toppatrons">🌟 Top Patrons</button>
+  </div>
+
+  <!-- Overdue Tab -->
+  <div class="tab-pane active" id="tab-overdue">
+    <div style="display:flex;gap:10px;margin-bottom:14px;align-items:center">
+      <span style="color:var(--danger);font-weight:700;font-size:14px">🚨 {{ overdue|length }} overdue book(s)</span>
+      <button class="btn btn-danger btn-sm" onclick="sendOverdueEmails()"><i class="fa fa-envelope"></i> Email All Overdue</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Patron</th><th>Reg. No.</th><th>Type</th><th>Book</th><th>Issue Date</th><th>Due Date</th><th>Overdue Days</th><th>Fine (₹)</th><th>Action</th></tr></thead>
+        <tbody>
+        {% for txn in overdue %}
+        <tr style="color:var(--danger)">
+          <td>{{ txn.patron_name }}</td>
+          <td class="text-sm">{{ txn.register_number }}</td>
+          <td><span class="badge badge-{% if txn.patron_type=='teacher' %}purple{% else %}info{% endif %}">{{ txn.patron_type.title() }}</span></td>
+          <td style="max-width:180px;font-weight:500">{{ txn.book_title[:50] }}</td>
+          <td class="text-sm">{{ txn.issue_date }}</td>
+          <td><span class="badge badge-danger">{{ txn.due_date }}</span></td>
+          <td style="font-weight:700">{{ txn.overdue_days }} days</td>
+          <td style="font-weight:700">₹{{ "%.2f"|format(txn.fine) }}</td>
+          <td><button class="btn btn-success btn-sm" onclick="markPaid({{ txn.id }})">✅ Paid</button></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" style="text-align:center;padding:30px;color:var(--success)">🎉 No overdue books!</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Active Tab -->
+  <div class="tab-pane" id="tab-active">
+    <div style="margin-bottom:14px;display:flex;gap:10px;align-items:center">
+      <span style="font-weight:700;color:var(--info)">📤 {{ active|length }} book(s) currently issued</span>
+      <button class="btn btn-primary btn-sm" onclick="sendReminders()"><i class="fa fa-envelope"></i> Send Due Reminders</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Patron</th><th>Reg. No.</th><th>Book</th><th>Issue Date</th><th>Due Date</th><th>Days Left</th></tr></thead>
+        <tbody>
+        {% for txn in active %}
+        {% set color = 'var(--danger)' if txn.days_left < 0 else ('var(--warning)' if txn.days_left <= 3 else 'var(--text)') %}
+        <tr>
+          <td>{{ txn.patron_name }}</td>
+          <td class="text-sm">{{ txn.register_number }}</td>
+          <td style="max-width:200px;font-weight:500">{{ txn.book_title[:50] }}</td>
+          <td class="text-sm text-muted">{{ txn.issue_date }}</td>
+          <td class="text-sm">{{ txn.due_date }}</td>
+          <td style="color:{{ color }};font-weight:700">
+            {% if txn.days_left < 0 %}OVERDUE{% else %}{{ txn.days_left }} days{% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" style="text-align:center;padding:30px;color:var(--muted)">No books currently issued.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- History Tab -->
+  <div class="tab-pane" id="tab-history">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Patron</th><th>Book</th><th>Issue Date</th><th>Due Date</th><th>Return Date</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for txn in history %}
+        <tr>
+          <td class="text-muted text-sm">{{ txn.id }}</td>
+          <td>{{ txn.patron_name }}</td>
+          <td style="max-width:200px">{{ txn.book_title[:50] }}</td>
+          <td class="text-sm text-muted">{{ txn.issue_date }}</td>
+          <td class="text-sm text-muted">{{ txn.due_date }}</td>
+          <td class="text-sm">{{ txn.return_date or '—' }}</td>
+          <td>
+            {% if txn.status == 'returned' %}<span class="badge badge-success">Returned</span>
+            {% else %}<span class="badge badge-info">Issued</span>{% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--muted)">No transactions yet.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Top Books Tab -->
+  <div class="tab-pane" id="tab-topbooks">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Rank</th><th>Book Title</th><th>Authors</th><th>Times Borrowed</th></tr></thead>
+        <tbody>
+        {% for b in top_books %}
+        <tr>
+          <td style="font-size:18px;font-weight:800;color:{% if loop.index<=3 %}var(--warning){% else %}var(--muted){% endif %}">
+            #{{ loop.index }}
+          </td>
+          <td style="font-weight:600">{{ b.title }}</td>
+          <td class="text-muted text-sm">{{ b.authors or '—' }}</td>
+          <td style="font-weight:700;color:var(--primary)">{{ b.borrow_count }} ×</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" style="text-align:center;padding:30px;color:var(--muted)">No data yet.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Top Patrons Tab -->
+  <div class="tab-pane" id="tab-toppatrons">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Rank</th><th>Name</th><th>Reg. No.</th><th>Books Borrowed</th></tr></thead>
+        <tbody>
+        {% for p in top_patrons %}
+        <tr>
+          <td style="font-size:18px;font-weight:800;color:{% if loop.index<=3 %}var(--warning){% else %}var(--muted){% endif %}">
+            #{{ loop.index }}
+          </td>
+          <td style="font-weight:600">{{ p.name }}</td>
+          <td class="text-muted text-sm">{{ p.register_number }}</td>
+          <td style="font-weight:700;color:var(--primary)">{{ p.borrow_count }} ×</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" style="text-align:center;padding:30px;color:var(--muted)">No data yet.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+initTabs('tabContainer');
+
+async function sendOverdueEmails() {
+  if (!confirm('Send overdue email notices to all overdue patrons?')) return;
+  const res = await postJSON('/api/send_overdue_emails', {});
+  if (res.success) showToast(`✅ Sent: ${res.sent}, Failed: ${res.failed}`, res.failed>0?'info':'success');
+  else showToast(res.message, 'error');
+}
+
+async function sendReminders() {
+  if (!confirm('Send due reminders to patrons whose books are due in 3 days?')) return;
+  const res = await postJSON('/api/send_overdue_emails', {reminders: true});
+  showToast(res.message || `Sent: ${res.sent}`, 'info');
+}
+
+async function markPaid(id) {
+  await postJSON(`/api/mark_fine_paid/${id}`, {});
+  showToast('Fine marked as paid', 'success');
+  setTimeout(() => location.reload(), 800);
+}
+</script>
+{% endblock %}
