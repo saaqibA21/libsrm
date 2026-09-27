@@ -62,6 +62,48 @@ def inject_global_vars():
     }
 
 
+# ─── Keep-Alive & Health Check (Prevents Render Free-Tier Sleep) ────────────────
+
+@app.route("/healthz")
+@app.route("/api/ping")
+def health_check():
+    """Ultra-fast, zero-overhead health endpoint for keep-alive pings."""
+    return jsonify({
+        "status": "healthy",
+        "service": "srm-library",
+        "timestamp": datetime.now().isoformat()
+    }), 200
+
+
+def start_keep_alive_daemon():
+    """Background thread that periodically pings the Render service every 10 mins so it stays awake."""
+    external_url = os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("APP_URL")
+    if not external_url:
+        return
+
+    import threading, urllib.request, time
+
+    def _pinger():
+        target = f"{external_url.rstrip('/')}/healthz"
+        print(f"[Keep-Alive] Daemon started. Targeting: {target}")
+        time.sleep(30)
+        while True:
+            try:
+                req = urllib.request.Request(target, headers={"User-Agent": "SRM-KeepAlive-Worker/1.0"})
+                with urllib.request.urlopen(req, timeout=15) as resp:
+                    pass
+                print(f"[Keep-Alive] Ping successfully sent to {target}")
+            except Exception as e:
+                print(f"[Keep-Alive] Ping notice: {e}")
+            time.sleep(600)  # Ping every 10 minutes (Render sleep threshold is 15 min)
+
+    t = threading.Thread(target=_pinger, daemon=True, name="RenderKeepAlive")
+    t.start()
+
+
+start_keep_alive_daemon()
+
+
 # ─── Public Portal: Catalog & Availability ─────────────────────────────────────
 
 @app.route("/")

@@ -37,23 +37,23 @@
   </div>
 
   <div class="card" style="border-radius: 18px; margin-bottom: 24px;">
-    <div class="card-title"><i class="fa fa-wifi" style="color:var(--accent);"></i> Accessing this Website from Other Devices</div>
+    <div class="card-title"><i class="fa fa-globe" style="color:var(--accent);"></i> Accessing the Digital Catalog</div>
     <p style="font-size: 13.5px; color: var(--muted); line-height: 1.6; margin-bottom: 14px;">
-      Anyone connected to the same college Wi-Fi or local area network can browse the catalog and check book availability directly from their smartphone or laptop:
+      Students and faculty can browse the department catalog, check live availability, and track return due dates 24/7 from any device:
     </p>
 
     <div style="background: var(--card2); border: 1px solid var(--border); border-radius: 14px; padding: 18px 22px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
       <div>
-        <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--muted);">Direct URL for Phones & Laptops</div>
-        <div style="font-size: 18px; font-weight: 700; color: var(--primary); font-family: 'Consolas', monospace; margin-top: 2px;">
-          http://{{ lan_ip }}:5000
+        <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--muted);">Digital Library Web Portal</div>
+        <div style="font-size: 17px; font-weight: 700; color: var(--primary); font-family: 'Consolas', monospace; margin-top: 2px;">
+          {{ request.host_url.rstrip('/') }}
         </div>
       </div>
-      <span class="badge badge-success" style="font-size: 12px; padding: 6px 14px;"><i class="fa fa-check-circle"></i> Online & Listening</span>
+      <span class="badge badge-success" style="font-size: 12px; padding: 6px 14px;"><i class="fa fa-circle-check"></i> Live 24/7</span>
     </div>
 
     <p style="font-size: 12px; color: var(--muted); margin-top: 14px; line-height: 1.5;">
-      💡 Just open Google Chrome, Safari, or Microsoft Edge on any phone or laptop on the same network, type <code>http://{{ lan_ip }}:5000</code> in the address bar, and hit Enter.
+      💡 Open this URL on your phone, tablet, or laptop to search by textbook title, author, or accession number, or check your active loans.
     </p>
   </div>
 </div>

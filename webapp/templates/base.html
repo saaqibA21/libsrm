@@ -742,20 +742,17 @@ tbody tr:last-child {
       <a href="/staff/logout" class="nav-item" style="color:#991B1B;">
         <i class="fa fa-arrow-right-from-bracket"></i><span>Exit Staff Desk</span>
       </a>
-    {% else %}
-      <div class="nav-heading" style="margin-top:14px;">Staff Access</div>
-      <a href="/staff/login" class="nav-item {% if request.path.startswith('/staff') %}active{% endif %}">
-        <i class="fa fa-lock"></i><span>Librarian Desk Login</span>
-      </a>
     {% endif %}
   </div>
 
   <div class="sidebar-footer">
-    <div style="font-size:10.5px; line-height:1.4;">
-      <span style="font-weight:700; color:var(--text);">SRM EEE Library</span><br>
-      <span style="color:var(--muted);">Live on Wi-Fi Network</span>
-      <a href="http://{{ lan_ip }}:5000" target="_blank" class="network-badge">
-        <i class="fa fa-wifi"></i> <span>{{ lan_ip }}:5000</span>
+    <div style="display:flex; align-items:center; justify-content:space-between;">
+      <div style="font-size:11px; line-height:1.4;">
+        <span style="font-weight:700; color:var(--text);">SRM EEE Library</span><br>
+        <span style="font-size:10px; color:var(--muted-light);">Official Catalog System</span>
+      </div>
+      <a href="/staff/login" title="Librarian Desk" style="color:var(--muted-light); font-size:11px; text-decoration:none; opacity:0.35; padding:4px;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.35'">
+        <i class="fa fa-lock"></i>
       </a>
     </div>
   </div>
@@ -769,8 +766,6 @@ tbody tr:last-child {
       {% if is_staff %}
         <span class="badge badge-success"><i class="fa fa-check-circle"></i> Staff Mode</span>
         <a href="/staff/logout" class="staff-pill-btn" style="background:#FEE2E2; color:#991B1B;"><i class="fa fa-sign-out"></i> Logout</a>
-      {% else %}
-        <a href="/staff/login" class="staff-pill-btn"><i class="fa fa-lock"></i> Staff Desk</a>
       {% endif %}
       <span class="time" id="clock"></span>
     </div>
