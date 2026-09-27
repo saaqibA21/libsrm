@@ -886,6 +886,23 @@ def test_email():
     return jsonify({"success": ok, "message": "Test email sent!" if ok else err})
 
 
+@app.route("/api/backup/database")
+def download_database_backup():
+    """Allows authenticated librarians to download a full live SQLite database snapshot."""
+    if not require_staff():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "library.db")
+    if not os.path.exists(db_path):
+        return jsonify({"success": False, "message": "Database file not found"}), 404
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    return send_file(
+        db_path,
+        as_attachment=True,
+        download_name=f"srm_library_backup_{stamp}.db",
+        mimetype="application/x-sqlite3"
+    )
+
+
 if __name__ == "__main__":
     # Bind to 0.0.0.0 so other laptops, phones, and tablets on the network can access it
     print("=" * 60)
