@@ -145,6 +145,13 @@
         </div>
       </div>
 
+      <div style="margin-top:12px;">
+        <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--accent-text); cursor:pointer;">
+          <input type="checkbox" name="auto_email" value="1" checked>
+          <span><strong>✉️ Automatically email digital barcode cards</strong> to imported students with registered email addresses</span>
+        </label>
+      </div>
+
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-top:16px;">
         <button type="submit" id="btnStudentImport" class="btn btn-success">
           <i class="fa fa-cloud-arrow-up"></i> Upload & Auto-Generate Student Barcodes
@@ -167,7 +174,7 @@
         Upload faculty or staff rosters. Each member will be assigned a unique staff barcode (<code>TC{EmployeeID}</code>) automatically.
       </p>
 
-      <div class="form-row cols-2" style="margin-bottom:16px;">
+      <div class="form-row cols-2" style="margin-bottom:12px;">
         <div class="form-group" style="margin-bottom:0;">
           <label>Select Faculty Excel File</label>
           <input type="file" name="file" class="form-control" accept=".xlsx,.xls" required>
@@ -177,6 +184,13 @@
             <i class="fa fa-cloud-arrow-up"></i> Upload & Auto-Generate Staff Barcodes
           </button>
         </div>
+      </div>
+
+      <div>
+        <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--accent-text); cursor:pointer;">
+          <input type="checkbox" name="auto_email" value="1" checked>
+          <span><strong>✉️ Automatically email digital barcode cards</strong> to imported faculty with registered email addresses</span>
+        </label>
       </div>
     </form>
 
@@ -304,12 +318,18 @@ async function handleStudentUpload(e) {
           <div style="font-size:13px; color:#14532D; margin-bottom:12px;">
             Total records in file: <strong>${res.total}</strong> • New students added: <strong>${res.added}</strong> • Existing/Duplicates skipped: <strong>${res.skipped}</strong><br>
             Sample generated barcodes: ${sampleBadges}
+            ${res.emails_sent ? `<br><strong style="color:#166534;">✉️ Automatically emailed barcode cards to ${res.emails_sent} student(s)!</strong>` : ''}
           </div>
-          ${res.pdf_download_url ? `
-            <a href="${res.pdf_download_url}" class="btn btn-primary btn-sm" style="background:#166534;">
-              <i class="fa fa-print"></i> Download & Print Barcode Labels for this Upload (PDF)
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+            ${res.pdf_download_url ? `
+              <a href="${res.pdf_download_url}" class="btn btn-primary btn-sm" style="background:#166534;">
+                <i class="fa fa-print"></i> Download & Print Barcode Labels for this Upload (PDF)
+              </a>
+            ` : ''}
+            <a href="/patrons" class="btn btn-outline btn-sm" style="background:#fff;">
+              <i class="fa fa-paper-plane" style="color:var(--accent-text);"></i> Manage & Dispatch Barcodes
             </a>
-          ` : ''}
+          </div>
         </div>
       `;
       resBox.style.display = 'block';
@@ -350,12 +370,18 @@ async function handleStaffUpload(e) {
           <div style="font-size:13px; color:#14532D; margin-bottom:12px;">
             Total records: <strong>${res.total}</strong> • New staff added: <strong>${res.added}</strong> • Duplicates skipped: <strong>${res.skipped}</strong><br>
             Sample generated barcodes: ${sampleBadges}
+            ${res.emails_sent ? `<br><strong style="color:#166534;">✉️ Automatically emailed barcode cards to ${res.emails_sent} faculty member(s)!</strong>` : ''}
           </div>
-          ${res.pdf_download_url ? `
-            <a href="${res.pdf_download_url}" class="btn btn-primary btn-sm" style="background:#166534;">
-              <i class="fa fa-print"></i> Download & Print Barcode Labels for this Upload (PDF)
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+            ${res.pdf_download_url ? `
+              <a href="${res.pdf_download_url}" class="btn btn-primary btn-sm" style="background:#166534;">
+                <i class="fa fa-print"></i> Download & Print Barcode Labels for this Upload (PDF)
+              </a>
+            ` : ''}
+            <a href="/patrons" class="btn btn-outline btn-sm" style="background:#fff;">
+              <i class="fa fa-paper-plane" style="color:var(--accent-text);"></i> Manage & Dispatch Barcodes
             </a>
-          ` : ''}
+          </div>
         </div>
       `;
       resBox.style.display = 'block';

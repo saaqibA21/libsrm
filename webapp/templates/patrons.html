@@ -112,6 +112,12 @@
       </div>
       <div class="form-group"><label>Section</label><input class="form-control" id="studSection" placeholder="A" value="A"></div>
     </div>
+    <div style="margin:8px 0 14px;">
+      <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; cursor:pointer;">
+        <input type="checkbox" id="studAutoEmail" value="1" checked>
+        <span><strong>✉️ Automatically email barcode cards</strong> to imported students</span>
+      </label>
+    </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('importStudModal')">Cancel</button>
       <button class="btn btn-primary" onclick="doImportStudents()"><i class="fa fa-upload"></i> Import</button>
@@ -125,6 +131,12 @@
     <div class="modal-header"><h3>📥 Import Staff from Excel</h3><button class="modal-close" onclick="closeModal('importStaffModal')">✕</button></div>
     <p class="text-muted text-sm" style="margin-bottom:14px">Select the "Teaching and non teaching details" Excel file.</p>
     <div class="form-group"><label>Excel File</label><input type="file" class="form-control" id="staffFile" accept=".xlsx,.xls"></div>
+    <div style="margin:8px 0 14px;">
+      <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; cursor:pointer;">
+        <input type="checkbox" id="staffAutoEmail" value="1" checked>
+        <span><strong>✉️ Automatically email barcode cards</strong> to imported faculty</span>
+      </label>
+    </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('importStaffModal')">Cancel</button>
       <button class="btn btn-primary" onclick="doImportStaff()"><i class="fa fa-upload"></i> Import</button>
@@ -270,18 +282,38 @@ async function doImportStudents() {
   const fd = new FormData(); fd.append('file',file);
   fd.append('year', document.getElementById('studYear').value);
   fd.append('section', document.getElementById('studSection').value || 'A');
+  if (document.getElementById('studAutoEmail') && document.getElementById('studAutoEmail').checked) {
+    fd.append('auto_email', '1');
+  }
   const res = await postForm('/patrons/import/students', fd);
-  if (res.success) { showToast(`✅ Imported ${res.added} students (${res.skipped} skipped)`,'success'); closeModal('importStudModal'); setTimeout(()=>location.reload(),1200); }
-  else showToast(res.message,'error');
+  if (res.success) {
+    let msg = `✅ Imported ${res.added} students (${res.skipped} skipped)`;
+    if (res.emails_sent) msg += ` • ${res.emails_sent} barcode emails sent!`;
+    showToast(msg, 'success');
+    closeModal('importStudModal');
+    setTimeout(()=>location.reload(), 1400);
+  } else {
+    showToast(res.message, 'error');
+  }
 }
 
 async function doImportStaff() {
   const file = document.getElementById('staffFile').files[0];
   if (!file) { showToast('Select a file','error'); return; }
   const fd = new FormData(); fd.append('file',file);
+  if (document.getElementById('staffAutoEmail') && document.getElementById('staffAutoEmail').checked) {
+    fd.append('auto_email', '1');
+  }
   const res = await postForm('/patrons/import/staff', fd);
-  if (res.success) { showToast(`✅ Imported ${res.added} staff (${res.skipped} skipped)`,'success'); closeModal('importStaffModal'); setTimeout(()=>location.reload(),1200); }
-  else showToast(res.message,'error');
+  if (res.success) {
+    let msg = `✅ Imported ${res.added} staff (${res.skipped} skipped)`;
+    if (res.emails_sent) msg += ` • ${res.emails_sent} barcode emails sent!`;
+    showToast(msg, 'success');
+    closeModal('importStaffModal');
+    setTimeout(()=>location.reload(), 1400);
+  } else {
+    showToast(res.message, 'error');
+  }
 }
 
 async function sendPatronBarcode(id, name, email) {

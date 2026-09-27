@@ -526,6 +526,32 @@ def import_students_route():
         except Exception:
             pass
 
+    auto_email = request.form.get("auto_email") in ["1", "true", "on"]
+    emails_sent = 0
+    if auto_email and added_items:
+        smtp_user = get_setting("email_user", "")
+        smtp_pass = get_setting("email_password", "")
+        if smtp_user and smtp_pass:
+            from library_app.utils.email_utils import send_patron_barcode_email
+            import time
+            smtp_host = get_setting("email_host", "smtp.gmail.com")
+            smtp_port = int(get_setting("email_port", "587"))
+            from_addr = get_setting("email_from", "")
+            lib_name = get_setting("library_name", "SRM EEE Department Library")
+            for p in patrons:
+                if p.get("email"):
+                    ok, _ = send_patron_barcode_email(
+                        patron=p,
+                        smtp_host=smtp_host,
+                        smtp_port=smtp_port,
+                        smtp_user=smtp_user,
+                        smtp_password=smtp_pass,
+                        from_addr=from_addr,
+                        library_name=lib_name
+                    )
+                    if ok: emails_sent += 1
+                    time.sleep(0.1)
+
     return jsonify({
         "success": True,
         "added": added,
@@ -533,6 +559,7 @@ def import_students_route():
         "total": len(patrons),
         "year": year,
         "section": section,
+        "emails_sent": emails_sent,
         "pdf_download_url": "/api/download/last_import/students" if pdf_available else None,
         "sample_barcodes": [item["barcode"] for item in added_items[:5]]
     })
@@ -575,11 +602,38 @@ def import_staff_route():
         except Exception:
             pass
 
+    auto_email = request.form.get("auto_email") in ["1", "true", "on"]
+    emails_sent = 0
+    if auto_email and added_items:
+        smtp_user = get_setting("email_user", "")
+        smtp_pass = get_setting("email_password", "")
+        if smtp_user and smtp_pass:
+            from library_app.utils.email_utils import send_patron_barcode_email
+            import time
+            smtp_host = get_setting("email_host", "smtp.gmail.com")
+            smtp_port = int(get_setting("email_port", "587"))
+            from_addr = get_setting("email_from", "")
+            lib_name = get_setting("library_name", "SRM EEE Department Library")
+            for p in patrons:
+                if p.get("email"):
+                    ok, _ = send_patron_barcode_email(
+                        patron=p,
+                        smtp_host=smtp_host,
+                        smtp_port=smtp_port,
+                        smtp_user=smtp_user,
+                        smtp_password=smtp_pass,
+                        from_addr=from_addr,
+                        library_name=lib_name
+                    )
+                    if ok: emails_sent += 1
+                    time.sleep(0.1)
+
     return jsonify({
         "success": True,
         "added": added,
         "skipped": skipped,
         "total": len(patrons),
+        "emails_sent": emails_sent,
         "pdf_download_url": "/api/download/last_import/staff" if pdf_available else None,
         "sample_barcodes": [item["barcode"] for item in added_items[:5]]
     })
