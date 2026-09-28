@@ -92,19 +92,42 @@ def send_email(to_addr: str, subject: str, body_html: str,
         msg["To"] = to_addr
         msg.attach(MIMEText(body_html, "html"))
 
+    def _try_connect(port):
+        if port == 465:
+            s = IPv4SMTP_SSL(smtp_host, port, timeout=12)
+            s.ehlo()
+        else:
+            s = IPv4SMTP(smtp_host, port, timeout=8)
+            s.ehlo()
+            s.starttls()
+            s.ehlo()
+        return s
+
     server = None
     try:
         clean_user = smtp_user.strip()
         clean_pass = smtp_password.strip().replace(" ", "")  # Strip accidental spaces from Google 16-char App Password
-        
-        if smtp_port == 465:
-            server = IPv4SMTP_SSL(smtp_host, smtp_port, timeout=15)
-            server.ehlo()
-        else:
-            server = IPv4SMTP(smtp_host, smtp_port, timeout=15)
-            server.ehlo()
-            server.starttls()
-            server.ehlo()
+
+        # Prefer SSL port 465 on cloud hosting like Render to avoid port 587 timeouts
+        ports_to_try = [smtp_port]
+        fallback_port = 465 if smtp_port != 465 else 587
+        if fallback_port not in ports_to_try:
+            ports_to_try.append(fallback_port)
+
+        last_conn_err = None
+        for p in ports_to_try:
+            try:
+                server = _try_connect(p)
+                break
+            except (socket.timeout, TimeoutError, socket.error, smtplib.SMTPConnectError, OSError) as ce:
+                last_conn_err = ce
+                if server:
+                    try: server.close()
+                    except Exception: pass
+                server = None
+
+        if not server:
+            raise last_conn_err or Exception(f"Could not connect to {smtp_host} on ports {ports_to_try}")
 
         server.login(clean_user, clean_pass)
         server.sendmail(from_addr, [to_addr], msg.as_string())
