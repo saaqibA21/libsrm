@@ -23,7 +23,8 @@
       <div class="scan-box">
         <i class="fa fa-id-card scan-icon"></i>
         <input type="text" id="patronBarcode" placeholder="Scan Patron Barcode or Register No. (Press Enter)…" autofocus autocomplete="off">
-        <button class="btn btn-primary btn-sm" onclick="scanPatron()" style="margin-right:4px;">Find</button>
+        <button type="button" class="btn btn-primary btn-sm" onclick="openCameraScanner('patron')" style="margin-right:4px;" title="Scan QR directly from student phone screen"><i class="fa fa-camera"></i> Camera</button>
+        <button type="button" class="btn btn-outline btn-sm" onclick="scanPatron()" style="margin-right:4px;">Find</button>
       </div>
       <div class="scan-status" id="patronStatus"></div>
     </div>
@@ -40,7 +41,8 @@
       <div class="scan-box">
         <i class="fa fa-barcode scan-icon"></i>
         <input type="text" id="bookBarcode" placeholder="Scan Book Barcode or Acc No. and press Enter…" autocomplete="off">
-        <button class="btn btn-success btn-sm" onclick="scanBook()" style="margin-right:4px;"><i class="fa fa-plus"></i> Add</button>
+        <button type="button" class="btn btn-outline btn-sm" onclick="openCameraScanner('book')" style="margin-right:4px;" title="Scan book with camera"><i class="fa fa-camera"></i></button>
+        <button type="button" class="btn btn-success btn-sm" onclick="scanBook()" style="margin-right:4px;"><i class="fa fa-plus"></i> Add</button>
       </div>
       <div class="scan-status" id="bookStatus"></div>
 
@@ -146,10 +148,33 @@
     </div>
   </div>
 
+<!-- Camera Scanner Modal -->
+<div id="cameraModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:var(--card-bg,#fff);width:100%;max-width:480px;border-radius:16px;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,0.5);display:flex;flex-direction:column;">
+    <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--primary);color:#fff;">
+      <h3 style="margin:0;font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px;">
+        <i class="fa fa-camera"></i> <span id="cameraModalTitle">Scan Barcode / QR Code</span>
+      </h3>
+      <button onclick="closeCameraModal()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:0 6px;line-height:1;">&times;</button>
+    </div>
+    <div style="padding:16px;background:#000;display:flex;flex-direction:column;align-items:center;">
+      <div id="cameraReader" style="width:100%;min-height:280px;border-radius:12px;overflow:hidden;"></div>
+      <p style="color:#aaa;font-size:12px;margin-top:10px;text-align:center;margin-bottom:0;">
+        Position the phone screen QR code or physical book barcode inside the camera frame.
+      </p>
+    </div>
+    <div style="padding:12px 18px;display:flex;justify-content:space-between;align-items:center;background:var(--bg,#f8fafc);border-top:1px solid var(--border);">
+      <span id="cameraScanMsg" style="font-size:13px;color:var(--text);font-weight:600;">Looking for code…</span>
+      <button class="btn btn-outline btn-sm" onclick="closeCameraModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 </div>
 
 {% endblock %}
 {% block scripts %}
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
 let patronData = null;
 let queuedBooks = []; // Array of book objects {id, barcode, title, account_number, authors}
@@ -446,5 +471,86 @@ function clearAll() {
 }
 
 initDates();
+
+// Camera scanner integration
+let html5QrScanner = null;
+let currentScanTarget = 'patron';
+
+function playScanBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.15);
+  } catch(e) {}
+}
+
+async function openCameraScanner(target) {
+  currentScanTarget = target;
+  const modal = document.getElementById('cameraModal');
+  const title = document.getElementById('cameraModalTitle');
+  const msg = document.getElementById('cameraScanMsg');
+  
+  title.innerHTML = target === 'patron' 
+    ? '<i class="fa fa-id-card"></i> Scan Student QR / Barcode' 
+    : '<i class="fa fa-barcode"></i> Scan Book Barcode';
+  msg.textContent = 'Starting camera…';
+  modal.style.display = 'flex';
+
+  try {
+    if (html5QrScanner) {
+      await html5QrScanner.stop().catch(() => {});
+    }
+    html5QrScanner = new Html5Qrcode("cameraReader");
+    const config = {
+      fps: 15,
+      qrbox: { width: 250, height: 250 },
+      aspectRatio: 1.0
+    };
+    
+    await html5QrScanner.start(
+      { facingMode: "environment" },
+      config,
+      (decodedText) => {
+        playScanBeep();
+        msg.textContent = `Scanned: ${decodedText}`;
+        if (currentScanTarget === 'patron') {
+          patronInput.value = decodedText;
+          scanPatron();
+        } else {
+          bookInput.value = decodedText;
+          scanBook();
+        }
+        closeCameraModal();
+      },
+      (errorMessage) => {
+        // frame decode ignore
+      }
+    );
+    msg.textContent = 'Point camera at code';
+  } catch (err) {
+    console.error('Camera error:', err);
+    msg.textContent = 'Camera error: ' + (err.name || err.message || 'Permission denied');
+  }
+}
+
+async function closeCameraModal() {
+  const modal = document.getElementById('cameraModal');
+  modal.style.display = 'none';
+  if (html5QrScanner) {
+    try {
+      await html5QrScanner.stop();
+      html5QrScanner.clear();
+    } catch(e) {}
+    html5QrScanner = null;
+  }
+}
 </script>
 {% endblock %}

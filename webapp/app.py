@@ -241,6 +241,27 @@ def api_stats():
     return jsonify(get_dashboard_stats())
 
 
+@app.route("/api/qr/<text>")
+def api_qr_image(text):
+    """Serve a phone-screen-scannable 2D QR Code image with public caching."""
+    from library_app.utils.barcode_utils import generate_qr_image
+    img_bytes = generate_qr_image(text)
+    res = send_file(io.BytesIO(img_bytes), mimetype="image/png")
+    res.headers["Cache-Control"] = "public, max-age=86400"
+    return res
+
+
+@app.route("/api/barcode/<text>")
+def api_barcode_image(text):
+    """Serve a 1D Code 128 barcode image with public caching."""
+    from library_app.utils.barcode_utils import generate_barcode_image
+    img_bytes = generate_barcode_image(text)
+    res = send_file(io.BytesIO(img_bytes), mimetype="image/png")
+    res.headers["Cache-Control"] = "public, max-age=86400"
+    return res
+
+
+
 # ─── Librarian Desk: Issue / Return ────────────────────────────────────────────
 
 @app.route("/issue")

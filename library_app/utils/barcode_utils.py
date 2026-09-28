@@ -56,6 +56,28 @@ def generate_barcode_image(code: str, save_path: str = None) -> bytes:
     return img_bytes
 
 
+def generate_qr_image(text: str, save_path: str = None) -> bytes:
+    """Generate a high-contrast, phone-screen scannable 2D QR code image (PNG bytes)."""
+    import qrcode
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(text)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    img_bytes = buf.getvalue()
+    if save_path:
+        with open(save_path, "wb") as f:
+            f.write(img_bytes)
+    return img_bytes
+
+
+
 def generate_barcode_pdf(items: list, output_path: str, label_type: str = "book"):
     """
     Generate a perfectly aligned printable PDF of barcode labels.
