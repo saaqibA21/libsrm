@@ -18,6 +18,8 @@ Thumbs.db
 
 # Large transient artifacts
 *.pdf
+!ALL_BOOKS_BARCODES.pdf
+!ALL_PATRONS_BARCODES.pdf
 *.zip
 sample_*.pdf
 test_*.pdf

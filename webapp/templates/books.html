@@ -17,7 +17,7 @@
     </select>
     <button type="submit" class="btn btn-primary"><i class="fa fa-search"></i> Search</button>
   </form>
-  <button class="btn btn-success" onclick="openModal('addBookModal')"><i class="fa fa-plus"></i> Add Book</button>
+  <button class="btn btn-success" onclick="openAddBook()"><i class="fa fa-plus"></i> Add Book</button>
   <button class="btn btn-outline" onclick="openImport()"><i class="fa fa-upload"></i> Import Excel</button>
   <a href="/books/barcodes" class="btn btn-outline"><i class="fa fa-barcode"></i> Print Barcodes PDF</a>
 </div>
@@ -75,8 +75,14 @@
     </div>
     <input type="hidden" id="editBookId" value="">
     <div class="form-row cols-2">
-      <div class="form-group"><label>Barcode *</label><input class="form-control" id="f-barcode" placeholder="e.g. BK131853"></div>
-      <div class="form-group"><label>Account No.</label><input class="form-control" id="f-accnum" placeholder="e.g. 131853"></div>
+      <div class="form-group">
+        <label>Barcode <small style="color:var(--muted);font-weight:normal;">(Auto-generated if left blank)</small></label>
+        <input class="form-control" id="f-barcode" placeholder="Leave blank to auto-generate (e.g. BK…)">
+      </div>
+      <div class="form-group">
+        <label>Account No.</label>
+        <input class="form-control" id="f-accnum" placeholder="e.g. 131853">
+      </div>
     </div>
     <div class="form-group"><label>Title *</label><input class="form-control" id="f-title" placeholder="Book title"></div>
     <div class="form-group"><label>Authors</label><input class="form-control" id="f-authors" placeholder="Comma-separated"></div>
@@ -111,6 +117,20 @@
 {% block scripts %}
 <script>
 function openImport() { document.getElementById('importFile').value=''; openModal('importModal'); }
+
+function openAddBook() {
+  document.getElementById('editBookId').value = '';
+  document.getElementById('bookModalTitle').textContent = '➕ Add New Book';
+  document.getElementById('f-barcode').value = '';
+  document.getElementById('f-barcode').readOnly = false;
+  document.getElementById('f-barcode').placeholder = 'Leave blank to auto-generate (e.g. BK…)';
+  document.getElementById('f-accnum').value = '';
+  document.getElementById('f-title').value = '';
+  document.getElementById('f-authors').value = '';
+  document.getElementById('f-publisher').value = '';
+  document.getElementById('f-edition').value = '';
+  openModal('addBookModal');
+}
 
 async function saveBook() {
   const id = document.getElementById('editBookId').value;

@@ -282,12 +282,54 @@ def scan_patron(barcode):
 def api_issue():
     if not require_staff():
         return jsonify({"success": False, "message": "Staff login required"}), 403
-    data = request.json
-    book_id = data.get("book_id")
+    data = request.json or {}
     patron_id = data.get("patron_id")
     patron_type = data.get("patron_type", "student")
-    success, msg = issue_book(book_id, patron_id, patron_type)
-    return jsonify({"success": success, "message": msg})
+
+    # Support both multi-book (book_ids) and single book (book_id)
+    book_ids = data.get("book_ids")
+    if not book_ids:
+        single_id = data.get("book_id")
+        if single_id:
+            book_ids = [single_id]
+        else:
+            return jsonify({"success": False, "message": "No books selected to issue"}), 400
+
+    if not patron_id:
+        return jsonify({"success": False, "message": "No patron selected"}), 400
+
+    issued_count = 0
+    errors = []
+    due_dates = []
+
+    for bid in book_ids:
+        success, msg = issue_book(bid, patron_id, patron_type)
+        if success:
+            issued_count += 1
+            if "Due date:" in msg:
+                due_dates.append(msg.split("Due date:")[-1].strip())
+        else:
+            errors.append(msg)
+
+    if issued_count == len(book_ids):
+        due_str = f" Due date: {due_dates[0]}" if due_dates else ""
+        return jsonify({
+            "success": True,
+            "issued_count": issued_count,
+            "message": f"Successfully issued {issued_count} book{'s' if issued_count > 1 else ''}!{due_str}"
+        })
+    elif issued_count > 0:
+        return jsonify({
+            "success": True,
+            "issued_count": issued_count,
+            "message": f"Issued {issued_count} of {len(book_ids)} books. Note: {'; '.join(errors)}"
+        })
+    else:
+        return jsonify({
+            "success": False,
+            "message": errors[0] if errors else "Failed to issue books"
+        })
+
 
 
 @app.route("/api/return", methods=["POST"])

@@ -73,8 +73,14 @@
     </div>
     <input type="hidden" id="editPatronId" value="">
     <div class="form-row cols-2">
-      <div class="form-group"><label>Barcode *</label><input class="form-control" id="fp-barcode" placeholder="e.g. STRA2611005010001"></div>
-      <div class="form-group"><label>Reg. Number *</label><input class="form-control" id="fp-reg" placeholder="Register / Employee number"></div>
+      <div class="form-group">
+        <label>Barcode <small style="color:var(--muted);font-weight:normal;">(Auto-generated if left blank)</small></label>
+        <input class="form-control" id="fp-barcode" placeholder="Leave blank to auto-generate (e.g. ST… / TC…)">
+      </div>
+      <div class="form-group">
+        <label>Reg. / Employee No. *</label>
+        <input class="form-control" id="fp-reg" placeholder="Register / Employee number">
+      </div>
     </div>
     <div class="form-group"><label>Full Name *</label><input class="form-control" id="fp-name"></div>
     <div class="form-row cols-3">
@@ -217,6 +223,7 @@ function openAddModal() {
   document.getElementById('editPatronId').value='';
   document.getElementById('patronModalTitle').textContent='➕ Add New Patron';
   document.getElementById('fp-barcode').readOnly=false;
+  document.getElementById('fp-barcode').placeholder='Leave blank to auto-generate (e.g. ST… / TC…)';
   ['fp-barcode','fp-reg','fp-name','fp-section','fp-mobile','fp-email','fp-pmobile','fp-pemail'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('fp-type').value='student';
   document.getElementById('fp-year').value='';

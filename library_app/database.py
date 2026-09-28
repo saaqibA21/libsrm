@@ -141,7 +141,7 @@ def add_book(barcode, title, publisher="", authors="", edition="", account_numbe
             VALUES (?,?,?,?,?,?)
         """, (barcode, account_number, title, publisher, authors, edition))
         conn.commit()
-        return True, "Book added successfully"
+        return True, f"Book added successfully! Barcode: {barcode}"
     except sqlite3.IntegrityError:
         return False, "Barcode already exists"
     finally:
@@ -241,7 +241,7 @@ def add_patron(barcode, register_number, name, patron_type="student",
         """, (barcode, register_number, name, patron_type, year, section,
               mobile, email, parent_mobile, parent_email))
         conn.commit()
-        return True, "Patron added successfully"
+        return True, f"Patron added successfully! Barcode: {barcode}"
     except sqlite3.IntegrityError as e:
         return False, f"Duplicate entry: {e}"
     finally:
