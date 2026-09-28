@@ -10,6 +10,53 @@ from email.mime.image import MIMEImage
 from datetime import datetime
 
 
+import socket
+
+class IPv4SMTP(smtplib.SMTP):
+    """SMTP client that forces IPv4 connections to prevent [Errno 101] Network is unreachable on Render/cloud hosts."""
+    def _get_socket(self, host, port, timeout):
+        err = None
+        for res in socket.getaddrinfo(host, port, socket.AF_INET, socket.SOCK_STREAM):
+            af, socktype, proto, canonname, sa = res
+            sock = None
+            try:
+                sock = socket.socket(af, socktype, proto)
+                if timeout is not None:
+                    sock.settimeout(timeout)
+                sock.connect(sa)
+                return sock
+            except socket.error as e:
+                err = e
+                if sock is not None:
+                    sock.close()
+        if err is not None:
+            raise err
+        raise socket.error(f"Could not resolve IPv4 address for {host}")
+
+
+class IPv4SMTP_SSL(smtplib.SMTP_SSL):
+    """SMTP_SSL client that forces IPv4 connections for port 465."""
+    def _get_socket(self, host, port, timeout):
+        err = None
+        for res in socket.getaddrinfo(host, port, socket.AF_INET, socket.SOCK_STREAM):
+            af, socktype, proto, canonname, sa = res
+            sock = None
+            try:
+                sock = socket.socket(af, socktype, proto)
+                if timeout is not None:
+                    sock.settimeout(timeout)
+                sock.connect(sa)
+                new_sock = self.context.wrap_socket(sock, server_hostname=self._host)
+                return new_sock
+            except socket.error as e:
+                err = e
+                if sock is not None:
+                    sock.close()
+        if err is not None:
+            raise err
+        raise socket.error(f"Could not resolve IPv4 address for {host}")
+
+
 def send_email(to_addr: str, subject: str, body_html: str,
                smtp_host: str, smtp_port: int,
                smtp_user: str, smtp_password: str,
@@ -45,14 +92,23 @@ def send_email(to_addr: str, subject: str, body_html: str,
         msg["To"] = to_addr
         msg.attach(MIMEText(body_html, "html"))
 
+    server = None
     try:
         clean_user = smtp_user.strip()
         clean_pass = smtp_password.strip().replace(" ", "")  # Strip accidental spaces from Google 16-char App Password
-        with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
+        
+        if smtp_port == 465:
+            server = IPv4SMTP_SSL(smtp_host, smtp_port, timeout=15)
+            server.ehlo()
+        else:
+            server = IPv4SMTP(smtp_host, smtp_port, timeout=15)
             server.ehlo()
             server.starttls()
-            server.login(clean_user, clean_pass)
-            server.sendmail(from_addr, [to_addr], msg.as_string())
+            server.ehlo()
+
+        server.login(clean_user, clean_pass)
+        server.sendmail(from_addr, [to_addr], msg.as_string())
+        server.quit()
         return True, ""
     except smtplib.SMTPAuthenticationError as e:
         err_msg = str(e)
@@ -63,6 +119,12 @@ def send_email(to_addr: str, subject: str, body_html: str,
         return False, f"Could not connect to SMTP host {smtp_host}:{smtp_port} — {e}"
     except Exception as e:
         return False, str(e)
+    finally:
+        if server:
+            try:
+                server.close()
+            except Exception:
+                pass
 
 
 def build_patron_barcode_email(patron: dict, library_name: str = "SRM EEE Department Library", use_cid: bool = True) -> str:

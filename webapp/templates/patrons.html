@@ -51,7 +51,7 @@
       <td class="text-sm">{{ p.mobile or '—' }}</td>
       <td class="text-sm text-muted">{{ p.email or '—' }}</td>
       <td style="white-space:nowrap">
-        <button class="btn btn-outline btn-sm" onclick="sendPatronBarcode({{ p.id }}, '{{ p.name|e }}', '{{ p.email or '' }}')" title="Email digital barcode card"><i class="fa fa-paper-plane" style="color:var(--accent-text, #166534);"></i></button>
+        <button class="btn btn-outline btn-sm" onclick="sendPatronBarcode(this, {{ p.id }}, '{{ p.name|e }}', '{{ p.email or '' }}')" title="Email digital barcode card"><i class="fa fa-paper-plane" style="color:var(--accent-text, #166534);"></i></button>
         <button class="btn btn-outline btn-sm" onclick="viewHistory({{ p.id }}, '{{ p.name|e }}')" title="Borrowing History"><i class="fa fa-history"></i></button>
         <button class="btn btn-outline btn-sm" onclick="editPatron({{ p.id }})" title="Edit"><i class="fa fa-edit"></i></button>
         <button class="btn btn-danger btn-sm" onclick="deletePatron({{ p.id }}, '{{ p.name|e }}')" title="Delete"><i class="fa fa-trash"></i></button>
@@ -323,18 +323,45 @@ async function doImportStaff() {
   }
 }
 
-async function sendPatronBarcode(id, name, email) {
-  if (!email) {
-    showToast(`No email address recorded for ${name}. Please edit patron to add an email first.`, 'error');
+async function sendPatronBarcode(btn, id, name, email) {
+  if (!email || !email.trim()) {
+    showToast(`No email address recorded for ${name}. Please click the ✏️ Edit button to add their email first.`, 'error');
     return;
   }
-  if (!confirm(`Send digital barcode card to ${name} (${email})?`)) return;
-  showToast(`Sending barcode card to ${name}…`, 'info');
+
+  const origHtml = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin" style="color:var(--primary);"></i>';
+  }
+  showToast(`Dispatching digital barcode card to ${name} (${email})…`, 'info');
+
   try {
-    const res = await fetch(`/api/send_patron_barcode/${id}`, {method:'POST'}).then(r=>r.json());
-    showToast(res.message, res.success ? 'success' : 'error');
+    const res = await fetch(`/api/send_patron_barcode/${id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    }).then(r => r.json());
+
+    if (res.success) {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa fa-check" style="color:#166534;"></i>';
+        btn.title = 'Sent successfully!';
+      }
+      showToast(res.message, 'success');
+    } else {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+      }
+      showToast(res.message, 'error');
+    }
   } catch (err) {
-    showToast('Failed to contact server: ' + err, 'error');
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+    }
+    showToast('Failed to contact server: ' + (err.message || err), 'error');
   }
 }
 
