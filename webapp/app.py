@@ -1047,17 +1047,43 @@ def test_email():
     if not require_staff():
         return jsonify({"success": False, "message": "Unauthorized"}), 403
     from library_app.utils.email_utils import send_email
-    d = request.json
+    d = request.json or {}
+    smtp_user = (d.get("email_user") or get_setting("email_user", "")).strip()
+    smtp_pass = (d.get("email_password") or get_setting("email_password", "")).strip()
+    smtp_host = (d.get("email_host") or get_setting("email_host", "smtp.gmail.com")).strip()
+    smtp_port = int(d.get("email_port") or get_setting("email_port", 587))
+    from_addr = (d.get("email_from") or get_setting("email_from", "")).strip() or smtp_user
+    test_to = (d.get("test_recipient") or smtp_user).strip()
+
+    if not smtp_user or not smtp_pass:
+        return jsonify({
+            "success": False,
+            "message": "Email address and 16-character Google App Password are required."
+        }), 400
+
+    if not test_to:
+        return jsonify({"success": False, "message": "Please specify a test recipient email address."}), 400
+
     ok, err = send_email(
-        to_addr=d.get("email_user",""),
-        subject="[SRM Library] Test Email ✅",
-        body_html="<h2>✅ Email working!</h2><p>Your SRM Library email config is correct.</p>",
-        smtp_host=d.get("email_host","smtp.gmail.com"),
-        smtp_port=int(d.get("email_port",587)),
-        smtp_user=d.get("email_user",""),
-        smtp_password=d.get("email_password",""),
+        to_addr=test_to,
+        subject="[SRM EEE Library] Email System Test ✅",
+        body_html=f"""
+        <div style="font-family:sans-serif; max-width:500px; padding:20px; border:1px solid #E2E8F0; border-radius:12px;">
+          <h2 style="color:#166534; margin-top:0;">✅ SRM Library Email System Active!</h2>
+          <p>This test email was successfully sent from <strong>{smtp_user}</strong> to <strong>{test_to}</strong>.</p>
+          <p style="font-size:13px; color:#64748B;">Your SMTP credentials and Google App Password are confirmed working properly.</p>
+        </div>
+        """,
+        smtp_host=smtp_host,
+        smtp_port=smtp_port,
+        smtp_user=smtp_user,
+        smtp_password=smtp_pass,
+        from_addr=from_addr
     )
-    return jsonify({"success": ok, "message": "Test email sent!" if ok else err})
+    return jsonify({
+        "success": ok,
+        "message": f"✅ Test email successfully delivered to {test_to}!" if ok else f"❌ Delivery failed: {err}"
+    })
 
 
 @app.route("/api/backup/database")

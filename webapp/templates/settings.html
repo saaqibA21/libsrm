@@ -67,10 +67,20 @@
           </ol>
         </div>
 
-        <div style="display:flex;gap:10px;margin-top:4px">
-          <button type="button" class="btn btn-outline" onclick="testEmail()"><i class="fa fa-envelope"></i> Send Test Email</button>
+        <div class="form-group" style="margin-top:16px; padding-top:14px; border-top:1px dashed var(--border);">
+          <label style="display:flex; justify-content:space-between; align-items:center;">
+            <span>Send Test Email To (Recipient)</span>
+            <span style="font-size:11px; color:var(--muted); font-weight:normal;">e.g. tp7053@srmist.edu.in</span>
+          </label>
+          <input class="form-control" name="test_recipient" id="testRecipient" placeholder="Enter recipient email (e.g. tp7053@srmist.edu.in)">
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
+          <button type="button" class="btn btn-outline" id="btnTestEmail" onclick="testEmail()"><i class="fa fa-paper-plane"></i> Send Test Email</button>
           <button type="button" class="btn btn-success" onclick="saveEmailSettings()"><i class="fa fa-save"></i> Save Email Settings</button>
         </div>
+
+        <div id="emailTestStatus" style="display:none; margin-top:14px; padding:12px 14px; border-radius:10px; font-size:12.5px; line-height:1.5;"></div>
       </div>
     </form>
   </div>
@@ -117,9 +127,42 @@ async function testEmail() {
   const fd = new FormData(form);
   const data = {};
   fd.forEach((v, k) => data[k] = v);
-  showToast('Sending test email…', 'info');
-  const res = await postJSON('/api/test_email', data);
-  showToast(res.message, res.success ? 'success' : 'error');
+  const statusDiv = document.getElementById('emailTestStatus');
+  const btn = document.getElementById('btnTestEmail');
+  
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Connecting to SMTP…';
+  statusDiv.style.display = 'block';
+  statusDiv.style.background = '#F8FAFC';
+  statusDiv.style.border = '1px solid #CBD5E1';
+  statusDiv.style.color = '#334155';
+  statusDiv.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Connecting to SMTP server & verifying credentials...';
+
+  try {
+    const res = await postJSON('/api/test_email', data);
+    if (res.success) {
+      statusDiv.style.background = '#ECFDF5';
+      statusDiv.style.border = '1px solid #A7F3D0';
+      statusDiv.style.color = '#065F46';
+      statusDiv.innerHTML = `<strong>${res.message}</strong><br><span style="font-size:11.5px;">Check recipient inbox or spam folder.</span>`;
+      showToast(res.message, 'success');
+    } else {
+      statusDiv.style.background = '#FEF2F2';
+      statusDiv.style.border = '1px solid #FECACA';
+      statusDiv.style.color = '#991B1B';
+      statusDiv.innerHTML = `<strong>❌ ${res.message}</strong>`;
+      showToast('Email test failed — see details below', 'error');
+    }
+  } catch (err) {
+    statusDiv.style.background = '#FEF2F2';
+    statusDiv.style.border = '1px solid #FECACA';
+    statusDiv.style.color = '#991B1B';
+    statusDiv.innerHTML = `<strong>❌ Request error:</strong> ${err.message || err}`;
+    showToast('Failed to reach server', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa fa-paper-plane"></i> Send Test Email';
+  }
 }
 </script>
 {% endblock %}

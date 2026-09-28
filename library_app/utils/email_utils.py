@@ -46,12 +46,21 @@ def send_email(to_addr: str, subject: str, body_html: str,
         msg.attach(MIMEText(body_html, "html"))
 
     try:
+        clean_user = smtp_user.strip()
+        clean_pass = smtp_password.strip().replace(" ", "")  # Strip accidental spaces from Google 16-char App Password
         with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
             server.ehlo()
             server.starttls()
-            server.login(smtp_user, smtp_password)
+            server.login(clean_user, clean_pass)
             server.sendmail(from_addr, [to_addr], msg.as_string())
         return True, ""
+    except smtplib.SMTPAuthenticationError as e:
+        err_msg = str(e)
+        if "5.7.8" in err_msg or "Username and Password not accepted" in err_msg or "Application-specific password" in err_msg or "BadCredentials" in err_msg:
+            return False, "Google SMTP Login Failed: Google requires a 16-character App Password (not your standard Gmail password). Make sure 2-Step Verification is ON, then generate an App Password at https://myaccount.google.com/apppasswords"
+        return False, f"SMTP Authentication Error: {err_msg}"
+    except smtplib.SMTPConnectError as e:
+        return False, f"Could not connect to SMTP host {smtp_host}:{smtp_port} — {e}"
     except Exception as e:
         return False, str(e)
 

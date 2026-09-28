@@ -108,7 +108,15 @@ def get_setting(key, default=None):
     conn = get_connection()
     row = conn.execute("SELECT value FROM settings WHERE key=?", (key,)).fetchone()
     conn.close()
-    return row["value"] if row else default
+    val = row["value"] if row else None
+    if val is not None and str(val).strip():
+        return str(val).strip()
+    # Fallback to Environment Variables (e.g. EMAIL_USER, EMAIL_PASSWORD, etc.)
+    env_key = key.upper()
+    env_val = os.environ.get(env_key)
+    if env_val is not None and str(env_val).strip():
+        return str(env_val).strip()
+    return str(val).strip() if (val is not None and str(val).strip()) else default
 
 
 def set_setting(key, value):
@@ -122,7 +130,11 @@ def get_all_settings():
     conn = get_connection()
     rows = conn.execute("SELECT key, value FROM settings").fetchall()
     conn.close()
-    return {r["key"]: r["value"] for r in rows}
+    res = {r["key"]: r["value"] for r in rows}
+    for k in ["email_user", "email_password", "email_host", "email_port", "email_from", "staff_pin", "library_name"]:
+        if not res.get(k) and os.environ.get(k.upper()):
+            res[k] = os.environ.get(k.upper())
+    return res
 
 
 # ─── Books ─────────────────────────────────────────────────────────────────────
