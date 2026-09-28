@@ -1048,6 +1048,7 @@ def test_email():
         return jsonify({"success": False, "message": "Unauthorized"}), 403
     from library_app.utils.email_utils import send_email
     d = request.json or {}
+    brevo_key = (d.get("brevo_api_key") or get_setting("brevo_api_key", "")).strip()
     smtp_user = (d.get("email_user") or get_setting("email_user", "")).strip()
     smtp_pass = (d.get("email_password") or get_setting("email_password", "")).strip()
     smtp_host = (d.get("email_host") or get_setting("email_host", "smtp.gmail.com")).strip()
@@ -1055,10 +1056,10 @@ def test_email():
     from_addr = (d.get("email_from") or get_setting("email_from", "")).strip() or smtp_user
     test_to = (d.get("test_recipient") or smtp_user).strip()
 
-    if not smtp_user or not smtp_pass:
+    if not brevo_key and (not smtp_user or not smtp_pass):
         return jsonify({
             "success": False,
-            "message": "Email address and 16-character Google App Password are required."
+            "message": "Please enter a Brevo API key OR Gmail address and 16-character Google App Password."
         }), 400
 
     if not test_to:
@@ -1070,15 +1071,16 @@ def test_email():
         body_html=f"""
         <div style="font-family:sans-serif; max-width:500px; padding:20px; border:1px solid #E2E8F0; border-radius:12px;">
           <h2 style="color:#166534; margin-top:0;">✅ SRM Library Email System Active!</h2>
-          <p>This test email was successfully sent from <strong>{smtp_user}</strong> to <strong>{test_to}</strong>.</p>
-          <p style="font-size:13px; color:#64748B;">Your SMTP credentials and Google App Password are confirmed working properly.</p>
+          <p>This test email was successfully dispatched to <strong>{test_to}</strong>.</p>
+          <p style="font-size:13px; color:#64748B;">Delivery method: <strong>{'Brevo HTTPS REST API (Port 443)' if brevo_key else 'Google SMTP (Port ' + str(smtp_port) + ')'}</strong>.</p>
         </div>
         """,
         smtp_host=smtp_host,
         smtp_port=smtp_port,
         smtp_user=smtp_user,
         smtp_password=smtp_pass,
-        from_addr=from_addr
+        from_addr=from_addr,
+        brevo_api_key=brevo_key
     )
     return jsonify({
         "success": ok,

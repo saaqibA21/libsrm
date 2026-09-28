@@ -57,16 +57,101 @@ class IPv4SMTP_SSL(smtplib.SMTP_SSL):
         raise socket.error(f"Could not resolve IPv4 address for {host}")
 
 
-def send_email(to_addr: str, subject: str, body_html: str,
-               smtp_host: str, smtp_port: int,
-               smtp_user: str, smtp_password: str,
-               from_addr: str = None,
-               inline_images: dict = None) -> tuple[bool, str]:
-    """Send a single email. Returns (success, error_message).
-    inline_images: optional dict mapping content_id string to (image_bytes, subtype_str)
+import urllib.request
+import urllib.error
+import json
+import os
+
+def send_email_brevo(api_key: str, to_addr: str, subject: str, body_html: str,
+                     sender_email: str = "srmeeelibraray@gmail.com",
+                     sender_name: str = "SRM EEE Library",
+                     to_name: str = None,
+                     inline_images: dict = None) -> tuple[bool, str]:
+    """Send an email via Brevo's v3 HTTP REST API over Port 443 (HTTPS).
+    Works on Render Free tier without outbound SMTP port blocking!
     """
+    if not api_key or not api_key.strip():
+        return False, "Brevo API key missing"
+    if not to_addr or not to_addr.strip():
+        return False, "Recipient email missing"
+
+    url = "https://api.brevo.com/v3/smtp/email"
+    headers = {
+        "api-key": api_key.strip(),
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+    }
+
+    payload = {
+        "sender": {
+            "name": sender_name or "SRM EEE Library",
+            "email": sender_email or "srmeeelibraray@gmail.com"
+        },
+        "to": [
+            {
+                "email": to_addr.strip(),
+                "name": to_name or to_addr.strip()
+            }
+        ],
+        "subject": subject,
+        "htmlContent": body_html
+    }
+
+    if inline_images:
+        attachments = []
+        for cid, (img_bytes, subtype) in inline_images.items():
+            attachments.append({
+                "content": base64.b64encode(img_bytes).decode("ascii"),
+                "name": f"{cid}.{subtype}"
+            })
+        payload["attachment"] = attachments
+
+    req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=12) as response:
+            return True, ""
+    except urllib.error.HTTPError as e:
+        err_text = e.read().decode("utf-8", errors="ignore")
+        try:
+            err_json = json.loads(err_text)
+            msg = err_json.get("message") or err_text
+        except Exception:
+            msg = err_text
+        if e.code == 401 or "unauthorized" in msg.lower() or "key not found" in msg.lower():
+            return False, "Brevo Authentication Failed: Invalid Brevo API key. Please check your key at app.brevo.com/settings/keys/api"
+        return False, f"Brevo HTTP {e.code}: {msg}"
+    except Exception as e:
+        return False, f"Brevo API error: {e}"
+
+
+def send_email(to_addr: str, subject: str, body_html: str,
+               smtp_host: str = "smtp.gmail.com", smtp_port: int = 465,
+               smtp_user: str = "", smtp_password: str = "",
+               from_addr: str = None,
+               inline_images: dict = None,
+               brevo_api_key: str = None) -> tuple[bool, str]:
+    """Send an email using Brevo HTTP API (if configured) or fallback to direct SMTP."""
+    if not brevo_api_key:
+        try:
+            from library_app.database import get_setting
+            brevo_api_key = get_setting("brevo_api_key", "")
+        except Exception:
+            brevo_api_key = os.environ.get("BREVO_API_KEY", "")
+
+    if brevo_api_key and str(brevo_api_key).strip():
+        sender_email = from_addr or smtp_user or "srmeeelibraray@gmail.com"
+        return send_email_brevo(
+            api_key=str(brevo_api_key).strip(),
+            to_addr=to_addr,
+            subject=subject,
+            body_html=body_html,
+            sender_email=sender_email,
+            sender_name="SRM EEE Department Library",
+            inline_images=inline_images
+        )
+
     if not to_addr or not smtp_user or not smtp_password:
-        return False, "Email configuration incomplete (SMTP user or password missing)"
+        return False, "Email configuration incomplete (SMTP user/password or Brevo API key missing)"
 
     from_addr = from_addr or smtp_user
 
