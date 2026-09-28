@@ -639,7 +639,7 @@ def import_students_route():
             from library_app.utils.email_utils import send_patron_barcode_email
             import time
             smtp_host = get_setting("email_host", "smtp.gmail.com")
-            smtp_port = int(get_setting("email_port", "587"))
+            smtp_port = int(get_setting("email_port", "465"))
             from_addr = get_setting("email_from", "")
             lib_name = get_setting("library_name", "SRM EEE Department Library")
             for p in patrons:
@@ -715,7 +715,7 @@ def import_staff_route():
             from library_app.utils.email_utils import send_patron_barcode_email
             import time
             smtp_host = get_setting("email_host", "smtp.gmail.com")
-            smtp_port = int(get_setting("email_port", "587"))
+            smtp_port = int(get_setting("email_port", "465"))
             from_addr = get_setting("email_from", "")
             lib_name = get_setting("library_name", "SRM EEE Department Library")
             for p in patrons:
@@ -870,7 +870,7 @@ def send_overdue_emails():
     from library_app.utils.email_utils import send_email, build_overdue_email
     overdue = get_overdue_transactions()
     smtp_host = get_setting("email_host", "smtp.gmail.com")
-    smtp_port = int(get_setting("email_port", "587"))
+    smtp_port = int(get_setting("email_port", "465"))
     smtp_user = get_setting("email_user", "")
     smtp_pass = get_setting("email_password", "")
     lib_name = get_setting("library_name", "SRM EEE Library")
@@ -916,7 +916,7 @@ def send_patron_barcode_single(patron_id):
         return jsonify({"success": False, "message": f"{patron.get('name')} does not have an email address registered."}), 400
 
     smtp_host = get_setting("email_host", "smtp.gmail.com")
-    smtp_port = int(get_setting("email_port", "587"))
+    smtp_port = int(get_setting("email_port", "465"))
     smtp_user = get_setting("email_user", "")
     smtp_pass = get_setting("email_password", "")
     from_addr = get_setting("email_from", "")
@@ -953,7 +953,7 @@ def send_batch_barcode_emails():
     import time
 
     smtp_host = get_setting("email_host", "smtp.gmail.com")
-    smtp_port = int(get_setting("email_port", "587"))
+    smtp_port = int(get_setting("email_port", "465"))
     smtp_user = get_setting("email_user", "")
     smtp_pass = get_setting("email_password", "")
     from_addr = get_setting("email_from", "")
@@ -1051,7 +1051,7 @@ def test_email():
     smtp_user = (d.get("email_user") or get_setting("email_user", "")).strip()
     smtp_pass = (d.get("email_password") or get_setting("email_password", "")).strip()
     smtp_host = (d.get("email_host") or get_setting("email_host", "smtp.gmail.com")).strip()
-    smtp_port = int(d.get("email_port") or get_setting("email_port", 587))
+    smtp_port = int(d.get("email_port") or get_setting("email_port", 465))
     from_addr = (d.get("email_from") or get_setting("email_from", "")).strip() or smtp_user
     test_to = (d.get("test_recipient") or smtp_user).strip()
 

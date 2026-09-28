@@ -108,11 +108,13 @@ def send_email(to_addr: str, subject: str, body_html: str,
         clean_user = smtp_user.strip()
         clean_pass = smtp_password.strip().replace(" ", "")  # Strip accidental spaces from Google 16-char App Password
 
-        # Prefer SSL port 465 on cloud hosting like Render to avoid port 587 timeouts
-        ports_to_try = [smtp_port]
-        fallback_port = 465 if smtp_port != 465 else 587
-        if fallback_port not in ports_to_try:
-            ports_to_try.append(fallback_port)
+        # Prioritize port 465 (SSL) for Gmail/cloud hosts to eliminate port 587 timeout issues
+        if "gmail" in smtp_host.lower():
+            ports_to_try = [465, 587]
+        else:
+            ports_to_try = [smtp_port]
+            if 465 not in ports_to_try:
+                ports_to_try.append(465)
 
         last_conn_err = None
         for p in ports_to_try:

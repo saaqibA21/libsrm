@@ -44,8 +44,8 @@
         <div class="form-row cols-2">
           <div class="form-group"><label>SMTP Host</label>
             <input class="form-control" name="email_host" value="{{ settings.email_host }}" placeholder="smtp.gmail.com"></div>
-          <div class="form-group"><label>SMTP Port</label>
-            <input class="form-control" type="number" name="email_port" value="{{ settings.email_port }}" placeholder="587"></div>
+          <div class="form-group"><label>SMTP Port (465 for SSL, 587 for TLS)</label>
+            <input class="form-control" type="number" name="email_port" value="{{ settings.email_port or '465' }}" placeholder="465"></div>
         </div>
         <div class="form-group"><label>Email Address</label>
           <input class="form-control" name="email_user" value="{{ settings.email_user }}" placeholder="your@gmail.com"></div>
