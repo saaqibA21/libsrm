@@ -14,6 +14,9 @@ import socket
 
 class IPv4SMTP(smtplib.SMTP):
     """SMTP client that forces IPv4 connections to prevent [Errno 101] Network is unreachable on Render/cloud hosts."""
+    def __init__(self, host='', port=0, local_hostname='localhost', timeout=10, source_address=None):
+        super().__init__(host=host, port=port, local_hostname=local_hostname, timeout=timeout, source_address=source_address)
+
     def _get_socket(self, host, port, timeout):
         err = None
         for res in socket.getaddrinfo(host, port, socket.AF_INET, socket.SOCK_STREAM):
@@ -36,6 +39,9 @@ class IPv4SMTP(smtplib.SMTP):
 
 class IPv4SMTP_SSL(smtplib.SMTP_SSL):
     """SMTP_SSL client that forces IPv4 connections for port 465."""
+    def __init__(self, host='', port=0, local_hostname='localhost', timeout=10, source_address=None, context=None):
+        super().__init__(host=host, port=port, local_hostname=local_hostname, timeout=timeout, source_address=source_address, context=context)
+
     def _get_socket(self, host, port, timeout):
         err = None
         for res in socket.getaddrinfo(host, port, socket.AF_INET, socket.SOCK_STREAM):
@@ -94,34 +100,34 @@ def send_email(to_addr: str, subject: str, body_html: str,
 
     def _try_connect(port):
         if port == 465:
-            s = IPv4SMTP_SSL(smtp_host, port, timeout=12)
+            s = IPv4SMTP_SSL(smtp_host, port, local_hostname='localhost', timeout=10)
             s.ehlo()
         else:
-            s = IPv4SMTP(smtp_host, port, timeout=8)
+            s = IPv4SMTP(smtp_host, port, local_hostname='localhost', timeout=8)
             s.ehlo()
             s.starttls()
             s.ehlo()
         return s
 
+    current_step = "initialization"
     server = None
     try:
         clean_user = smtp_user.strip()
-        clean_pass = smtp_password.strip().replace(" ", "")  # Strip accidental spaces from Google 16-char App Password
+        clean_pass = smtp_password.strip().replace(" ", "")
 
-        # Prioritize port 465 (SSL) for Gmail/cloud hosts to eliminate port 587 timeout issues
+        # For Gmail on cloud hosting (Render), port 465 SSL is direct, fast and never blocked
         if "gmail" in smtp_host.lower():
-            ports_to_try = [465, 587]
+            ports_to_try = [465]
         else:
-            ports_to_try = [smtp_port]
-            if 465 not in ports_to_try:
-                ports_to_try.append(465)
+            ports_to_try = [smtp_port] if smtp_port == 465 else [smtp_port, 465]
 
+        current_step = f"connecting to {smtp_host}"
         last_conn_err = None
         for p in ports_to_try:
             try:
                 server = _try_connect(p)
                 break
-            except (socket.timeout, TimeoutError, socket.error, smtplib.SMTPConnectError, OSError) as ce:
+            except Exception as ce:
                 last_conn_err = ce
                 if server:
                     try: server.close()
@@ -131,8 +137,13 @@ def send_email(to_addr: str, subject: str, body_html: str,
         if not server:
             raise last_conn_err or Exception(f"Could not connect to {smtp_host} on ports {ports_to_try}")
 
+        current_step = f"authenticating with {clean_user}"
         server.login(clean_user, clean_pass)
+
+        current_step = f"dispatching email to {to_addr}"
         server.sendmail(from_addr, [to_addr], msg.as_string())
+
+        current_step = "closing connection"
         server.quit()
         return True, ""
     except smtplib.SMTPAuthenticationError as e:
@@ -141,9 +152,9 @@ def send_email(to_addr: str, subject: str, body_html: str,
             return False, "Google SMTP Login Failed: Google requires a 16-character App Password (not your standard Gmail password). Make sure 2-Step Verification is ON, then generate an App Password at https://myaccount.google.com/apppasswords"
         return False, f"SMTP Authentication Error: {err_msg}"
     except smtplib.SMTPConnectError as e:
-        return False, f"Could not connect to SMTP host {smtp_host}:{smtp_port} — {e}"
+        return False, f"Could not connect to SMTP host {smtp_host} — {e}"
     except Exception as e:
-        return False, str(e)
+        return False, f"Delivery error during {current_step}: {e}"
     finally:
         if server:
             try:
