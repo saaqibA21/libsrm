@@ -152,6 +152,12 @@
       <!-- Availability Highlight Box -->
       <div id="m-avail-box" style="border-radius:14px; padding:14px 16px; margin-bottom:18px;"></div>
 
+      <!-- Barcode Graphic Box -->
+      <div style="background:#F8FAF6; border:1px solid #E2E8F0; border-radius:12px; padding:12px; margin-bottom:18px; text-align:center;">
+        <img id="m-barcode-img" src="" alt="Book Barcode" style="max-width:240px; height:52px; object-fit:contain; display:block; margin:0 auto;">
+        <div id="m-barcode-txt" style="font-family:'Consolas',monospace; font-size:15px; font-weight:700; color:var(--text); letter-spacing:2px; margin-top:4px;"></div>
+      </div>
+
       <div class="info-card" style="margin-bottom:18px;">
         <div class="info-row"><span class="lbl">Account No.</span><span class="val" id="m-acc"></span></div>
         <div class="info-row"><span class="lbl">Barcode ID</span><span class="val" id="m-barcode"></span></div>
@@ -171,7 +177,14 @@
       </div>
     </div>
 
-    <div class="modal-footer">
+    <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+      <div id="m-staff-actions">
+        {% if is_staff %}
+          <a id="m-print-label-btn" href="#" class="btn btn-outline btn-sm" target="_blank">
+            <i class="fa fa-print"></i> Print Barcode Sticker
+          </a>
+        {% endif %}
+      </div>
       <button class="btn btn-primary btn-sm" onclick="closeModal('bookModal')">Close</button>
     </div>
   </div>
@@ -196,6 +209,10 @@ async function showBookDetails(bookId) {
     document.getElementById('m-title').textContent = b.title;
     document.getElementById('m-acc').textContent = b.account_number || '—';
     document.getElementById('m-barcode').innerHTML = `<code>${b.barcode}</code>`;
+    document.getElementById('m-barcode-img').src = `/api/barcode/image/${encodeURIComponent(b.barcode)}`;
+    document.getElementById('m-barcode-txt').textContent = b.barcode;
+    const printBtn = document.getElementById('m-print-label-btn');
+    if (printBtn) printBtn.href = `/books/barcode_label/${b.id}`;
     document.getElementById('m-authors').textContent = b.authors || '—';
     document.getElementById('m-pub').textContent = b.publisher || '—';
     document.getElementById('m-edition').textContent = b.edition || '—';

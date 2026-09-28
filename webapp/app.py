@@ -252,14 +252,25 @@ def api_qr_image(text):
 
 
 @app.route("/api/barcode/<text>")
+@app.route("/api/barcode/image/<text>")
 def api_barcode_image(text):
-    """Serve a 1D Code 128 barcode image with public caching."""
+    """Serve crisp PNG barcode image for single book/patron barcode display, phone screen, and printing."""
     from library_app.utils.barcode_utils import generate_barcode_image
-    img_bytes = generate_barcode_image(text)
-    res = send_file(io.BytesIO(img_bytes), mimetype="image/png")
-    res.headers["Cache-Control"] = "public, max-age=86400"
-    return res
-
+    try:
+        clean_code = text.strip()
+        img_bytes = generate_barcode_image(clean_code)
+        as_attachment = request.args.get("download") == "1"
+        res = send_file(
+            io.BytesIO(img_bytes),
+            mimetype="image/png",
+            as_attachment=as_attachment,
+            download_name=f"barcode_{clean_code}.png"
+        )
+        if not as_attachment:
+            res.headers["Cache-Control"] = "public, max-age=86400"
+        return res
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 400
 
 
 # ─── Librarian Desk: Issue / Return ────────────────────────────────────────────
@@ -488,6 +499,32 @@ def books_barcodes():
               "extra": f"Acc: {b.get('account_number','')} | {(b.get('authors','') or '')[:30]}"} for b in books]
     generate_barcode_pdf(items, master_pdf, "book")
     return send_file(master_pdf, as_attachment=True, download_name="ALL_BOOKS_BARCODES.pdf", mimetype="application/pdf")
+
+@app.route("/books/barcode_label/<int:book_id>")
+def book_single_barcode_pdf(book_id):
+    """Generate a single-label printable PDF for a damaged/replacement book barcode."""
+    book = get_book_by_id(book_id)
+    if not book:
+        return "Book not found", 404
+    from library_app.utils.barcode_utils import generate_barcode_pdf
+    item = {
+        "barcode": book["barcode"],
+        "name": book["title"][:45],
+        "extra": f"Acc: {book.get('account_number','')} | {(book.get('authors','') or '')[:30]}"
+    }
+    tmp_path = os.path.join(os.path.dirname(__file__), f"_tmp_single_book_{book_id}.pdf")
+    generate_barcode_pdf([item], tmp_path, "book")
+    with open(tmp_path, "rb") as f:
+        pdf_bytes = f.read()
+    if os.path.exists(tmp_path):
+        try: os.remove(tmp_path)
+        except Exception: pass
+    return send_file(
+        io.BytesIO(pdf_bytes),
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=f"Label_{book['barcode']}.pdf"
+    )
 
 
 # ─── Librarian Desk: Patrons Management ────────────────────────────────────────
@@ -727,6 +764,32 @@ def patrons_barcodes():
         items.append({"barcode": p["barcode"], "name": p["name"], "extra": extra_txt})
     generate_barcode_pdf(items, master_pdf, "patron")
     return send_file(master_pdf, as_attachment=True, download_name="ALL_PATRONS_BARCODES.pdf", mimetype="application/pdf")
+
+
+@app.route("/patrons/barcode_label/<int:patron_id>")
+def patron_single_barcode_pdf(patron_id):
+    """Generate a single-label printable PDF for a damaged/replacement patron barcode."""
+    patron = get_patron_by_id(patron_id)
+    if not patron:
+        return "Patron not found", 404
+    from library_app.utils.barcode_utils import generate_barcode_pdf
+    ptype = (patron.get("patron_type", "") or "").title()
+    reg = patron.get("register_number", "") or ""
+    extra_txt = f"{ptype} | {reg}"
+    item = {"barcode": patron["barcode"], "name": patron["name"][:45], "extra": extra_txt}
+    tmp_path = os.path.join(os.path.dirname(__file__), f"_tmp_single_patron_{patron_id}.pdf")
+    generate_barcode_pdf([item], tmp_path, "patron")
+    with open(tmp_path, "rb") as f:
+        pdf_bytes = f.read()
+    if os.path.exists(tmp_path):
+        try: os.remove(tmp_path)
+        except Exception: pass
+    return send_file(
+        io.BytesIO(pdf_bytes),
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=f"ID_Label_{patron['barcode']}.pdf"
+    )
 
 
 # ─── Librarian Desk: Reports ───────────────────────────────────────────────────

@@ -39,9 +39,19 @@
     <tbody>
     {% for book in books %}
     <tr>
-      <td><code style="font-size:11px;color:var(--info)">{{ book.barcode }}</code></td>
+      <td>
+        <a href="javascript:void(0)" onclick="showBarcodeModal({{ book.id }})" title="View & Print Barcode Label Sticker" style="text-decoration:none;">
+          <code style="font-size:11px; color:var(--info); cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
+            <i class="fa fa-barcode"></i> {{ book.barcode }}
+          </code>
+        </a>
+      </td>
       <td class="text-muted text-sm">{{ book.account_number or '—' }}</td>
-      <td style="max-width:220px;font-weight:500">{{ book.title[:60] }}{% if book.title|length > 60 %}…{% endif %}</td>
+      <td style="max-width:220px; font-weight:500;">
+        <a href="javascript:void(0)" onclick="showBarcodeModal({{ book.id }})" style="color:var(--text); text-decoration:none; cursor:pointer;" title="Click to view & print barcode label">
+          {{ book.title[:60] }}{% if book.title|length > 60 %}…{% endif %}
+        </a>
+      </td>
       <td class="text-muted text-sm">{{ (book.authors or '—')[:40] }}</td>
       <td class="text-muted text-sm">{{ (book.publisher or '—')[:25] }}</td>
       <td class="text-muted text-sm">{{ book.edition or '—' }}</td>
@@ -52,9 +62,10 @@
           <span class="badge badge-danger">Issued</span>
         {% endif %}
       </td>
-      <td>
-        <button class="btn btn-outline btn-sm" onclick="editBook({{ book.id }})"><i class="fa fa-edit"></i></button>
-        <button class="btn btn-danger btn-sm" onclick="deleteBook({{ book.id }}, '{{ book.title[:30]|e }}')"><i class="fa fa-trash"></i></button>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-outline btn-sm" onclick="showBarcodeModal({{ book.id }})" title="View & Print Barcode Label Sticker"><i class="fa fa-barcode" style="color:var(--primary);"></i></button>
+        <button class="btn btn-outline btn-sm" onclick="editBook({{ book.id }})" title="Edit Book"><i class="fa fa-edit"></i></button>
+        <button class="btn btn-danger btn-sm" onclick="deleteBook({{ book.id }}, '{{ book.title[:30]|e }}')" title="Delete Book"><i class="fa fa-trash"></i></button>
       </td>
     </tr>
     {% else %}
@@ -109,6 +120,63 @@
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('importModal')">Cancel</button>
       <button class="btn btn-primary" onclick="doImport()"><i class="fa fa-upload"></i> Import Now</button>
+    </div>
+  </div>
+<!-- Single Book Barcode Label Modal -->
+<div class="modal-overlay" id="singleBarcodeModal">
+  <div class="modal" style="max-width:540px;">
+    <div class="modal-header">
+      <h3 style="font-size:17px; display:flex; align-items:center; gap:8px;">
+        <i class="fa fa-barcode" style="color:var(--primary);"></i> Book Barcode Label Sticker
+      </h3>
+      <button class="modal-close" onclick="closeModal('singleBarcodeModal')">✕</button>
+    </div>
+
+    <!-- Printable Label Box -->
+    <div id="printableLabelBox" style="background:#FFFFFF; border:2px dashed #CBD5E1; border-radius:14px; padding:20px 24px; margin:16px 0; text-align:center; box-shadow:var(--shadow-sm);">
+      <div style="font-size:11px; font-weight:700; color:#1C3022; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:2px;">
+        SRM INSTITUTE OF SCIENCE & TECHNOLOGY
+      </div>
+      <div style="font-size:10px; color:#4A5568; margin-bottom:12px; font-weight:600;">
+        Department of Electrical & Electronics Engineering Library
+      </div>
+
+      <!-- High-res Barcode Image -->
+      <div style="background:#FFFFFF; padding:8px; display:inline-block; max-width:100%;">
+        <img id="sb-img" src="" alt="Barcode" style="max-width:280px; width:100%; height:64px; object-fit:contain; display:block; margin:0 auto;">
+        <div id="sb-code" style="font-family:'Consolas',monospace; font-size:18px; font-weight:700; color:#0F172A; letter-spacing:3px; margin-top:6px;">
+          BK...
+        </div>
+      </div>
+
+      <!-- Book Info on Label -->
+      <div id="sb-title" style="font-weight:700; font-size:14px; color:#17241A; margin-top:8px; line-height:1.35; max-width:380px; margin-left:auto; margin-right:auto;">
+        Book Title
+      </div>
+      <div id="sb-meta" style="font-size:11.5px; color:#64748B; margin-top:4px;">
+        Acc: 131853 • Authors
+      </div>
+    </div>
+
+    <div style="font-size:12px; color:var(--muted); margin-bottom:16px; line-height:1.5;">
+      💡 <strong>Damaged or Missing Barcode Sticker?</strong> Click <em>Print Label</em> to print a replacement sticker immediately, or download the sticker PDF.
+    </div>
+
+    <div class="modal-footer" style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <a id="sb-download-pdf" href="#" class="btn btn-outline btn-sm" target="_blank">
+          <i class="fa fa-file-pdf" style="color:#991B1B;"></i> Download PDF
+        </a>
+        <a id="sb-download-png" href="#" class="btn btn-outline btn-sm" download>
+          <i class="fa fa-image" style="color:var(--info);"></i> Download PNG
+        </a>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-primary btn-sm" onclick="printSingleLabel()">
+          <i class="fa fa-print"></i> Print Label
+        </button>
+        <button class="btn btn-outline btn-sm" onclick="closeModal('singleBarcodeModal')">Close</button>
+      </div>
     </div>
   </div>
 </div>
@@ -180,7 +248,64 @@ async function doImport() {
     showToast(`✅ Imported ${res.added} books! (${res.skipped} duplicates skipped)`, 'success');
     closeModal('importModal');
     setTimeout(()=>location.reload(), 1200);
-  } else showToast(res.message, 'error');
+  } else {
+    showToast(res.message, 'error');
+  }
+}
+
+let currentBarcodeBook = null;
+
+async function showBarcodeModal(bookId) {
+  try {
+    const book = await fetch(`/books/get/${bookId}`).then(r => r.json());
+    if (!book || !book.barcode) {
+      showToast('Book details not found', 'error');
+      return;
+    }
+    currentBarcodeBook = book;
+    
+    document.getElementById('sb-img').src = `/api/barcode/image/${encodeURIComponent(book.barcode)}`;
+    document.getElementById('sb-code').textContent = book.barcode;
+    document.getElementById('sb-title').textContent = book.title;
+    document.getElementById('sb-meta').textContent = `Acc No: ${book.account_number || 'N/A'} • ${book.authors || 'SRM EEE Library'}`;
+    
+    document.getElementById('sb-download-pdf').href = `/books/barcode_label/${book.id}`;
+    document.getElementById('sb-download-png').href = `/api/barcode/image/${encodeURIComponent(book.barcode)}?download=1`;
+    document.getElementById('sb-download-png').download = `Barcode_${book.barcode}.png`;
+
+    openModal('singleBarcodeModal');
+  } catch (err) {
+    showToast('Failed to load barcode preview', 'error');
+  }
+}
+
+function printSingleLabel() {
+  const labelHtml = document.getElementById('printableLabelBox').innerHTML;
+  const printWin = window.open('', '_blank', 'width=520,height=440');
+  printWin.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Print Barcode Label - ${currentBarcodeBook ? currentBarcodeBook.barcode : 'Book'}</title>
+      <style>
+        @page { size: auto; margin: 4mm; }
+        body { margin: 0; padding: 12px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #fff; }
+        .label-wrap { border: 1.5px dashed #475569; border-radius: 10px; padding: 16px 20px; text-align: center; width: 340px; background: #fff; }
+      </style>
+    </head>
+    <body>
+      <div class="label-wrap">
+        ${labelHtml}
+      </div>
+      <script>
+        window.onload = function() {
+          setTimeout(function() { window.print(); window.close(); }, 300);
+        };
+      <\/script>
+    </body>
+    </html>
+  `);
+  printWin.document.close();
 }
 </script>
 {% endblock %}
