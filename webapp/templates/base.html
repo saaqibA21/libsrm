@@ -276,11 +276,19 @@ body {
   box-shadow: var(--shadow-sm);
   position: relative;
   overflow: hidden;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 .stat-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
   box-shadow: var(--shadow-md);
+  border-color: #B2C9AF;
+}
+.stat-card:active {
+  transform: translateY(-1px);
 }
 .stat-card .icon-pill {
   width: 40px;
@@ -688,8 +696,31 @@ tbody tr:last-child {
 
 /* ── Responsive ── */
 .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-@media(max-width: 950px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } .two-col { grid-template-columns: 1fr; } }
-@media(max-width: 650px) { .sidebar { width: 64px; } .sidebar-logo h1, .sidebar-logo p, .nav-heading, .nav-item span, .network-badge span { display: none; } .main { margin-left: 64px; } .stats-grid { grid-template-columns: 1fr; } }
+@media(max-width: 950px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .two-col { grid-template-columns: 1fr; }
+}
+@media(max-width: 650px) {
+  .sidebar { width: 62px; }
+  .sidebar-logo h1, .sidebar-logo p, .nav-heading, .nav-item span, .network-badge span { display: none; }
+  .nav-item { padding: 10px; justify-content: center; }
+  .nav-item i { width: auto; font-size: 16px; }
+  .main { margin-left: 62px; }
+  .content { padding: 16px 12px 40px; }
+  .topbar { padding: 12px 14px; }
+  .topbar h2 { font-size: 16px; }
+  .topbar-right .time { display: none; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 18px; }
+  .stat-card { padding: 14px 12px; border-radius: 14px; }
+  .stat-card .num { font-size: 24px; }
+  .stat-card .lbl { font-size: 9.5px; letter-spacing: 0.3px; }
+  .stat-card .icon-pill { width: 34px; height: 34px; font-size: 13px; margin-bottom: 8px; border-radius: 9px; }
+  .card { padding: 16px 14px; border-radius: 16px; margin-bottom: 16px; }
+  .form-row.cols-2, .form-row.cols-3, .form-row.cols-4 { grid-template-columns: 1fr; }
+  .btn { padding: 8px 14px; font-size: 12.5px; }
+  .btn-lg { padding: 12px 16px; font-size: 14px; }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
 </style>
 </head>
 <body>

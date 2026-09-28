@@ -1,27 +1,41 @@
 {% extends "base.html" %}
 {% block title %}Return Book — SRM Library{% endblock %}
-{% block page_title %}📥 Return Book{% endblock %}
+{% block page_title %}📥 Return Book Desk{% endblock %}
 {% block content %}
 
-<p class="text-muted" style="margin-bottom:20px;font-size:13px;">Scan the book barcode to find the active loan, then click Return.</p>
+<p class="text-muted" style="margin-bottom:20px;font-size:13.5px;">
+  Scan or type the book barcode to identify the active loan. You can adjust the <strong>Return Date</strong> manually to record returns that occurred earlier.
+</p>
 
 <div class="two-col">
-  <!-- LEFT: Scan -->
+  <!-- LEFT: Scan & Date Selection -->
   <div>
     <div class="card" style="margin-bottom:16px;">
-      <div class="card-title">Scan Book Barcode</div>
+      <div class="card-title"><i class="fa fa-barcode"></i> Scan Book Barcode</div>
       <div class="scan-box">
         <i class="fa fa-barcode scan-icon"></i>
-        <input type="text" id="bookBarcode" placeholder="Scan or type book barcode…" autofocus autocomplete="off">
+        <input type="text" id="bookBarcode" placeholder="Scan or type book barcode and press Enter…" autofocus autocomplete="off">
+        <button class="btn btn-primary btn-sm" onclick="scanBook()" style="margin-right:4px;">Find</button>
       </div>
       <div class="scan-status" id="bookStatus"></div>
     </div>
 
-    <button class="btn btn-warning btn-lg" id="returnBtn" disabled onclick="doReturn()" style="width:100%;justify-content:center;">
-      <i class="fa fa-download"></i> RETURN BOOK
+    <!-- Return Date (Manual or Default Today) -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title" style="margin-bottom:10px; font-size:14px; display:flex; align-items:center; justify-content:space-between;">
+        <span><i class="fa fa-calendar-check" style="color:var(--warning);"></i> Return Date</span>
+        <span style="font-size:11px;color:var(--muted);font-weight:normal;">(Change to add past return records)</span>
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <input type="date" id="returnDate" class="form-control" onchange="updateFineDisplay()">
+      </div>
+    </div>
+
+    <button class="btn btn-warning btn-lg" id="returnBtn" disabled onclick="doReturn()" style="width:100%;justify-content:center;padding:14px;font-size:16px;">
+      <i class="fa fa-download"></i> PROCESS BOOK RETURN
     </button>
     <button class="btn btn-outline" onclick="clearAll()" style="width:100%;justify-content:center;margin-top:10px;">
-      <i class="fa fa-refresh"></i> Clear / New Return
+      <i class="fa fa-rotate-left"></i> Clear / New Return
     </button>
 
     <div id="resultBox" style="display:none;margin-top:16px;" class="card"></div>
@@ -33,6 +47,7 @@
       <div class="card-title"><i class="fa fa-book"></i> Book Details</div>
       <div class="info-card">
         <div class="info-row"><span class="lbl">Title</span><span class="val" id="d-title">—</span></div>
+        <div class="info-row"><span class="lbl">Barcode</span><span class="val" id="d-barcode">—</span></div>
         <div class="info-row"><span class="lbl">Account No.</span><span class="val" id="d-accnum">—</span></div>
         <div class="info-row"><span class="lbl">Authors</span><span class="val" id="d-authors">—</span></div>
         <div class="info-row"><span class="lbl">Status</span><span class="val" id="d-status">—</span></div>
@@ -40,12 +55,12 @@
     </div>
 
     <div class="card">
-      <div class="card-title"><i class="fa fa-user"></i> Borrower Details</div>
+      <div class="card-title"><i class="fa fa-user"></i> Borrower & Loan Details</div>
       <div class="info-card">
-        <div class="info-row"><span class="lbl">Name</span><span class="val" id="p-name">—</span></div>
-        <div class="info-row"><span class="lbl">Reg. No.</span><span class="val" id="p-reg">—</span></div>
-        <div class="info-row"><span class="lbl">Type</span><span class="val" id="p-type">—</span></div>
-        <div class="info-row"><span class="lbl">Issued On</span><span class="val" id="p-issued">—</span></div>
+        <div class="info-row"><span class="lbl">Borrower</span><span class="val" id="p-name">—</span></div>
+        <div class="info-row"><span class="lbl">Reg. / Staff ID</span><span class="val" id="p-reg">—</span></div>
+        <div class="info-row"><span class="lbl">Patron Type</span><span class="val" id="p-type">—</span></div>
+        <div class="info-row"><span class="lbl">Issued Date</span><span class="val" id="p-issued">—</span></div>
         <div class="info-row"><span class="lbl">Due Date</span><span class="val" id="p-due">—</span></div>
         <div class="info-row"><span class="lbl">Fine Status</span><span class="val" id="p-fine">—</span></div>
       </div>
@@ -58,90 +73,183 @@
 <script>
 let bookData = null, activeTxn = null;
 const bookInput = document.getElementById('bookBarcode');
-bookInput.addEventListener('keydown', e => { if(e.key==='Enter') scanBook(); });
+
+bookInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); scanBook(); } });
+
 let scanTimer;
-bookInput.addEventListener('input', () => { clearTimeout(scanTimer); scanTimer = setTimeout(()=>{ if(bookInput.value.trim()) scanBook(); }, 300); });
+bookInput.addEventListener('input', () => {
+  clearTimeout(scanTimer);
+  scanTimer = setTimeout(() => {
+    if (bookInput.value.trim().length >= 4) scanBook();
+  }, 400);
+});
+
+function initReturnDate() {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('returnDate').value = today;
+}
+
+function updateFineDisplay() {
+  if (!activeTxn) return;
+  const returnDateVal = document.getElementById('returnDate').value;
+  const due = document.getElementById('p-due');
+  const fineEl = document.getElementById('p-fine');
+
+  due.textContent = activeTxn.due_date;
+
+  if (!returnDateVal) return;
+
+  const returnDateObj = new Date(returnDateVal + 'T00:00:00');
+  const dueDateObj = new Date(activeTxn.due_date + 'T00:00:00');
+
+  if (returnDateObj > dueDateObj) {
+    const diffTime = returnDateObj - dueDateObj;
+    const days = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const fineRate = 2.0; // ₹2/day
+    const estFine = days * fineRate;
+    due.style.color = 'var(--danger)';
+    due.style.fontWeight = '700';
+    fineEl.textContent = `⚠️ OVERDUE by ${days} day${days > 1 ? 's' : ''} (Est. Fine: ₹${estFine.toFixed(2)})`;
+    fineEl.style.color = 'var(--danger)';
+    fineEl.style.fontWeight = '700';
+  } else {
+    due.style.color = 'var(--text)';
+    due.style.fontWeight = '500';
+    fineEl.textContent = '✅ Returned on or before due date — No fine';
+    fineEl.style.color = 'var(--success)';
+    fineEl.style.fontWeight = '600';
+  }
+}
 
 async function scanBook() {
   const barcode = bookInput.value.trim();
   if (!barcode) return;
-  const data = await fetch(`/api/scan/book/${encodeURIComponent(barcode)}`).then(r=>r.json());
-  if (!data.found) { setStatus('bookStatus', data.message, 'err'); return; }
-  bookData = data.book;
-  document.getElementById('d-title').textContent = data.book.title;
-  document.getElementById('d-accnum').textContent = data.book.account_number || '—';
-  document.getElementById('d-authors').textContent = data.book.authors || '—';
-  document.getElementById('d-status').textContent = data.book.status.toUpperCase();
+  setStatus('bookStatus', 'Searching book…', '');
 
-  if (!data.active_transaction) {
-    setStatus('bookStatus', '⚠️ No active loan found for this book', 'warn');
-    return;
+  try {
+    const data = await fetch(`/api/scan/book/${encodeURIComponent(barcode)}`).then(r => r.json());
+    if (!data.found) {
+      setStatus('bookStatus', data.message || `Book '${barcode}' not found`, 'err');
+      clearBookDetails();
+      return;
+    }
+
+    bookData = data.book;
+    document.getElementById('d-title').textContent = data.book.title;
+    document.getElementById('d-barcode').textContent = data.book.barcode;
+    document.getElementById('d-accnum').textContent = data.book.account_number || '—';
+    document.getElementById('d-authors').textContent = data.book.authors || '—';
+    
+    const s = document.getElementById('d-status');
+    s.textContent = (data.book.status || '').toUpperCase();
+    s.style.color = data.book.status === 'issued' ? 'var(--danger)' : 'var(--success)';
+    s.style.fontWeight = '700';
+
+    if (!data.active_transaction) {
+      setStatus('bookStatus', '⚠️ This book is marked Available — no active loan was found to return!', 'warn');
+      clearPatronDetails();
+      document.getElementById('returnBtn').disabled = true;
+      return;
+    }
+
+    activeTxn = data.active_transaction;
+    const txn = activeTxn;
+    document.getElementById('p-name').textContent = txn.patron_name;
+    document.getElementById('p-reg').textContent = txn.register_number || '—';
+    document.getElementById('p-type').textContent = (txn.patron_type || 'student').charAt(0).toUpperCase() + (txn.patron_type || 'student').slice(1);
+    document.getElementById('p-issued').textContent = txn.issue_date;
+
+    updateFineDisplay();
+
+    setStatus('bookStatus', `✅ Active loan identified for "${data.book.title.substring(0,35)}" — Borrower: ${txn.patron_name}`, 'ok');
+    document.getElementById('returnBtn').disabled = false;
+  } catch (err) {
+    setStatus('bookStatus', 'Failed to scan book', 'err');
   }
-  activeTxn = data.active_transaction;
-  const txn = activeTxn;
-  document.getElementById('p-name').textContent = txn.patron_name;
-  document.getElementById('p-reg').textContent = txn.register_number;
-  document.getElementById('p-type').textContent = (txn.patron_type||'').charAt(0).toUpperCase()+(txn.patron_type||'').slice(1);
-  document.getElementById('p-issued').textContent = txn.issue_date;
-
-  const today = new Date().toISOString().split('T')[0];
-  const due = document.getElementById('p-due');
-  due.textContent = txn.due_date;
-
-  const fineEl = document.getElementById('p-fine');
-  if (txn.due_date < today) {
-    const days = Math.floor((new Date(today) - new Date(txn.due_date)) / 86400000);
-    due.style.color = 'var(--danger)';
-    due.style.fontWeight = '700';
-    fineEl.textContent = `⚠️ OVERDUE by ${days} days — Fine accruing`;
-    fineEl.style.color = 'var(--danger)';
-  } else {
-    fineEl.textContent = '✅ On time — no fine';
-    fineEl.style.color = 'var(--success)';
-  }
-
-  setStatus('bookStatus', `✅ Active loan found — issued to: ${txn.patron_name}`, 'ok');
-  document.getElementById('returnBtn').disabled = false;
 }
 
 async function doReturn() {
   if (!activeTxn) return;
-  const res = await postJSON('/api/return', {transaction_id: activeTxn.id});
-  const box = document.getElementById('resultBox');
-  box.style.display = 'block';
-  if (res.success) {
-    const fine = res.fine;
-    const color = fine > 0 ? 'var(--warning)' : 'var(--success)';
-    box.style.border = `1px solid ${color}`;
-    box.innerHTML = `<div style="color:${color};font-size:16px;font-weight:700;">✅ Book Returned Successfully!</div>
-      <div style="margin-top:10px;font-size:15px;font-weight:700;color:${color};">
-        ${fine > 0 ? '💰 Fine: ₹'+fine.toFixed(2) : '✅ No fine — returned on time!'}</div>`;
-    showToast('Book returned!', 'success');
-    document.getElementById('returnBtn').disabled = true;
-    setTimeout(clearAll, 4000);
-  } else {
-    box.style.border = '1px solid var(--danger)';
-    box.innerHTML = `<div style="color:var(--danger);font-weight:700;">❌ ${res.message}</div>`;
-    showToast(res.message, 'error');
+
+  const btn = document.getElementById('returnBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Processing Return…';
+
+  const returnDate = document.getElementById('returnDate').value;
+  const payload = {
+    transaction_id: activeTxn.id,
+    return_date: returnDate
+  };
+
+  try {
+    const res = await postJSON('/api/return', payload);
+    const box = document.getElementById('resultBox');
+    box.style.display = 'block';
+
+    if (res.success) {
+      const fine = res.fine || 0;
+      const color = fine > 0 ? 'var(--warning)' : 'var(--success)';
+      box.style.border = `1px solid ${color}`;
+      box.style.background = fine > 0 ? 'rgba(160, 100, 52, 0.05)' : 'rgba(22, 101, 52, 0.05)';
+      box.innerHTML = `
+        <div style="color:${color};font-size:16px;font-weight:700;">
+          <i class="fa fa-circle-check"></i> Book Returned Successfully!
+        </div>
+        <div style="margin-top:8px;font-size:14px;color:var(--text);">
+          Returned Date Recorded: <strong>${returnDate || 'Today'}</strong>
+        </div>
+        <div style="margin-top:6px;font-size:14.5px;font-weight:700;color:${color};">
+          ${fine > 0 ? '💰 Late Fine: ₹' + fine.toFixed(2) : '✅ No fine — returned on time!'}
+        </div>
+      `;
+      showToast('Book returned successfully!', 'success');
+      setTimeout(clearAll, 4000);
+    } else {
+      box.style.border = '1px solid var(--danger)';
+      box.innerHTML = `<div style="color:var(--danger);font-weight:700;"><i class="fa fa-circle-xmark"></i> ${res.message}</div>`;
+      showToast(res.message, 'error');
+    }
+  } catch (err) {
+    showToast('Failed to return book', 'error');
+  } finally {
+    btn.innerHTML = '<i class="fa fa-download"></i> PROCESS BOOK RETURN';
   }
 }
 
-function setStatus(id, msg, type) { const el=document.getElementById(id); el.textContent=msg; el.className=`scan-status ${type}`; }
+function clearBookDetails() {
+  ['d-title','d-barcode','d-accnum','d-authors','d-status'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = '—'; el.style.color = ''; el.style.fontWeight = ''; }
+  });
+}
+
+function clearPatronDetails() {
+  ['p-name','p-reg','p-type','p-issued','p-due','p-fine'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = '—'; el.style.color = ''; el.style.fontWeight = ''; }
+  });
+}
+
+function setStatus(id, msg, type) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = msg;
+  el.className = `scan-status ${type}`;
+}
 
 function clearAll() {
-  bookData = null; activeTxn = null;
+  bookData = null;
+  activeTxn = null;
   bookInput.value = '';
   document.getElementById('returnBtn').disabled = true;
   document.getElementById('resultBox').style.display = 'none';
-  document.getElementById('bookStatus').textContent = '';
-  document.getElementById('bookStatus').className = 'scan-status';
-  ['d-title','d-accnum','d-authors','d-status','p-name','p-reg','p-type','p-issued','p-due','p-fine'].forEach(id => {
-    const el = document.getElementById(id);
-    el.textContent = '—';
-    el.style.color = '';
-    el.style.fontWeight = '';
-  });
+  setStatus('bookStatus', '', '');
+  clearBookDetails();
+  clearPatronDetails();
+  initReturnDate();
   bookInput.focus();
 }
+
+initReturnDate();
 </script>
 {% endblock %}

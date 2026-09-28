@@ -73,6 +73,24 @@
       </div>
     </div>
 
+    <!-- Step 3: Transaction Dates (Manual or Default Today) -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title" style="margin-bottom:10px; font-size:14px; display:flex; align-items:center; justify-content:space-between;">
+        <span><i class="fa fa-calendar-days" style="color:var(--primary);"></i> Issue & Due Dates</span>
+        <span style="font-size:11px;color:var(--muted);font-weight:normal;">(Editable for older records)</span>
+      </div>
+      <div class="form-row cols-2" style="margin-bottom:0;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label style="font-size:12px;font-weight:600;">Issue Date</label>
+          <input type="date" id="issueDate" class="form-control" onchange="recalculateDueDate()">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label style="font-size:12px;font-weight:600;">Due Date</label>
+          <input type="date" id="dueDate" class="form-control">
+        </div>
+      </div>
+    </div>
+
     <!-- Issue Action Buttons -->
     <div class="card" style="padding:16px;">
       <button class="btn btn-success btn-lg" id="issueBtn" disabled onclick="doIssue()" style="width:100%;justify-content:center;padding:14px;font-size:16px;">
@@ -168,7 +186,7 @@ async function scanPatron() {
     fillPatronDetails(data.patron, data.active_books || []);
     document.getElementById('patronBadge').style.display = 'inline-flex';
     setStatus('patronStatus', `✅ Identified: ${data.patron.name} (${data.patron.register_number || data.patron.barcode})`, 'ok');
-    
+    recalculateDueDate();
     updateIssueButton();
     bookInput.focus();
   } catch (err) {
@@ -285,7 +303,9 @@ async function doIssue() {
   const payload = {
     patron_id: patronData.id,
     patron_type: patronData.patron_type,
-    book_ids: bookIds
+    book_ids: bookIds,
+    issue_date: document.getElementById('issueDate').value,
+    due_date: document.getElementById('dueDate').value
   };
 
   try {
@@ -392,6 +412,23 @@ function setStatus(id, msg, type) {
   el.className = `scan-status ${type}`;
 }
 
+function initDates() {
+  const today = new Date().toISOString().split('T')[0];
+  const dateInput = document.getElementById('issueDate');
+  if (dateInput) dateInput.value = today;
+  recalculateDueDate();
+}
+
+function recalculateDueDate() {
+  const iss = document.getElementById('issueDate') ? document.getElementById('issueDate').value : '';
+  if (!iss) return;
+  const d = new Date(iss);
+  const days = (patronData && patronData.patron_type === 'teacher') ? 30 : 15;
+  d.setDate(d.getDate() + days);
+  const dueInput = document.getElementById('dueDate');
+  if (dueInput) dueInput.value = d.toISOString().split('T')[0];
+}
+
 function clearAll() {
   patronData = null;
   queuedBooks = [];
@@ -401,10 +438,13 @@ function clearAll() {
   clearBookDetails();
   renderQueue();
   updateIssueButton();
+  initDates();
   document.getElementById('resultBox').style.display = 'none';
   setStatus('patronStatus', '', '');
   setStatus('bookStatus', '', '');
   patronInput.focus();
 }
+
+initDates();
 </script>
 {% endblock %}

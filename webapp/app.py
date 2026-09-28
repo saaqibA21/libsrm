@@ -298,12 +298,15 @@ def api_issue():
     if not patron_id:
         return jsonify({"success": False, "message": "No patron selected"}), 400
 
+    issue_date = (data.get("issue_date") or "").strip() or None
+    due_date = (data.get("due_date") or "").strip() or None
+
     issued_count = 0
     errors = []
     due_dates = []
 
     for bid in book_ids:
-        success, msg = issue_book(bid, patron_id, patron_type)
+        success, msg = issue_book(bid, patron_id, patron_type, issue_date=issue_date, due_date=due_date)
         if success:
             issued_count += 1
             if "Due date:" in msg:
@@ -336,15 +339,16 @@ def api_issue():
 def api_return():
     if not require_staff():
         return jsonify({"success": False, "message": "Staff login required"}), 403
-    data = request.json
+    data = request.json or {}
     transaction_id = data.get("transaction_id")
-    success, result = return_book(transaction_id)
+    return_date = (data.get("return_date") or "").strip() or None
+    success, result = return_book(transaction_id, return_date=return_date)
     if success:
         fine = float(result)
         return jsonify({
             "success": True,
             "fine": fine,
-            "message": f"Returned! Fine: ₹{fine:.2f}" if fine > 0 else "Returned on time — no fine!"
+            "message": f"Returned on {return_date or 'today'}! Fine: ₹{fine:.2f}" if fine > 0 else f"Returned on {return_date or 'today'} — no fine!"
         })
     return jsonify({"success": False, "message": str(result)})
 

@@ -325,7 +325,7 @@ def count_patrons():
 
 # ─── Transactions ──────────────────────────────────────────────────────────────
 
-def issue_book(book_id, patron_id, patron_type="student"):
+def issue_book(book_id, patron_id, patron_type="student", issue_date=None, due_date=None):
     conn = get_connection()
     try:
         # Check book availability
@@ -343,8 +343,15 @@ def issue_book(book_id, patron_id, patron_type="student"):
         loan_key = "loan_period_teacher" if patron_type == "teacher" else "loan_period_student"
         loan_days = int(conn.execute("SELECT value FROM settings WHERE key=?", (loan_key,)).fetchone()["value"])
 
-        issue_date = datetime.now().strftime("%Y-%m-%d")
-        due_date = (datetime.now() + timedelta(days=loan_days)).strftime("%Y-%m-%d")
+        if not issue_date:
+            issue_date = datetime.now().strftime("%Y-%m-%d")
+
+        if not due_date:
+            try:
+                base_dt = datetime.strptime(issue_date, "%Y-%m-%d")
+            except Exception:
+                base_dt = datetime.now()
+            due_date = (base_dt + timedelta(days=loan_days)).strftime("%Y-%m-%d")
 
         conn.execute("""
             INSERT INTO transactions (book_id, patron_id, issue_date, due_date, status)
@@ -360,7 +367,7 @@ def issue_book(book_id, patron_id, patron_type="student"):
         conn.close()
 
 
-def return_book(transaction_id):
+def return_book(transaction_id, return_date=None):
     conn = get_connection()
     try:
         txn = conn.execute("SELECT * FROM transactions WHERE id=?", (transaction_id,)).fetchone()
@@ -369,9 +376,16 @@ def return_book(transaction_id):
         if txn["status"] == "returned":
             return False, "Book already returned"
 
-        return_date = datetime.now().strftime("%Y-%m-%d")
+        if not return_date:
+            return_date = datetime.now().strftime("%Y-%m-%d")
+
+        try:
+            ret_date_obj = datetime.strptime(return_date, "%Y-%m-%d")
+        except Exception:
+            ret_date_obj = datetime.now()
+            return_date = ret_date_obj.strftime("%Y-%m-%d")
+
         due_date = datetime.strptime(txn["due_date"], "%Y-%m-%d")
-        ret_date_obj = datetime.now()
 
         fine = 0.0
         if ret_date_obj > due_date:
