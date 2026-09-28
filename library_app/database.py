@@ -94,6 +94,8 @@ def initialize_db():
         "email_user": "",
         "email_password": "",
         "email_from": "",
+        "brevo_sender_email": "saaqibheroindia@gmail.com",
+        "email_reply_to": "srmeeelibraray@gmail.com",
     }
     for k, v in defaults.items():
         c.execute("INSERT OR IGNORE INTO settings VALUES (?, ?)", (k, v))
@@ -131,7 +133,7 @@ def get_all_settings():
     rows = conn.execute("SELECT key, value FROM settings").fetchall()
     conn.close()
     res = {r["key"]: r["value"] for r in rows}
-    for k in ["brevo_api_key", "email_user", "email_password", "email_host", "email_port", "email_from", "staff_pin", "library_name"]:
+    for k in ["brevo_api_key", "brevo_sender_email", "email_reply_to", "email_user", "email_password", "email_host", "email_port", "email_from", "staff_pin", "library_name"]:
         if not res.get(k) and os.environ.get(k.upper()):
             res[k] = os.environ.get(k.upper())
     return res

@@ -63,8 +63,9 @@ import json
 import os
 
 def send_email_brevo(api_key: str, to_addr: str, subject: str, body_html: str,
-                     sender_email: str = "srmeeelibraray@gmail.com",
-                     sender_name: str = "SRM EEE Library",
+                     sender_email: str = None,
+                     sender_name: str = "SRM EEE Department Library",
+                     reply_to: str = None,
                      to_name: str = None,
                      inline_images: dict = None) -> tuple[bool, str]:
     """Send an email via Brevo's v3 HTTP REST API over Port 443 (HTTPS).
@@ -75,6 +76,21 @@ def send_email_brevo(api_key: str, to_addr: str, subject: str, body_html: str,
     if not to_addr or not to_addr.strip():
         return False, "Recipient email missing"
 
+    # Default to verified sender if not specified
+    if not sender_email or not sender_email.strip():
+        try:
+            from library_app.database import get_setting
+            sender_email = get_setting("brevo_sender_email", "") or "saaqibheroindia@gmail.com"
+        except Exception:
+            sender_email = "saaqibheroindia@gmail.com"
+
+    if not reply_to or not reply_to.strip():
+        try:
+            from library_app.database import get_setting
+            reply_to = get_setting("email_reply_to", "") or get_setting("email_from", "") or "srmeeelibraray@gmail.com"
+        except Exception:
+            reply_to = "srmeeelibraray@gmail.com"
+
     url = "https://api.brevo.com/v3/smtp/email"
     headers = {
         "api-key": api_key.strip(),
@@ -84,8 +100,8 @@ def send_email_brevo(api_key: str, to_addr: str, subject: str, body_html: str,
 
     payload = {
         "sender": {
-            "name": sender_name or "SRM EEE Library",
-            "email": sender_email or "srmeeelibraray@gmail.com"
+            "name": sender_name or "SRM EEE Department Library",
+            "email": sender_email.strip()
         },
         "to": [
             {
@@ -96,6 +112,12 @@ def send_email_brevo(api_key: str, to_addr: str, subject: str, body_html: str,
         "subject": subject,
         "htmlContent": body_html
     }
+
+    if reply_to and reply_to.strip():
+        payload["replyTo"] = {
+            "name": sender_name or "SRM EEE Department Library",
+            "email": reply_to.strip()
+        }
 
     if inline_images:
         attachments = []
@@ -139,14 +161,28 @@ def send_email(to_addr: str, subject: str, body_html: str,
             brevo_api_key = os.environ.get("BREVO_API_KEY", "")
 
     if brevo_api_key and str(brevo_api_key).strip():
-        sender_email = from_addr or smtp_user or "srmeeelibraray@gmail.com"
+        sender_email = None
+        reply_to = None
+        lib_name = "SRM EEE Department Library"
+        try:
+            from library_app.database import get_setting
+            sender_email = get_setting("brevo_sender_email", "")
+            reply_to = get_setting("email_reply_to", "")
+            lib_name = get_setting("library_name", "SRM EEE Department Library")
+        except Exception:
+            pass
+
+        if not sender_email or not sender_email.strip():
+            sender_email = "saaqibheroindia@gmail.com"
+
         return send_email_brevo(
             api_key=str(brevo_api_key).strip(),
             to_addr=to_addr,
             subject=subject,
             body_html=body_html,
             sender_email=sender_email,
-            sender_name="SRM EEE Department Library",
+            sender_name=lib_name,
+            reply_to=reply_to,
             inline_images=inline_images
         )
 
@@ -350,8 +386,8 @@ def build_patron_barcode_email(patron: dict, library_name: str = "SRM EEE Depart
     """
 
 
-def send_patron_barcode_email(patron: dict, smtp_host: str, smtp_port: int,
-                              smtp_user: str, smtp_password: str,
+def send_patron_barcode_email(patron: dict, smtp_host: str = "smtp.gmail.com", smtp_port: int = 465,
+                              smtp_user: str = "", smtp_password: str = "",
                               from_addr: str = None,
                               library_name: str = "SRM EEE Department Library") -> tuple[bool, str]:
     """Helper to generate and send an official digital barcode card to a patron's email."""

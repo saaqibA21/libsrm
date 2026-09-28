@@ -54,8 +54,25 @@
             Sends directly over <strong>HTTPS (Port 443)</strong>, which is never blocked by Render's firewall.
           </p>
           <input class="form-control" name="brevo_api_key" value="{{ settings.brevo_api_key or '' }}" placeholder="Paste your Brevo API key (e.g. xkeysib-...)">
-          <div style="font-size:11.5px; color:#15803D; margin-top:8px;">
-            👉 <strong>Get your free key in 1 min:</strong> Sign up at <a href="https://app.brevo.com/settings/keys/api" target="_blank" style="color:#14532D; font-weight:700; text-decoration:underline;">app.brevo.com/settings/keys/api</a> → click <em>Generate a new API key</em>.
+          <div style="font-size:11.5px; color:#15803D; margin-top:8px; margin-bottom:12px;">
+            👉 <strong>API Key:</strong> Found at <a href="https://app.brevo.com/settings/keys/api" target="_blank" style="color:#14532D; font-weight:700; text-decoration:underline;">app.brevo.com/settings/keys/api</a>
+          </div>
+
+          <div class="form-row cols-2" style="margin-top:10px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label style="font-size:11.5px; font-weight:700; color:#14532D;">Brevo Verified Sender Email</label>
+              <input class="form-control" name="brevo_sender_email" value="{{ settings.brevo_sender_email or 'saaqibheroindia@gmail.com' }}" placeholder="saaqibheroindia@gmail.com" style="background:#FFFFFF; font-size:12.5px;">
+              <span style="font-size:10.5px; color:#15803D; display:block; margin-top:3px;">
+                Verified in Brevo account (<a href="https://app.brevo.com/senders" target="_blank" style="color:#14532D; text-decoration:underline;">app.brevo.com/senders</a>)
+              </span>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label style="font-size:11.5px; font-weight:700; color:#14532D;">Reply-To Email Address</label>
+              <input class="form-control" name="email_reply_to" value="{{ settings.email_reply_to or 'srmeeelibraray@gmail.com' }}" placeholder="srmeeelibraray@gmail.com" style="background:#FFFFFF; font-size:12.5px;">
+              <span style="font-size:10.5px; color:#15803D; display:block; margin-top:3px;">
+                Where patron replies arrive
+              </span>
+            </div>
           </div>
         </div>
 

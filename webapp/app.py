@@ -1057,7 +1057,7 @@ def test_email():
     smtp_pass = (d.get("email_password") or get_setting("email_password", "")).strip()
     smtp_host = (d.get("email_host") or get_setting("email_host", "smtp.gmail.com")).strip()
     smtp_port = int(d.get("email_port") or get_setting("email_port", 465))
-    from_addr = (d.get("email_from") or get_setting("email_from", "")).strip() or smtp_user
+    from_addr = (d.get("brevo_sender_email") or d.get("email_from") or get_setting("brevo_sender_email", "") or get_setting("email_from", "")).strip() or smtp_user
     test_to = (d.get("test_recipient") or smtp_user).strip()
 
     if not brevo_key and (not smtp_user or not smtp_pass):
