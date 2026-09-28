@@ -875,8 +875,9 @@ def send_overdue_emails():
     smtp_pass = get_setting("email_password", "")
     lib_name = get_setting("library_name", "SRM EEE Library")
     fine_rate = float(get_setting("fine_per_day", "2.0"))
-    if not smtp_user or not smtp_pass:
-        return jsonify({"success": False, "message": "Email not configured in Settings"})
+    brevo_key = get_setting("brevo_api_key", "")
+    if not brevo_key and (not smtp_user or not smtp_pass):
+        return jsonify({"success": False, "message": "Email not configured in Settings. Please enter Brevo API key or Gmail App Password."})
     patron_books = {}
     for txn in overdue:
         email = txn.get("patron_email", "")
@@ -922,10 +923,12 @@ def send_patron_barcode_single(patron_id):
     from_addr = get_setting("email_from", "")
     lib_name = get_setting("library_name", "SRM EEE Department Library")
 
-    if not smtp_user or not smtp_pass:
+    brevo_key = get_setting("brevo_api_key", "")
+
+    if not brevo_key and (not smtp_user or not smtp_pass):
         return jsonify({
             "success": False,
-            "message": "SMTP not configured! Please open Settings → Email and enter your email address and App Password."
+            "message": "Email not configured! Please open Settings → Email and enter Brevo API Key or Gmail App Password."
         }), 400
 
     ok, err = send_patron_barcode_email(
@@ -958,11 +961,12 @@ def send_batch_barcode_emails():
     smtp_pass = get_setting("email_password", "")
     from_addr = get_setting("email_from", "")
     lib_name = get_setting("library_name", "SRM EEE Department Library")
+    brevo_key = get_setting("brevo_api_key", "")
 
-    if not smtp_user or not smtp_pass:
+    if not brevo_key and (not smtp_user or not smtp_pass):
         return jsonify({
             "success": False,
-            "message": "SMTP not configured! Please open Settings → Email and configure your email & App Password first."
+            "message": "Email not configured! Please open Settings → Email and configure Brevo API Key or Gmail App Password."
         }), 400
 
     payload = request.get_json(silent=True) or {}
