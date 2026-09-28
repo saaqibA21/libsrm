@@ -77,7 +77,7 @@ def health_check():
 
 def start_keep_alive_daemon():
     """Background thread that periodically pings the Render service every 10 mins so it stays awake."""
-    external_url = os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("APP_URL")
+    external_url = os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("APP_URL") or "https://eeelibrary.org"
     if not external_url:
         return
 

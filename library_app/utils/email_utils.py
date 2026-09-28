@@ -135,14 +135,14 @@ def build_patron_barcode_email(patron: dict, library_name: str = "SRM EEE Depart
               <li>Save this email or take a screenshot on your mobile phone.</li>
               <li>When borrowing or returning a textbook, show this barcode to the librarian.</li>
               <li>The scanner reads directly from your phone screen in 1 second!</li>
-              <li>You can also browse all available books online anytime.</li>
+              <li>You can also browse all available books online anytime at <a href="https://eeelibrary.org" style="color:#26432D; font-weight:bold;">eeelibrary.org</a>.</li>
             </ul>
           </div>
         </div>
 
         <!-- Footer -->
         <div style="background:#F8FAF6; border-top:1px solid #E5EBE1; padding:16px 20px; text-align:center; font-size:11.5px; color:#8A9A8D;">
-          {library_name} • SRMIST Kattankulathur<br>
+          {library_name} • SRMIST Kattankulathur • <a href="https://eeelibrary.org" style="color:#8A9A8D; text-decoration:underline;">eeelibrary.org</a><br>
           This is an official library notification. Please keep your barcode safe.
         </div>
       </div>
