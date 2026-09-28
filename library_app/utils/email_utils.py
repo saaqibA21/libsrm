@@ -14,9 +14,6 @@ import socket
 
 class IPv4SMTP(smtplib.SMTP):
     """SMTP client that forces IPv4 connections to prevent [Errno 101] Network is unreachable on Render/cloud hosts."""
-    def __init__(self, host='', port=0, local_hostname='localhost', timeout=10, source_address=None):
-        super().__init__(host=host, port=port, local_hostname=local_hostname, timeout=timeout, source_address=source_address)
-
     def _get_socket(self, host, port, timeout):
         err = None
         for res in socket.getaddrinfo(host, port, socket.AF_INET, socket.SOCK_STREAM):
@@ -39,9 +36,6 @@ class IPv4SMTP(smtplib.SMTP):
 
 class IPv4SMTP_SSL(smtplib.SMTP_SSL):
     """SMTP_SSL client that forces IPv4 connections for port 465."""
-    def __init__(self, host='', port=0, local_hostname='localhost', timeout=10, source_address=None, context=None):
-        super().__init__(host=host, port=port, local_hostname=local_hostname, timeout=timeout, source_address=source_address, context=context)
-
     def _get_socket(self, host, port, timeout):
         err = None
         for res in socket.getaddrinfo(host, port, socket.AF_INET, socket.SOCK_STREAM):
@@ -99,14 +93,14 @@ def send_email(to_addr: str, subject: str, body_html: str,
         msg.attach(MIMEText(body_html, "html"))
 
     def _try_connect(port):
-        if port == 465:
-            s = IPv4SMTP_SSL(smtp_host, port, local_hostname='localhost', timeout=10)
-            s.ehlo()
+        if port == 465 or "gmail" in smtp_host.lower():
+            s = IPv4SMTP_SSL(smtp_host, 465, timeout=12)
+            s.ehlo("localhost")
         else:
-            s = IPv4SMTP(smtp_host, port, local_hostname='localhost', timeout=8)
-            s.ehlo()
+            s = IPv4SMTP(smtp_host, port, timeout=10)
+            s.ehlo("localhost")
             s.starttls()
-            s.ehlo()
+            s.ehlo("localhost")
         return s
 
     current_step = "initialization"
