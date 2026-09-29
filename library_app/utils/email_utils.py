@@ -287,18 +287,9 @@ def build_patron_barcode_email(patron: dict, library_name: str = "SRM EEE Depart
     year = patron.get("year", "")
     section = patron.get("section", "")
 
-    # 1D Linear Barcode image tag
-    barcode_img_tag = ""
-    if use_cid:
-        barcode_img_tag = f'<img src="cid:barcode_img" alt="{barcode_str}" style="max-width:320px; width:100%; height:auto; display:block; margin:0 auto;" />'
-    else:
-        try:
-            from library_app.utils.barcode_utils import generate_barcode_image
-            b_bytes = generate_barcode_image(barcode_str)
-            b_b64 = base64.b64encode(b_bytes).decode("ascii")
-            barcode_img_tag = f'<img src="data:image/png;base64,{b_b64}" alt="{barcode_str}" style="max-width:320px; width:100%; height:auto; display:block; margin:0 auto;" />'
-        except Exception:
-            barcode_img_tag = f'<div style="font-family:monospace; font-size:24px; font-weight:bold; letter-spacing:4px; padding:10px;">{barcode_str}</div>'
+    # 1D Linear Barcode image tag — uses public hosted URL so email clients (Gmail, Outlook, Apple Mail) render barcode lines
+    barcode_url = f"https://eeelibrary.org/api/barcode/image/{barcode_str}"
+    barcode_img_tag = f'<img src="{barcode_url}" alt="Barcode {barcode_str}" width="280" style="width:280px; max-width:100%; height:auto; display:block; margin:0 auto; border:none;" />'
 
     class_info = f"Class: Year {year} • Section {section}" if year else f"Role: {ptype}"
 
