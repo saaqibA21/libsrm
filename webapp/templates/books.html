@@ -19,7 +19,8 @@
   </form>
   <button class="btn btn-success" onclick="openAddBook()"><i class="fa fa-plus"></i> Add Book</button>
   <button class="btn btn-outline" onclick="openImport()"><i class="fa fa-upload"></i> Import Excel</button>
-  <a href="/books/barcodes" class="btn btn-outline"><i class="fa fa-barcode"></i> Print Barcodes PDF</a>
+  <a href="/api/download/last_import/books" class="btn btn-outline" title="Download barcodes for the most recently imported Excel batch"><i class="fa fa-file-pdf" style="color:#991B1B;"></i> Last Import Barcodes</a>
+  <a href="/books/barcodes" class="btn btn-outline"><i class="fa fa-barcode"></i> Print All Barcodes</a>
 </div>
 
 <!-- Counts -->
@@ -112,16 +113,28 @@
 <div class="modal-overlay" id="importModal">
   <div class="modal">
     <div class="modal-header"><h3>📥 Import Books from Excel</h3><button class="modal-close" onclick="closeModal('importModal')">✕</button></div>
-    <p class="text-muted text-sm" style="margin-bottom:16px;">Select the "DEPT LIBRARY FINAL" Excel file. Books will be imported automatically.</p>
-    <div class="form-group"><label>Excel File</label><input type="file" class="form-control" id="importFile" accept=".xlsx,.xls"></div>
+    <p class="text-muted text-sm" style="margin-bottom:16px;">Select an Excel file containing books (.xlsx / .xls). Barcodes will be auto-generated for any book without one.</p>
+    <div class="form-group" id="importInputGroup"><label>Excel File</label><input type="file" class="form-control" id="importFile" accept=".xlsx,.xls"></div>
     <div id="importProgress" style="display:none;margin-top:10px;">
-      <div style="color:var(--info)">⏳ Importing… please wait…</div>
+      <div style="color:var(--info); font-weight:600;"><i class="fa fa-spinner fa-spin"></i> Importing books and generating barcodes PDF… please wait…</div>
     </div>
-    <div class="modal-footer">
+    <div id="importSuccessBox" style="display:none; margin:16px 0; padding:18px 20px; background:#F0FDF4; border:1.5px solid #86EFAC; border-radius:14px; text-align:center;">
+      <div style="font-size:16px; font-weight:700; color:#166534; margin-bottom:6px;">
+        ✅ Successfully Imported <span id="importAddedCount">0</span> New Books!
+      </div>
+      <p style="font-size:13px; color:#14532D; margin-bottom:16px;">
+        A printable barcode sticker PDF has been created for <strong>ONLY these newly imported books</strong>:
+      </p>
+      <a id="importPdfLink" href="#" class="btn btn-success btn-lg" style="box-shadow:0 4px 12px rgba(22,101,52,0.25); text-decoration:none;" target="_blank">
+        <i class="fa fa-file-pdf"></i> Download New Books Barcodes (PDF)
+      </a>
+    </div>
+    <div class="modal-footer" id="importFooter">
       <button class="btn btn-outline" onclick="closeModal('importModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="doImport()"><i class="fa fa-upload"></i> Import Now</button>
+      <button class="btn btn-primary" id="btnImportNow" onclick="doImport()"><i class="fa fa-upload"></i> Import Now</button>
     </div>
   </div>
+</div>
 <!-- Single Book Barcode Label Modal -->
 <div class="modal-overlay" id="singleBarcodeModal">
   <div class="modal" style="max-width:540px;">
@@ -241,15 +254,36 @@ async function doImport() {
   const file = document.getElementById('importFile').files[0];
   if (!file) { showToast('Select a file first', 'error'); return; }
   document.getElementById('importProgress').style.display = 'block';
+  const btn = document.getElementById('btnImportNow');
+  if (btn) btn.disabled = true;
   const fd = new FormData(); fd.append('file', file);
-  const res = await postForm('/books/import', fd);
-  document.getElementById('importProgress').style.display = 'none';
-  if (res.success) {
-    showToast(`✅ Imported ${res.added} books! (${res.skipped} duplicates skipped)`, 'success');
-    closeModal('importModal');
-    setTimeout(()=>location.reload(), 1200);
-  } else {
-    showToast(res.message, 'error');
+  try {
+    const res = await postForm('/books/import', fd);
+    document.getElementById('importProgress').style.display = 'none';
+    if (res.success) {
+      if (res.pdf_download_url) {
+        document.getElementById('importInputGroup').style.display = 'none';
+        document.getElementById('importSuccessBox').style.display = 'block';
+        document.getElementById('importAddedCount').textContent = res.added;
+        document.getElementById('importPdfLink').href = res.pdf_download_url;
+        document.getElementById('importFooter').innerHTML = `
+          <button class="btn btn-primary" onclick="location.reload()"><i class="fa fa-check"></i> Done & Refresh Table</button>
+        `;
+        showToast(`✅ Imported ${res.added} books! Downloading barcodes PDF...`, 'success');
+        window.open(res.pdf_download_url, '_blank');
+      } else {
+        showToast(`✅ Imported ${res.added} books! (${res.skipped} duplicates skipped)`, 'success');
+        closeModal('importModal');
+        setTimeout(()=>location.reload(), 1200);
+      }
+    } else {
+      if (btn) btn.disabled = false;
+      showToast(res.message, 'error');
+    }
+  } catch (err) {
+    document.getElementById('importProgress').style.display = 'none';
+    if (btn) btn.disabled = false;
+    showToast('Import request failed', 'error');
   }
 }
 
