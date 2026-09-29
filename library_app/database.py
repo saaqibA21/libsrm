@@ -93,6 +93,19 @@ def initialize_db():
     except Exception:
         pass
 
+    # Schema migration: replace 'TF Details' / 'NT Details' in patrons.section with their designation
+    try:
+        c.execute("""
+            UPDATE patrons 
+            SET section = designation 
+            WHERE patron_type = 'teacher' 
+              AND designation IS NOT NULL 
+              AND designation != ''
+              AND (section LIKE '%TF Details%' OR section LIKE '%NT Details%' OR section = '' OR section IS NULL)
+        """)
+    except Exception:
+        pass
+
     # Settings table
     c.execute("""
         CREATE TABLE IF NOT EXISTS settings (

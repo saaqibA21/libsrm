@@ -366,7 +366,7 @@ def import_staff_from_excel(filepath: str) -> tuple[list[dict], list[str]]:
                 "patron_type": p_type,
                 "designation": full_desig,
                 "year": "RS" if p_type == "student" else "",
-                "section": sheet_name,
+                "section": full_desig if full_desig else sheet_name,
                 "mobile": raw_mobile,
                 "email": raw_email,
                 "parent_mobile": "",

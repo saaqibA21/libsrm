@@ -32,20 +32,13 @@
 
 <div class="table-wrap">
  <table>
- <thead><tr><th>Barcode</th><th>Reg. No.</th><th>Name</th><th>Type</th><th>Year</th><th>Section</th><th>Mobile</th><th>Email</th><th>Actions</th></tr></thead>
+ <thead><tr><th>Barcode</th><th>Reg. No.</th><th>Name</th><th>Type</th><th>Year</th><th>Section / Designation</th><th>Mobile</th><th>Email</th><th>Actions</th></tr></thead>
  <tbody>
  {% for p in patrons %}
  <tr>
  <td><code style="font-size:11px;color:var(--info)">{{ p.barcode }}</code></td>
  <td class="text-sm">{{ p.register_number or '—' }}</td>
- <td style="font-weight:600">
- {{ p.name }}
- {% if p.designation %}
- <div style="font-size:11.5px; font-weight:500; color:var(--muted); margin-top:2px;">
- <i class="fa fa-briefcase" style="font-size:10.5px; color:var(--primary); opacity:0.8;"></i> {{ p.designation }}
- </div>
- {% endif %}
- </td>
+ <td style="font-weight:600">{{ p.name }}</td>
  <td>
  {% if p.patron_type == 'teacher' %}
  <span class="badge badge-purple">Teacher</span>
@@ -54,7 +47,13 @@
  {% endif %}
  </td>
  <td class="text-muted text-sm">{{ p.year or '—' }}</td>
- <td class="text-muted text-sm">{{ p.section or '—' }}</td>
+ <td class="text-sm">
+ {% if p.patron_type == 'teacher' %}
+ <span style="font-weight:600; color:var(--text);"><i class="fa fa-briefcase" style="font-size:10px; color:var(--primary); opacity:0.8; margin-right:4px;"></i>{{ p.designation or p.section or '—' }}</span>
+ {% else %}
+ <span class="text-muted">{{ p.section or '—' }}</span>
+ {% endif %}
+ </td>
  <td class="text-sm">{{ p.mobile or '—' }}</td>
  <td class="text-sm text-muted">{{ p.email or '—' }}</td>
  <td style="white-space:nowrap">
