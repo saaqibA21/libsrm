@@ -128,6 +128,10 @@ def initialize_db():
         "email_from": "",
         "brevo_sender_email": "saaqibheroindia@gmail.com",
         "email_reply_to": "srmeeelibraray@gmail.com",
+        "github_backup_token": "",
+        "github_backup_repo": "saaqibA21/libsrm",
+        "github_backup_branch": "main",
+        "github_last_backup_status": "Active",
     }
     for k, v in defaults.items():
         c.execute("INSERT OR IGNORE INTO settings VALUES (?, ?)", (k, v))

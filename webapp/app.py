@@ -101,6 +101,14 @@ def start_keep_alive_daemon():
                 print(f"[Keep-Alive] Ping successfully sent to {target}")
             except Exception as e:
                 print(f"[Keep-Alive] Ping notice: {e}")
+
+            # Check and run daily 6:00 PM IST GitHub cloud backup
+            try:
+                from library_app.utils.github_backup import check_and_run_daily_backup
+                check_and_run_daily_backup()
+            except Exception as e:
+                print(f"[Auto-Backup] Scheduler notice: {e}")
+
             time.sleep(600)  # Ping every 10 minutes (Render sleep threshold is 15 min)
 
     t = threading.Thread(target=_pinger, daemon=True, name="RenderKeepAlive")
@@ -1213,6 +1221,43 @@ def download_database_backup():
         download_name=f"srm_library_backup_{stamp}.db",
         mimetype="application/x-sqlite3"
     )
+
+
+@app.route("/api/backup/github_push", methods=["POST"])
+def api_backup_github_push():
+    """Trigger an immediate push of the live library.db to GitHub."""
+    if not require_staff():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+    from library_app.utils.github_backup import push_database_to_github, get_ist_now
+    now_str = get_ist_now().strftime("%d-%b-%Y %I:%M %p IST")
+    data = request.json or {}
+    custom_msg = data.get("commit_message") or f"Manual Library Backup via Desk — {now_str}"
+    ok, result_msg = push_database_to_github(custom_msg)
+    return jsonify({
+        "success": ok,
+        "message": result_msg,
+        "last_backup_time": get_setting("github_last_backup_time", ""),
+        "last_backup_status": get_setting("github_last_backup_status", ""),
+        "last_commit_sha": get_setting("github_last_commit_sha", "")
+    })
+
+
+@app.route("/settings/save_github", methods=["POST"])
+def save_github_settings():
+    """Save GitHub backup configuration."""
+    if not require_staff():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+    d = request.form
+    token = d.get("github_backup_token", "").strip()
+    repo = d.get("github_backup_repo", "").strip()
+    branch = d.get("github_backup_branch", "").strip()
+    if token:
+        set_setting("github_backup_token", token)
+    if repo:
+        set_setting("github_backup_repo", repo)
+    if branch:
+        set_setting("github_backup_branch", branch)
+    return jsonify({"success": True, "message": "GitHub backup settings saved successfully!"})
 
 
 if __name__ == "__main__":
