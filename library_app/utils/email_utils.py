@@ -287,21 +287,16 @@ def build_patron_barcode_email(patron: dict, library_name: str = "SRM EEE Depart
     year = patron.get("year", "")
     section = patron.get("section", "")
 
-    # 2D QR Code + 1D Barcode image tags
-    qr_img_tag = ""
+    # 1D Linear Barcode image tag
     barcode_img_tag = ""
     if use_cid:
-        qr_img_tag = f'<img src="cid:qr_img" alt="QR {barcode_str}" style="width:170px; height:170px; display:block; margin:0 auto;" />'
-        barcode_img_tag = f'<img src="cid:barcode_img" alt="{barcode_str}" style="max-width:250px; width:100%; height:auto; display:block; margin:0 auto;" />'
+        barcode_img_tag = f'<img src="cid:barcode_img" alt="{barcode_str}" style="max-width:320px; width:100%; height:auto; display:block; margin:0 auto;" />'
     else:
         try:
-            from library_app.utils.barcode_utils import generate_barcode_image, generate_qr_image
-            q_bytes = generate_qr_image(barcode_str)
+            from library_app.utils.barcode_utils import generate_barcode_image
             b_bytes = generate_barcode_image(barcode_str)
-            q_b64 = base64.b64encode(q_bytes).decode("ascii")
             b_b64 = base64.b64encode(b_bytes).decode("ascii")
-            qr_img_tag = f'<img src="data:image/png;base64,{q_b64}" alt="QR {barcode_str}" style="width:170px; height:170px; display:block; margin:0 auto;" />'
-            barcode_img_tag = f'<img src="data:image/png;base64,{b_b64}" alt="{barcode_str}" style="max-width:250px; width:100%; height:auto; display:block; margin:0 auto;" />'
+            barcode_img_tag = f'<img src="data:image/png;base64,{b_b64}" alt="{barcode_str}" style="max-width:320px; width:100%; height:auto; display:block; margin:0 auto;" />'
         except Exception:
             barcode_img_tag = f'<div style="font-family:monospace; font-size:24px; font-weight:bold; letter-spacing:4px; padding:10px;">{barcode_str}</div>'
 
@@ -330,37 +325,32 @@ def build_patron_barcode_email(patron: dict, library_name: str = "SRM EEE Depart
         <!-- Body / ID Card -->
         <div style="padding:28px 24px; text-align:center;">
           <p style="font-size:14.5px; color:#435A48; margin-top:0; margin-bottom:16px;">
-            Hello <strong>{name}</strong>, here is your official digital library card. You can present this QR code on your phone screen at the desk to borrow or return books:
+            Hello <strong>{name}</strong>, here is your official digital library card. You can present this barcode on your phone screen at the desk to borrow or return books:
           </p>
 
           <!-- Digital Card Box -->
-          <div style="background:#F8FAF6; border:2px dashed #CBD5E1; border-radius:18px; padding:22px 18px; margin:16px 0; text-align:center;">
+          <div style="background:#F8FAF6; border:2px dashed #CBD5E1; border-radius:18px; padding:24px 20px; margin:16px 0; text-align:center;">
             <div style="font-size:12px; font-weight:700; color:#1C3022; text-transform:uppercase; letter-spacing:0.8px;">
               SRM EEE DIGITAL LIBRARY CARD
             </div>
             
-            <div style="font-size:18px; font-weight:700; color:#17241A; margin:8px 0 2px;">
+            <div style="font-size:19px; font-weight:700; color:#17241A; margin:8px 0 2px;">
               {name}
             </div>
-            <div style="font-size:13px; color:#627265; margin-bottom:16px;">
+            <div style="font-size:13px; color:#627265; margin-bottom:18px;">
               <strong>ID: {reg}</strong> • {class_info}
             </div>
 
-            <!-- 2D QR Code Container (High Contrast for Phone Screens) -->
-            <div style="background:#FFFFFF; border:2px solid #E2E8F0; border-radius:14px; padding:16px; display:inline-block; margin-bottom:12px; box-shadow:0 2px 8px rgba(0,0,0,0.04);">
-              {qr_img_tag}
-              <div style="font-family:monospace; font-size:14px; font-weight:700; color:#0F172A; letter-spacing:2px; margin-top:8px;">
+            <!-- 1D Linear Barcode Container -->
+            <div style="background:#FFFFFF; border:2px solid #E2E8F0; border-radius:14px; padding:18px 16px; max-width:340px; margin:0 auto; box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+              {barcode_img_tag}
+              <div style="font-family:'Consolas',monospace; font-size:17px; font-weight:700; color:#0F172A; letter-spacing:3px; margin-top:8px;">
                 {barcode_str}
               </div>
             </div>
 
-            <!-- 1D Linear Barcode fallback -->
-            <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:10px; padding:10px 8px; max-width:280px; margin:0 auto;">
-              {barcode_img_tag}
-            </div>
-
-            <div style="margin-top:12px; font-size:11.5px; color:#166534; font-weight:600;">
-              💡 Tip: Turn phone brightness to 100% when scanning at the desk
+            <div style="margin-top:14px; font-size:11.5px; color:#166534; font-weight:600;">
+              💡 Tip: Turn phone brightness to 100% when presenting to the desk scanner
             </div>
           </div>
 
@@ -368,10 +358,11 @@ def build_patron_barcode_email(patron: dict, library_name: str = "SRM EEE Depart
           <div style="text-align:left; background:#EBF2E9; border-radius:12px; padding:16px 18px; margin-top:18px; font-size:12.5px; color:#26432D; line-height:1.6;">
             <strong>📱 Fast Scanning Instructions:</strong>
             <ul style="margin:6px 0 0; padding-left:20px;">
-              <li>Open this email or save this digital card to your phone photos.</li>
-              <li>When borrowing or returning books, show the <strong>QR code</strong> to the librarian scanner.</li>
-              <li>Hold your screen approx. 4 to 6 inches in front of the scanner.</li>
-              <li>You can also browse catalog and check borrowed books at <a href="https://eeelibrary.org" style="color:#26432D; font-weight:bold;">eeelibrary.org</a>.</li>
+              <li>Open this email or save this digital card image to your phone gallery.</li>
+              <li>When borrowing or returning books, show your <strong>barcode</strong> to the librarian scanner.</li>
+              <li>Hold your screen approx. 4 to 6 inches in front of the scanner lens.</li>
+              <li>You can also browse the catalog and check borrowed books at <a href="https://eeelibrary.org" style="color:#26432D; font-weight:bold;">eeelibrary.org</a>.</li>
+            </ul>
           </div>
         </div>
 
@@ -399,11 +390,9 @@ def send_patron_barcode_email(patron: dict, smtp_host: str = "smtp.gmail.com", s
     inline_images = {}
     use_cid = False
     try:
-        from library_app.utils.barcode_utils import generate_barcode_image, generate_qr_image
+        from library_app.utils.barcode_utils import generate_barcode_image
         img_bytes = generate_barcode_image(barcode_str)
-        qr_bytes = generate_qr_image(barcode_str)
         inline_images["barcode_img"] = (img_bytes, "png")
-        inline_images["qr_img"] = (qr_bytes, "png")
         use_cid = True
     except Exception:
         use_cid = False

@@ -22,7 +22,7 @@
         <i class="fa fa-magnifying-glass"></i>
         <input type="text" name="reg" value="{{ reg }}" placeholder="Enter Register Number (e.g. RA2611005010001)…" required autofocus>
       </div>
-      <button type="submit" class="btn btn-primary" style="padding:10px 22px;">Check Loans</button>
+      <button type="submit" class="btn btn-primary" style="padding:10px 22px;">Check Borrowed Books</button>
       {% if searched %}
         <a href="/my-books" class="btn btn-outline" style="padding:10px 16px;"><i class="fa fa-xmark"></i> Clear</a>
       {% endif %}
@@ -56,60 +56,13 @@
           </div>
         </div>
       </div>
-    <!-- Digital Barcode & QR Card for Student Phone Scanning -->
-    <div class="card" style="margin-bottom:22px; border-radius:20px; padding:22px 24px; background:linear-gradient(135deg, #FFFFFF 0%, #F8FAF6 100%); border:1px solid #DDE5D8; box-shadow:var(--shadow-sm);">
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
-        <div>
-          <div class="card-title" style="margin-bottom:4px; font-size:16px;">
-            <i class="fa fa-qrcode" style="color:var(--primary);"></i> Your Digital Library Card (QR & Barcode)
-          </div>
-          <p style="font-size:12.5px; color:var(--muted); margin-bottom:0;">
-            Present this QR code on your phone screen at the desk when borrowing or returning books.
-          </p>
-        </div>
-        <button class="btn btn-primary btn-sm" onclick="openModal('fullscreenQRModal')">
-          <i class="fa fa-expand"></i> Full-Screen QR for Counter
-        </button>
-      </div>
-
-      <div style="display:flex; gap:20px; align-items:center; justify-content:center; flex-wrap:wrap; padding:18px; background:#fff; border:1px dashed #CBD5E1; border-radius:16px;">
-        <!-- 2D QR Code (Primary for Phone Screens) -->
-        <div style="text-align:center;">
-          <div style="padding:10px; background:#fff; border:2px solid #000; border-radius:12px; display:inline-block; box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-            <img src="/api/qr/{{ patron.barcode }}" alt="QR Code" style="width:160px; height:160px; display:block;">
-          </div>
-          <div style="font-size:11px; font-weight:700; color:var(--primary); margin-top:6px; letter-spacing:0.5px;">2D QR CODE</div>
-        </div>
-
-        <!-- 1D Linear Barcode (Fallback) -->
-        <div style="text-align:center; min-width:220px; max-width:320px;">
-          <div style="padding:12px; background:#fff; border:1px solid #E2E8F0; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.04);">
-            <img src="/api/barcode/{{ patron.barcode }}" alt="Barcode" style="max-width:100%; height:auto; display:block; margin:0 auto;">
-            <div style="font-family:monospace; font-size:15px; font-weight:700; color:#0F172A; letter-spacing:2px; margin-top:6px;">
-              {{ patron.barcode }}
-            </div>
-          </div>
-          <div style="font-size:11px; font-weight:600; color:var(--muted); margin-top:6px;">CODE 128 BARCODE</div>
-        </div>
-      </div>
-
-      <!-- Phone Scanning Advice Banner -->
-      <div style="margin-top:14px; padding:12px 16px; background:var(--accent-light); border:1px solid #D6E4D3; border-radius:12px; display:flex; align-items:flex-start; gap:12px; font-size:12px; color:var(--accent-text); line-height:1.5;">
-        <i class="fa fa-lightbulb" style="font-size:18px; color:#166534; margin-top:2px; flex-shrink:0;"></i>
-        <div>
-          <strong>📱 How to make it scan instantly off your phone:</strong><br>
-          • <strong>Turn screen brightness to 100%</strong> before presenting to the desk scanner.<br>
-          • <strong>Hold your phone 4 to 6 inches away</strong> from the scanner lens or camera.<br>
-          • Use the <em>"Full-Screen QR for Counter"</em> button for maximum size and contrast.
-        </div>
-      </div>
     </div>
 
-    <!-- Active Loans Section -->
+    <!-- Borrowed Books Section -->
     {% if loans %}
       <div class="card" style="border-radius:18px;">
         <div class="card-title" style="margin-bottom:16px;">
-          <i class="fa fa-book-bookmark" style="color:var(--accent);"></i> Currently Issued Books ({{ loans|length }})
+          <i class="fa fa-book-bookmark" style="color:var(--accent);"></i> Currently Borrowed Books ({{ loans|length }})
         </div>
 
         <div class="table-wrap">
@@ -180,7 +133,7 @@
       <div class="card-title"><i class="fa fa-question-circle" style="color:var(--muted);"></i> How to Check Your Books</div>
       <p style="font-size:13px; color:var(--muted); line-height:1.6; margin-bottom:14px;">
         1. Find your <strong>SRM Register Number</strong> (e.g. <code>RA2611005010001</code>) on your student ID card.<br>
-        2. Type it into the search box above and click <strong>Check Loans</strong>.<br>
+        2. Type it into the search box above and click <strong>Check Borrowed Books</strong>.<br>
         3. You will immediately see which books you have borrowed and when they must be returned.
       </p>
       <div style="background:var(--accent-light); border:1px solid #D4E2D1; border-radius:12px; padding:12px 14px; font-size:12px; color:var(--accent-text);">
@@ -189,48 +142,15 @@
     </div>
 
     <div class="card" style="border-radius:18px;">
-      <div class="card-title"><i class="fa fa-clock" style="color:var(--muted);"></i> Library Loan Policy</div>
+      <div class="card-title"><i class="fa fa-clock" style="color:var(--muted);"></i> Library Borrowing Policy</div>
       <ul style="font-size:13px; color:var(--muted); line-height:1.8; padding-left:18px;">
-        <li><strong>Students:</strong> 15 days loan period</li>
-        <li><strong>Faculty & Staff:</strong> 30 days loan period</li>
+        <li><strong>Students:</strong> 15 days borrowing period</li>
+        <li><strong>Faculty & Staff:</strong> 30 days borrowing period</li>
         <li><strong>Overdue Fine:</strong> ₹2.00 per day after due date</li>
         <li>Books can be renewed if no other student has requested them</li>
       </ul>
     </div>
-{% endif %}
-
-{% if patron %}
-<!-- Fullscreen QR Modal for Easy Counter Scanning -->
-<div class="modal-overlay" id="fullscreenQRModal">
-  <div class="modal" style="max-width:380px; text-align:center; padding:24px 20px;">
-    <div class="modal-header" style="border:none; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
-      <span style="font-size:12px; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:0.8px;">Digital Library ID</span>
-      <button class="modal-close" onclick="closeModal('fullscreenQRModal')">✕</button>
-    </div>
-    <div style="font-size:20px; font-weight:700; margin:4px 0 2px; color:#000;">
-      {{ patron.name }}
-    </div>
-    <div style="font-size:13px; color:var(--muted); margin-bottom:16px;">
-      {{ patron.register_number }}
-    </div>
-
-    <!-- Maximum Contrast QR Code Container -->
-    <div style="background:#FFFFFF; padding:16px; border:3px solid #000; border-radius:18px; display:inline-block; margin-bottom:16px; box-shadow:0 4px 16px rgba(0,0,0,0.1);">
-      <img src="/api/qr/{{ patron.barcode }}" alt="QR Code" style="width:230px; height:230px; display:block;">
-      <div style="font-family:monospace; font-size:16px; font-weight:800; color:#000; letter-spacing:2px; margin-top:10px;">
-        {{ patron.barcode }}
-      </div>
-    </div>
-
-    <div style="background:#FEF3C7; border:1px solid #FCD34D; color:#92400E; font-size:12px; padding:10px; border-radius:10px; margin-bottom:16px; font-weight:600;">
-      ☀️ Turn phone brightness to 100% and present to scanner
-    </div>
-
-    <button class="btn btn-outline" style="width:100%; justify-content:center;" onclick="closeModal('fullscreenQRModal')">
-      Close Card
-    </button>
   </div>
-</div>
 {% endif %}
 
 {% endblock %}

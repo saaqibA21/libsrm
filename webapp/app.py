@@ -107,6 +107,7 @@ start_keep_alive_daemon()
 # ─── Public Portal: Catalog & Availability ─────────────────────────────────────
 
 @app.route("/")
+@app.route("/catalog")
 def public_catalog():
     """Public homepage — search catalog with live availability and expected return dates."""
     q = request.args.get("q", "").strip()

@@ -155,8 +155,61 @@
   <div class="modal" style="max-width:700px">
     <div class="modal-header"><h3 id="historyTitle">📋 Borrowing History</h3><button class="modal-close" onclick="closeModal('historyModal')">✕</button></div>
     <div class="table-wrap" style="max-height:400px;overflow-y:auto">
-      <table><thead><tr><th>Book</th><th>Issue Date</th><th>Due Date</th><th>Return Date</th><th>Fine</th></tr></thead>
+      <table><thead><tr><th>Book (Click to View Barcode)</th><th>Issue Date</th><th>Due Date</th><th>Return Date</th><th>Fine</th></tr></thead>
       <tbody id="historyTbody"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- Book Details & Barcode Modal (Image 3) -->
+<div class="modal-overlay" id="bookModal" style="z-index:1001;">
+  <div class="modal" style="max-width:580px;">
+    <div class="modal-header">
+      <h3 class="serif-heading" id="bm-title" style="font-size:18px; margin:0; line-height:1.3; color:var(--text); padding-right:12px;">Book Details</h3>
+      <button class="modal-close" onclick="closeModal('bookModal')">✕</button>
+    </div>
+
+    <div id="bm-loading" style="text-align:center; padding:30px; color:var(--muted);">
+      <i class="fa fa-spinner fa-spin fa-2x"></i>
+      <div style="margin-top:10px; font-size:13px;">Loading book details & barcode…</div>
+    </div>
+
+    <div id="bm-content" style="display:none;">
+      <!-- Availability Highlight Box -->
+      <div id="bm-avail-box" style="border-radius:14px; padding:14px 16px; margin-bottom:18px;"></div>
+
+      <!-- Barcode Graphic Box -->
+      <div style="background:#F8FAF6; border:1px solid #E2E8F0; border-radius:14px; padding:16px; margin-bottom:18px; text-align:center;">
+        <img id="bm-barcode-img" src="" alt="Book Barcode" style="max-width:280px; width:100%; height:58px; object-fit:contain; display:block; margin:0 auto;">
+        <div id="bm-barcode-txt" style="font-family:'Consolas',monospace; font-size:16px; font-weight:700; color:var(--text); letter-spacing:3px; margin-top:6px;"></div>
+      </div>
+
+      <div class="info-card" style="margin-bottom:18px;">
+        <div class="info-row"><span class="lbl">Account No.</span><span class="val" id="bm-acc"></span></div>
+        <div class="info-row"><span class="lbl">Barcode ID</span><span class="val" id="bm-barcode"></span></div>
+        <div class="info-row"><span class="lbl">Authors</span><span class="val" id="bm-authors"></span></div>
+        <div class="info-row"><span class="lbl">Publisher</span><span class="val" id="bm-pub"></span></div>
+        <div class="info-row"><span class="lbl">Edition</span><span class="val" id="bm-edition"></span></div>
+      </div>
+
+      <div style="font-size:12px; font-weight:700; color:var(--muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">
+        Circulation History (Past 10 Borrows)
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Issue Date</th><th>Due Date</th><th>Return Date</th><th>Status</th></tr></thead>
+          <tbody id="bm-history-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+      <div>
+        <a id="bm-print-label-btn" href="#" class="btn btn-outline btn-sm" target="_blank">
+          <i class="fa fa-print"></i> Print Barcode Sticker
+        </a>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="closeModal('bookModal')">Close</button>
     </div>
   </div>
 </div>
@@ -277,10 +330,86 @@ async function viewHistory(id, name) {
   data.history.forEach(h => {
     const color = h.status==='issued' ? 'var(--info)' : 'var(--text)';
     tbody.innerHTML += `<tr style="color:${color}">
-      <td>${h.book_title}</td><td>${h.issue_date}</td><td>${h.due_date}</td>
+      <td>
+        <a href="javascript:void(0)" onclick="showBookModal(${h.book_id})" style="color:var(--primary); font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:6px; cursor:pointer;" title="Click to view book barcode image & details">
+          <i class="fa fa-barcode" style="font-size:12px;"></i> ${h.book_title}
+          ${h.book_barcode ? `<span class="badge badge-outline" style="font-size:10px; font-weight:normal; margin-left:4px;">${h.book_barcode}</span>` : ''}
+        </a>
+      </td>
+      <td>${h.issue_date}</td><td>${h.due_date}</td>
       <td>${h.return_date||'—'}</td><td>₹${(h.fine_amount||0).toFixed(2)}</td></tr>`;
   });
   openModal('historyModal');
+}
+
+async function showBookModal(bookId) {
+  openModal('bookModal');
+  document.getElementById('bm-loading').style.display = 'block';
+  document.getElementById('bm-content').style.display = 'none';
+
+  try {
+    const data = await fetch(`/api/public/book/${bookId}`).then(r => r.json());
+    if (!data.found) {
+      showToast('Book details not found', 'error');
+      closeModal('bookModal');
+      return;
+    }
+    const b = data.book;
+    document.getElementById('bm-title').textContent = b.title;
+    document.getElementById('bm-acc').textContent = b.account_number || '—';
+    document.getElementById('bm-barcode').innerHTML = `<code>${b.barcode}</code>`;
+    document.getElementById('bm-barcode-img').src = `/api/barcode/image/${encodeURIComponent(b.barcode)}`;
+    document.getElementById('bm-barcode-txt').textContent = b.barcode;
+    const printBtn = document.getElementById('bm-print-label-btn');
+    if (printBtn) printBtn.href = `/books/barcode_label/${b.id}`;
+    document.getElementById('bm-authors').textContent = b.authors || '—';
+    document.getElementById('bm-pub').textContent = b.publisher || '—';
+    document.getElementById('bm-edition').textContent = b.edition || '—';
+
+    const availBox = document.getElementById('bm-avail-box');
+    if (b.status === 'available') {
+      availBox.style.background = '#F0FDF4';
+      availBox.style.border = '1px solid #86EFAC';
+      availBox.innerHTML = `
+        <div style="font-weight:700; color:#166534; font-size:14px;"><i class="fa fa-circle-check"></i> Available on Shelf</div>
+        <div style="font-size:12px; color:#365314; margin-top:3px;">This textbook is currently in the department library and ready to be borrowed.</div>
+      `;
+    } else {
+      availBox.style.background = '#FFFBEB';
+      availBox.style.border = '1px solid #FDE68A';
+      availBox.innerHTML = `
+        <div style="font-weight:700; color:#92400E; font-size:14px;"><i class="fa fa-clock"></i> Currently Borrowed</div>
+        <div style="font-size:12px; color:#78350F; margin-top:3px;">This textbook is currently borrowed by a patron and is due back on ${b.expected_available_date || 'scheduled date'}.</div>
+      `;
+    }
+
+    const tbody = document.getElementById('bm-history-tbody');
+    tbody.innerHTML = '';
+    const hist = data.history || b.history || [];
+    if (!hist.length) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:16px; color:var(--muted);">No previous borrow records</td></tr>';
+    } else {
+      hist.forEach(h => {
+        const badge = h.status === 'returned'
+          ? '<span class="badge badge-success">Returned</span>'
+          : '<span class="badge badge-warning">Borrowed</span>';
+        tbody.innerHTML += `
+          <tr>
+            <td>${h.issue_date || '—'}</td>
+            <td>${h.due_date || '—'}</td>
+            <td>${h.return_date || '—'}</td>
+            <td>${badge}</td>
+          </tr>
+        `;
+      });
+    }
+
+    document.getElementById('bm-loading').style.display = 'none';
+    document.getElementById('bm-content').style.display = 'block';
+  } catch (err) {
+    showToast('Failed to load book details', 'error');
+    closeModal('bookModal');
+  }
 }
 
 async function doImportStudents() {

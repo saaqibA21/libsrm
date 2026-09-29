@@ -89,7 +89,9 @@
               <div style="font-size:10.5px; color:#365314;">Ready to borrow in library</div>
             </div>
           </div>
-          <button class="btn btn-outline btn-sm" onclick="showBookDetails({{ b.id }})" style="padding:4px 10px; font-size:11px;">Details</button>
+          {% if is_staff %}
+            <button class="btn btn-outline btn-sm" onclick="showBookDetails({{ b.id }})" style="padding:4px 10px; font-size:11px;"><i class="fa fa-barcode"></i> Details</button>
+          {% endif %}
         </div>
       {% else %}
         <div style="background:#FFFBEB; border:1px solid #FDE68A; border-radius:12px; padding:10px 12px; display:flex; align-items:center; justify-content:space-between;">
@@ -100,7 +102,9 @@
               <div style="font-size:10.5px; color:#78350F; font-weight:600;">{{ b.availability_badge }}</div>
             </div>
           </div>
-          <button class="btn btn-outline btn-sm" onclick="showBookDetails({{ b.id }})" style="padding:4px 10px; font-size:11px;">Details</button>
+          {% if is_staff %}
+            <button class="btn btn-outline btn-sm" onclick="showBookDetails({{ b.id }})" style="padding:4px 10px; font-size:11px;"><i class="fa fa-barcode"></i> Details</button>
+          {% endif %}
         </div>
       {% endif %}
     </div>
@@ -243,7 +247,7 @@ async function showBookDetails(bookId) {
       data.history.forEach(h => {
         const badge = h.status === 'returned'
           ? '<span class="badge badge-success">Returned</span>'
-          : '<span class="badge badge-warning">Active Loan</span>';
+          : '<span class="badge badge-warning">Borrowed</span>';
         tbody.innerHTML += `
           <tr>
             <td>${h.issue_date}</td>

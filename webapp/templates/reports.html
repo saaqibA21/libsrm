@@ -24,7 +24,7 @@
 <div id="tabContainer">
   <div class="tab-bar">
     <button class="tab-btn active" data-tab="tab-overdue">⚠️ Overdue ({{ overdue|length }})</button>
-    <button class="tab-btn" data-tab="tab-active">📤 Active Loans ({{ active|length }})</button>
+    <button class="tab-btn" data-tab="tab-active">📤 Active Borrows ({{ active|length }})</button>
     <button class="tab-btn" data-tab="tab-book-stats">📚 Book Borrow Frequency</button>
     <button class="tab-btn" data-tab="tab-patron-stats">👥 Patron Borrow Search</button>
     <button class="tab-btn" data-tab="tab-history">🕐 Full History</button>
@@ -61,14 +61,14 @@
           <td><button class="btn btn-success btn-sm" onclick="markPaid({{ txn.id }})">✅ Mark Paid</button></td>
         </tr>
         {% else %}
-        <tr><td colspan="9" style="text-align:center; padding:36px; color:var(--success); font-weight:500;">🎉 No overdue books! All loans are on schedule.</td></tr>
+        <tr><td colspan="9" style="text-align:center; padding:36px; color:var(--success); font-weight:500;">🎉 No overdue books! All borrowed books are on schedule.</td></tr>
         {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
 
-  <!-- Active Loans Tab -->
+  <!-- Active Borrows Tab -->
   <div class="tab-pane" id="tab-active">
     <div style="margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
       <span style="font-weight:700; color:var(--info);">
@@ -175,7 +175,7 @@
         🔍 Search Patron Activity & Borrow Count
       </div>
       <p style="font-size:12.5px; color:var(--muted); margin-bottom:12px;">
-        Search any student or teacher by name, register number, or barcode to see <strong>how many books they have taken</strong>, current active loans, and borrowing history.
+        Search any student or teacher by name, register number, or barcode to see <strong>how many books they have taken</strong>, current active borrows, and borrowing history.
       </p>
       <div class="search-box" style="max-width:600px;">
         <i class="fa fa-search"></i>
@@ -191,7 +191,7 @@
             <th>Reg. / Employee No</th>
             <th>Type / Class</th>
             <th style="text-align:center;">Total Books Taken</th>
-            <th style="text-align:center;">Active Loans</th>
+            <th style="text-align:center;">Active Borrows</th>
             <th style="text-align:center;">Overdue</th>
             <th>Pending Fines</th>
             <th>Last Borrowed</th>
@@ -234,7 +234,7 @@
             <td class="text-sm text-muted">{{ p.last_borrowed_date or 'Never' }}</td>
             <td>
               <button class="btn btn-outline btn-sm" onclick="viewHistory({{ p.id }}, '{{ p.name|e }}')">
-                <i class="fa fa-history"></i> View Loans
+                <i class="fa fa-history"></i> View Borrows
               </button>
             </td>
           </tr>
@@ -426,7 +426,7 @@ async function doPatronSearch() {
         <td class="text-sm text-muted">${p.last_borrowed_date || 'Never'}</td>
         <td>
           <button class="btn btn-outline btn-sm" onclick="viewHistory(${p.id}, '${escapeQuotes(p.name)}')">
-            <i class="fa fa-history"></i> View Loans
+            <i class="fa fa-history"></i> View Borrows
           </button>
         </td>
       </tr>

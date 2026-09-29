@@ -4,7 +4,7 @@
 {% block content %}
 
 <p class="text-muted" style="margin-bottom:20px;font-size:13.5px;">
-  Scan or type the book barcode to identify the active loan. You can adjust the <strong>Return Date</strong> manually to record returns that occurred earlier.
+  Scan or type the book barcode to identify the borrowed book. You can adjust the <strong>Return Date</strong> manually to record returns that occurred earlier.
 </p>
 
 <div class="two-col">
@@ -56,7 +56,7 @@
     </div>
 
     <div class="card">
-      <div class="card-title"><i class="fa fa-user"></i> Borrower & Loan Details</div>
+      <div class="card-title"><i class="fa fa-user"></i> Borrower & Borrowing Details</div>
       <div class="info-card">
         <div class="info-row"><span class="lbl">Borrower</span><span class="val" id="p-name">—</span></div>
         <div class="info-row"><span class="lbl">Reg. / Staff ID</span><span class="val" id="p-reg">—</span></div>
@@ -170,7 +170,7 @@ async function scanBook() {
     s.style.fontWeight = '700';
 
     if (!data.active_transaction) {
-      setStatus('bookStatus', '⚠️ This book is marked Available — no active loan was found to return!', 'warn');
+      setStatus('bookStatus', '⚠️ This book is marked Available — no active borrow record was found to return!', 'warn');
       clearPatronDetails();
       document.getElementById('returnBtn').disabled = true;
       return;
@@ -185,7 +185,7 @@ async function scanBook() {
 
     updateFineDisplay();
 
-    setStatus('bookStatus', `✅ Active loan identified for "${data.book.title.substring(0,35)}" — Borrower: ${txn.patron_name}`, 'ok');
+    setStatus('bookStatus', `✅ Borrow record identified for "${data.book.title.substring(0,35)}" — Borrower: ${txn.patron_name}`, 'ok');
     document.getElementById('returnBtn').disabled = false;
   } catch (err) {
     setStatus('bookStatus', 'Failed to scan book', 'err');
