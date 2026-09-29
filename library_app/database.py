@@ -46,6 +46,7 @@ def initialize_db():
             register_number TEXT UNIQUE,
             name TEXT NOT NULL,
             patron_type TEXT DEFAULT 'student',
+            designation TEXT,
             year TEXT,
             section TEXT,
             mobile TEXT,
@@ -55,6 +56,12 @@ def initialize_db():
             added_date TEXT DEFAULT (datetime('now','localtime'))
         )
     """)
+
+    # Schema migration: ensure designation column exists
+    try:
+        c.execute("ALTER TABLE patrons ADD COLUMN designation TEXT")
+    except Exception:
+        pass
 
     # Transactions table
     c.execute("""
@@ -236,7 +243,7 @@ def count_books():
 # ─── Patrons ───────────────────────────────────────────────────────────────────
 
 def add_patron(barcode, register_number, name, patron_type="student",
-               year="", section="", mobile="", email="",
+               designation="", year="", section="", mobile="", email="",
                parent_mobile="", parent_email=""):
     conn = get_connection()
     if not barcode:
@@ -249,10 +256,10 @@ def add_patron(barcode, register_number, name, patron_type="student",
     try:
         conn.execute("""
             INSERT INTO patrons
-            (barcode, register_number, name, patron_type, year, section,
+            (barcode, register_number, name, patron_type, designation, year, section,
              mobile, email, parent_mobile, parent_email)
-            VALUES (?,?,?,?,?,?,?,?,?,?)
-        """, (barcode, register_number, name, patron_type, year, section,
+            VALUES (?,?,?,?,?,?,?,?,?,?,?)
+        """, (barcode, register_number, name, patron_type, designation, year, section,
               mobile, email, parent_mobile, parent_email))
         conn.commit()
         return True, f"Patron added successfully! Barcode: {barcode}"
@@ -262,14 +269,14 @@ def add_patron(barcode, register_number, name, patron_type="student",
         conn.close()
 
 
-def update_patron(patron_id, name, patron_type, year, section, mobile, email,
-                  parent_mobile, parent_email):
+def update_patron(patron_id, name, patron_type, year="", section="", mobile="", email="",
+                  parent_mobile="", parent_email="", designation=""):
     conn = get_connection()
     conn.execute("""
-        UPDATE patrons SET name=?, patron_type=?, year=?, section=?,
+        UPDATE patrons SET name=?, patron_type=?, designation=?, year=?, section=?,
         mobile=?, email=?, parent_mobile=?, parent_email=?
         WHERE id=?
-    """, (name, patron_type, year, section, mobile, email,
+    """, (name, patron_type, designation, year, section, mobile, email,
           parent_mobile, parent_email, patron_id))
     conn.commit()
     conn.close()
@@ -457,6 +464,7 @@ def get_all_active_transactions():
     rows = conn.execute("""
         SELECT t.*, b.title as book_title, b.barcode as book_barcode,
                p.name as patron_name, p.register_number, p.patron_type,
+               p.designation as patron_designation,
                p.email as patron_email
         FROM transactions t
         JOIN books b ON t.book_id = b.id
@@ -474,6 +482,7 @@ def get_overdue_transactions():
     rows = conn.execute("""
         SELECT t.*, b.title as book_title, b.barcode as book_barcode,
                p.name as patron_name, p.register_number, p.patron_type,
+               p.designation as patron_designation,
                p.email as patron_email, p.mobile as patron_mobile
         FROM transactions t
         JOIN books b ON t.book_id = b.id
@@ -489,7 +498,8 @@ def get_transaction_history(limit=200):
     conn = get_connection()
     rows = conn.execute("""
         SELECT t.*, b.title as book_title, b.barcode as book_barcode,
-               p.name as patron_name, p.register_number, p.patron_type
+               p.name as patron_name, p.register_number, p.patron_type,
+               p.designation as patron_designation
         FROM transactions t
         JOIN books b ON t.book_id = b.id
         JOIN patrons p ON t.patron_id = p.id
@@ -510,7 +520,116 @@ def get_patron_history(patron_id):
         ORDER BY t.id DESC
     """, (patron_id,)).fetchall()
     conn.close()
-    return [dict(r) for r in rows]
+def search_transactions_by_date(from_date=None, to_date=None, date_type="issue_date",
+                                query="", status="all", limit=500):
+    """
+    Search circulation transactions with date range filters, keyword search, and status filter.
+    Returns (transactions_list, summary_stats_dict).
+    """
+    conn = get_connection()
+    today = datetime.now().strftime("%Y-%m-%d")
+    fine_rate = 2.0
+    try:
+        fr = conn.execute("SELECT value FROM settings WHERE key='fine_per_day'").fetchone()
+        if fr: fine_rate = float(fr["value"])
+    except Exception:
+        pass
+
+    sql = """
+        SELECT t.*,
+               b.title as book_title, b.barcode as book_barcode, b.account_number as book_acc,
+               p.name as patron_name, p.register_number as patron_reg, p.patron_type,
+               p.designation as patron_designation, p.year as patron_year, p.section as patron_section,
+               p.mobile as patron_mobile, p.email as patron_email
+        FROM transactions t
+        JOIN books b ON t.book_id = b.id
+        JOIN patrons p ON t.patron_id = p.id
+        WHERE 1=1
+    """
+    params = []
+
+    # Date field selection
+    field = "t.issue_date"
+    if date_type == "return_date":
+        field = "t.return_date"
+    elif date_type == "due_date":
+        field = "t.due_date"
+
+    if from_date and from_date.strip():
+        sql += f" AND date({field}) >= date(?)"
+        params.append(from_date.strip())
+    if to_date and to_date.strip():
+        sql += f" AND date({field}) <= date(?)"
+        params.append(to_date.strip())
+
+    # Status filter
+    if status == "issued":
+        sql += " AND t.status = 'issued'"
+    elif status == "returned":
+        sql += " AND t.status = 'returned'"
+    elif status == "overdue":
+        sql += f" AND t.status = 'issued' AND t.due_date < '{today}'"
+
+    # Search keyword
+    if query and query.strip():
+        q = f"%{query.strip()}%"
+        sql += """ AND (
+            b.title LIKE ? OR b.barcode LIKE ? OR b.account_number LIKE ?
+            OR p.name LIKE ? OR p.register_number LIKE ? OR p.barcode LIKE ?
+            OR p.designation LIKE ?
+        )"""
+        params.extend([q, q, q, q, q, q, q])
+
+    sql += f" ORDER BY {field} DESC, t.id DESC LIMIT ?"
+    params.append(limit)
+
+    rows = conn.execute(sql, params).fetchall()
+    conn.close()
+
+    today_dt = datetime.now()
+    results = []
+    total_fines = 0.0
+    issued_count = 0
+    returned_count = 0
+    overdue_count = 0
+
+    for r in rows:
+        d = dict(r)
+        due_dt = None
+        try:
+            due_dt = datetime.strptime(d["due_date"], "%Y-%m-%d")
+        except Exception:
+            pass
+
+        if d["status"] == "issued":
+            issued_count += 1
+            if due_dt and due_dt < today_dt:
+                overdue_count += 1
+                d["is_overdue"] = True
+                d["overdue_days"] = (today_dt - due_dt).days
+                d["calculated_fine"] = d["overdue_days"] * fine_rate
+            else:
+                d["is_overdue"] = False
+                d["overdue_days"] = 0
+                d["calculated_fine"] = 0.0
+        else:
+            returned_count += 1
+            d["is_overdue"] = False
+            d["overdue_days"] = 0
+            d["calculated_fine"] = float(d.get("fine_amount") or 0.0)
+
+        d["fine_payable"] = 0.0 if d.get("fine_paid") else d.get("calculated_fine", 0.0)
+        total_fines += d["fine_payable"]
+        results.append(d)
+
+    summary = {
+        "total": len(results),
+        "issued": issued_count,
+        "returned": returned_count,
+        "overdue": overdue_count,
+        "total_fines": total_fines
+    }
+    return results, summary
 
 
 # ─── Analytics / Reports ───────────────────────────────────────────────────────

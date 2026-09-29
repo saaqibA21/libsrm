@@ -261,41 +261,66 @@ def import_students_from_excel(filepath: str, year: str, section: str) -> tuple[
 
 def import_staff_from_excel(filepath: str) -> tuple[list[dict], list[str]]:
     """
-    Import teaching/non-teaching staff and research scholars from Excel file.
+    Import teaching/non-teaching staff and research scholars from Excel file (.xls or .xlsx).
+    Extracts name, ID, designation/category, guide (if RS), mobile, email.
     Returns (list_of_patrons, list_of_errors)
     """
     patrons = []
     errors = []
+    is_xlsx = str(filepath).lower().endswith(".xlsx")
 
-    try:
-        import xlrd
-        wb = xlrd.open_workbook(filepath)
-    except Exception as e:
-        return [], [f"Could not open file: {e}"]
+    sheets_data = []
 
-    for sheet_idx in range(wb.nsheets):
-        ws = wb.sheet_by_index(sheet_idx)
-        sheet_name = ws.name.strip()
+    if is_xlsx:
+        try:
+            wb = openpyxl.load_workbook(filepath, read_only=True, data_only=True)
+            for sname in wb.sheetnames:
+                ws = wb[sname]
+                rows = list(ws.iter_rows(values_only=True))
+                sheets_data.append((sname, rows))
+            wb.close()
+        except Exception as e:
+            return [], [f"Could not open XLSX file: {e}"]
+    else:
+        try:
+            import xlrd
+            wb = xlrd.open_workbook(filepath)
+            for sheet_idx in range(wb.nsheets):
+                ws = wb.sheet_by_index(sheet_idx)
+                rows = []
+                for rx in range(ws.nrows):
+                    rows.append([ws.cell_value(rx, cx) for cx in range(ws.ncols)])
+                sheets_data.append((ws.name.strip(), rows))
+        except Exception as e:
+            return [], [f"Could not open XLS file: {e}"]
 
-        # Find header row
+    for sheet_idx, (sheet_name, all_rows) in enumerate(sheets_data):
+        if not all_rows:
+            continue
+
         header_row_idx = None
         id_col = None
         name_col = None
+        desig_col = None
+        guide_col = None
         mobile_col = None
         email_col = None
 
-        for rx in range(min(15, ws.nrows)):
-            row_vals = [str(ws.cell_value(rx, cx)).strip().lower() for cx in range(ws.ncols)]
-            has_id = any(any(k in c for k in ["id. no", "id no", "register number", "emp id", "staff id", "sl. no"]) for c in row_vals)
+        for rx, row in enumerate(all_rows[:15]):
+            row_vals = [str(c or "").strip().lower() for c in row]
+            has_id = any(any(k in c for k in ["id. no", "id no", "register number", "emp id", "staff id", "sl. no", "reg no"]) for c in row_vals)
             has_name = any("name" in c for c in row_vals)
             if has_id and has_name:
                 header_row_idx = rx
-                for cx in range(ws.ncols):
-                    c_val = str(ws.cell_value(rx, cx)).strip().lower()
-                    if any(k in c_val for k in ["id. no", "id no", "register number", "emp id"]):
+                for cx, c_val in enumerate(row_vals):
+                    if any(k in c_val for k in ["id. no", "id no", "register number", "emp id", "reg no", "staff id"]):
                         id_col = cx
                     elif "name" in c_val and "guide" not in c_val:
                         name_col = cx
+                    elif any(k in c_val for k in ["designation", "desg", "post", "category"]):
+                        desig_col = cx
+                    elif "guide" in c_val:
+                        guide_col = cx
                     elif any(k in c_val for k in ["mobile", "contact"]):
                         mobile_col = cx
                     elif any(k in c_val for k in ["mail", "email"]):
@@ -305,17 +330,29 @@ def import_staff_from_excel(filepath: str) -> tuple[list[dict], list[str]]:
         if header_row_idx is None or name_col is None:
             continue
 
-        for rx in range(header_row_idx + 1, ws.nrows):
-            raw_name = _clean(ws.cell_value(rx, name_col))
-            if not raw_name or raw_name.lower().startswith("name"):
+        for rx in range(header_row_idx + 1, len(all_rows)):
+            row = all_rows[rx]
+            if not row or not any(row):
                 continue
 
-            raw_id = _clean(ws.cell_value(rx, id_col)) if id_col is not None else ""
+            raw_name = _clean(row[name_col]) if name_col < len(row) else ""
+            if not raw_name or raw_name.lower().startswith("name") or len(raw_name) < 2:
+                continue
+
+            raw_id = _clean(row[id_col]) if id_col is not None and id_col < len(row) else ""
             if not raw_id:
                 raw_id = f"STAFF{sheet_idx+1}_{rx}"
 
-            raw_mobile = _clean(ws.cell_value(rx, mobile_col)) if mobile_col is not None else ""
-            raw_email = _clean(ws.cell_value(rx, email_col)) if email_col is not None else ""
+            raw_desig = _clean(row[desig_col]) if desig_col is not None and desig_col < len(row) else ""
+            raw_guide = _clean(row[guide_col]) if guide_col is not None and guide_col < len(row) else ""
+            full_desig = raw_desig
+            if raw_guide and raw_desig:
+                full_desig = f"{raw_desig} (Guide: {raw_guide})"
+            elif raw_guide:
+                full_desig = f"Guide: {raw_guide}"
+
+            raw_mobile = _clean(row[mobile_col]) if mobile_col is not None and mobile_col < len(row) else ""
+            raw_email = _clean(row[email_col]) if email_col is not None and email_col < len(row) else ""
 
             # Standardize barcode
             clean_id = raw_id.replace(" ", "").replace("/", "").replace(".", "")
@@ -327,6 +364,7 @@ def import_staff_from_excel(filepath: str) -> tuple[list[dict], list[str]]:
                 "register_number": raw_id,
                 "name": raw_name,
                 "patron_type": p_type,
+                "designation": full_desig,
                 "year": "RS" if p_type == "student" else "",
                 "section": sheet_name,
                 "mobile": raw_mobile,

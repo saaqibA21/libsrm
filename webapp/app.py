@@ -5,7 +5,7 @@ SRM EEE Library Management System — Complete Public & Librarian Web Applicatio
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from flask import Flask, render_template, request, jsonify, redirect, url_for, send_file, session
+from flask import Flask, render_template, request, jsonify, redirect, url_for, send_file, session, Response
 from datetime import datetime, timedelta
 import io
 import socket
@@ -22,7 +22,8 @@ from library_app.database import (
     get_patron_active_books, get_all_active_transactions,
     get_overdue_transactions, get_transaction_history, get_patron_history,
     get_dashboard_stats, get_most_borrowed_books, get_most_active_patrons,
-    mark_fine_paid, search_book_borrow_stats, search_patron_borrow_stats
+    mark_fine_paid, search_book_borrow_stats, search_patron_borrow_stats,
+    search_transactions_by_date
 )
 from library_app.utils.excel_importer import (
     import_books_from_excel, import_students_from_excel, import_staff_from_excel
@@ -551,6 +552,7 @@ def add_patron_route():
         register_number=d.get("register_number","").strip(),
         name=d.get("name","").strip(),
         patron_type=d.get("patron_type","student"),
+        designation=d.get("designation","").strip(),
         year=d.get("year",""),
         section=d.get("section","").strip(),
         mobile=d.get("mobile","").strip(),
@@ -568,7 +570,8 @@ def edit_patron_route(pid):
     d = request.form
     update_patron(pid, d.get("name"), d.get("patron_type"), d.get("year"),
                   d.get("section"), d.get("mobile"), d.get("email"),
-                  d.get("parent_mobile"), d.get("parent_email"))
+                  d.get("parent_mobile"), d.get("parent_email"),
+                  designation=d.get("designation","").strip())
     return jsonify({"success": True, "message": "Patron updated"})
 
 
@@ -686,15 +689,22 @@ def import_staff_route():
     added_items = []
     for p in patrons:
         ok, _ = add_patron(**p)
+        desig_str = f" • {p['designation']}" if p.get("designation") else ""
         if ok:
             added += 1
             ptype = (p.get("patron_type", "") or "").title()
             added_items.append({
                 "barcode": p["barcode"],
                 "name": p["name"],
-                "extra": f"{ptype} | {p.get('register_number','')}"
+                "extra": f"{ptype}{desig_str} | {p.get('register_number','')}"
             })
         else:
+            # Backfill / update designation if existing patron has one
+            if p.get("designation") and p.get("register_number"):
+                conn = get_connection()
+                conn.execute("UPDATE patrons SET designation=? WHERE register_number=?", (p["designation"], p["register_number"]))
+                conn.commit()
+                conn.close()
             skipped += 1
 
     pdf_available = False
@@ -863,6 +873,87 @@ def api_reports_search_patrons():
     q = request.args.get("q", "").strip()
     data = search_patron_borrow_stats(q, limit=100)
     return jsonify({"success": True, "results": data})
+
+
+@app.route("/api/reports/circulation_search")
+def api_reports_circulation_search():
+    if not require_staff():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+    from_date = request.args.get("from_date", "").strip()
+    to_date = request.args.get("to_date", "").strip()
+    date_type = request.args.get("date_type", "issue_date").strip()
+    q = request.args.get("q", "").strip()
+    status = request.args.get("status", "all").strip()
+    limit = int(request.args.get("limit", "500"))
+
+    txns, summary = search_transactions_by_date(
+        from_date=from_date,
+        to_date=to_date,
+        date_type=date_type,
+        query=q,
+        status=status,
+        limit=limit
+    )
+    return jsonify({
+        "success": True,
+        "summary": summary,
+        "transactions": txns
+    })
+
+
+@app.route("/reports/export_csv")
+def export_reports_csv():
+    if not require_staff():
+        return redirect(url_for("staff_login", next=request.path))
+    from_date = request.args.get("from_date", "").strip()
+    to_date = request.args.get("to_date", "").strip()
+    date_type = request.args.get("date_type", "issue_date").strip()
+    q = request.args.get("q", "").strip()
+    status = request.args.get("status", "all").strip()
+
+    txns, summary = search_transactions_by_date(
+        from_date=from_date,
+        to_date=to_date,
+        date_type=date_type,
+        query=q,
+        status=status,
+        limit=5000
+    )
+
+    import csv
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Transaction ID", "Patron Name", "Register/Staff No", "Patron Type",
+        "Designation", "Year/Section", "Book Title", "Book Barcode", "Accession No",
+        "Issue Date", "Due Date", "Return Date", "Status", "Fine Amount (INR)", "Fine Paid"
+    ])
+    for t in txns:
+        writer.writerow([
+            t.get("id"),
+            t.get("patron_name"),
+            t.get("patron_reg"),
+            t.get("patron_type"),
+            t.get("patron_designation") or "",
+            f"{t.get('patron_year') or ''} {t.get('patron_section') or ''}".strip(),
+            t.get("book_title"),
+            t.get("book_barcode"),
+            t.get("book_acc") or "",
+            t.get("issue_date"),
+            t.get("due_date"),
+            t.get("return_date") or "",
+            t.get("status"),
+            f"{t.get('fine_payable', 0.0):.2f}",
+            "Paid" if t.get("fine_paid") else "Unpaid"
+        ])
+
+    csv_data = output.getvalue()
+    filename = f"Circulation_Report_{from_date or 'start'}_to_{to_date or 'today'}.csv"
+    return Response(
+        csv_data,
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment;filename={filename}"}
+    )
 
 
 @app.route("/api/send_overdue_emails", methods=["POST"])

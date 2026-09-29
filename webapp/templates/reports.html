@@ -25,9 +25,9 @@
   <div class="tab-bar">
     <button class="tab-btn active" data-tab="tab-overdue">⚠️ Overdue ({{ overdue|length }})</button>
     <button class="tab-btn" data-tab="tab-active">📤 Active Borrows ({{ active|length }})</button>
+    <button class="tab-btn" data-tab="tab-history">📅 Date-Wise Circulation</button>
     <button class="tab-btn" data-tab="tab-book-stats">📚 Book Borrow Frequency</button>
     <button class="tab-btn" data-tab="tab-patron-stats">👥 Patron Borrow Search</button>
-    <button class="tab-btn" data-tab="tab-history">🕐 Full History</button>
     <button class="tab-btn" data-tab="tab-topbooks">🏆 Top Books</button>
     <button class="tab-btn" data-tab="tab-toppatrons">🌟 Top Patrons</button>
   </div>
@@ -50,7 +50,12 @@
         <tbody>
         {% for txn in overdue %}
         <tr style="color:var(--danger)">
-          <td style="font-weight:600">{{ txn.patron_name }}</td>
+          <td style="font-weight:600">
+            {{ txn.patron_name }}
+            {% if txn.patron_designation %}
+              <div style="font-size:11px; font-weight:500; color:var(--muted);"><i class="fa fa-briefcase" style="font-size:9.5px; opacity:0.8;"></i> {{ txn.patron_designation }}</div>
+            {% endif %}
+          </td>
           <td class="text-sm">{{ txn.register_number or '—' }}</td>
           <td><span class="badge badge-{% if txn.patron_type=='teacher' %}purple{% else %}info{% endif %}">{{ txn.patron_type.title() }}</span></td>
           <td style="max-width:220px; font-weight:500">{{ txn.book_title }}</td>
@@ -107,7 +112,12 @@
         {% for txn in active %}
         {% set color = 'var(--danger)' if txn.days_left < 0 else ('var(--warning)' if txn.days_left <= 3 else 'var(--text)') %}
         <tr>
-          <td style="font-weight:600">{{ txn.patron_name }}</td>
+          <td style="font-weight:600">
+            {{ txn.patron_name }}
+            {% if txn.patron_designation %}
+              <div style="font-size:11px; font-weight:500; color:var(--muted);"><i class="fa fa-briefcase" style="font-size:9.5px; opacity:0.8;"></i> {{ txn.patron_designation }}</div>
+            {% endif %}
+          </td>
           <td class="text-sm">{{ txn.register_number or '—' }}</td>
           <td style="max-width:240px; font-weight:500">{{ txn.book_title }}</td>
           <td class="text-sm text-muted">{{ txn.issue_date }}</td>
@@ -268,27 +278,150 @@
     </div>
   </div>
 
-  <!-- History Tab -->
+  <!-- DATE-WISE CIRCULATION SEARCH & HISTORY TAB -->
   <div class="tab-pane" id="tab-history">
+    <!-- Filter Card -->
+    <div style="background:var(--card2); border:1px solid var(--border); border-radius:16px; padding:18px 20px; margin-bottom:18px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:14px;">
+        <div style="font-weight:700; font-size:14.5px; color:var(--primary); display:flex; align-items:center; gap:8px;">
+          <i class="fa fa-calendar-days" style="color:var(--accent-text, #166534);"></i> Date-Wise Circulation Search & Reports
+        </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button type="button" class="btn btn-outline btn-xs" onclick="setCircDatePreset('today')">Today</button>
+          <button type="button" class="btn btn-outline btn-xs" onclick="setCircDatePreset('yesterday')">Yesterday</button>
+          <button type="button" class="btn btn-outline btn-xs" onclick="setCircDatePreset('this_week')">This Week</button>
+          <button type="button" class="btn btn-outline btn-xs" onclick="setCircDatePreset('this_month')">This Month</button>
+          <button type="button" class="btn btn-outline btn-xs" onclick="setCircDatePreset('last_30')">Last 30 Days</button>
+          <button type="button" class="btn btn-outline btn-xs" onclick="setCircDatePreset('all')">All Time</button>
+        </div>
+      </div>
+
+      <div class="form-row cols-4" style="margin-bottom:12px;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label style="font-size:11.5px; font-weight:700;">From Date</label>
+          <input type="date" id="circFromDate" class="form-control" style="font-size:12.5px;">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label style="font-size:11.5px; font-weight:700;">To Date</label>
+          <input type="date" id="circToDate" class="form-control" style="font-size:12.5px;">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label style="font-size:11.5px; font-weight:700;">Filter By Date Type</label>
+          <select id="circDateType" class="form-control" style="font-size:12.5px;">
+            <option value="issue_date">Issue Date (Borrowed On)</option>
+            <option value="return_date">Return Date (Returned On)</option>
+            <option value="due_date">Due Date (Scheduled Due)</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label style="font-size:11.5px; font-weight:700;">Circulation Status</label>
+          <select id="circStatus" class="form-control" style="font-size:12.5px;">
+            <option value="all">All Records</option>
+            <option value="issued">Currently Borrowed</option>
+            <option value="returned">Returned</option>
+            <option value="overdue">Overdue</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <div class="search-box" style="flex:1; min-width:240px; margin-bottom:0;">
+          <i class="fa fa-search"></i>
+          <input id="circKeyword" placeholder="Search patron name, staff designation, reg no, book title, barcode..." onkeyup="if(event.key==='Enter') searchCirculationRecords()">
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" onclick="searchCirculationRecords()" style="white-space:nowrap;">
+          <i class="fa fa-search"></i> Search Records
+        </button>
+        <button type="button" class="btn btn-outline btn-sm" onclick="resetCirculationFilters()" title="Reset to all records">
+          <i class="fa fa-rotate-left"></i> Reset
+        </button>
+        <button type="button" class="btn btn-outline btn-sm" onclick="exportCirculationCSV()" title="Export current filtered data to CSV" style="white-space:nowrap;">
+          <i class="fa fa-file-excel" style="color:#166534;"></i> Export CSV
+        </button>
+      </div>
+    </div>
+
+    <!-- Live KPI Summary Bar -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:16px;">
+      <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:10px 14px; text-align:center;">
+        <div style="font-size:11px; color:var(--muted); font-weight:600; text-transform:uppercase;">Total In Range</div>
+        <div style="font-size:18px; font-weight:800; color:var(--primary); margin-top:2px;" id="circKpiTotal">{{ history|length }}</div>
+      </div>
+      <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:10px 14px; text-align:center;">
+        <div style="font-size:11px; color:var(--muted); font-weight:600; text-transform:uppercase;">Currently Borrowed</div>
+        <div style="font-size:18px; font-weight:800; color:var(--info); margin-top:2px;" id="circKpiIssued">—</div>
+      </div>
+      <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:10px 14px; text-align:center;">
+        <div style="font-size:11px; color:var(--muted); font-weight:600; text-transform:uppercase;">Returned</div>
+        <div style="font-size:18px; font-weight:800; color:var(--success); margin-top:2px;" id="circKpiReturned">—</div>
+      </div>
+      <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:10px 14px; text-align:center;">
+        <div style="font-size:11px; color:var(--muted); font-weight:600; text-transform:uppercase;">Overdue</div>
+        <div style="font-size:18px; font-weight:800; color:var(--danger); margin-top:2px;" id="circKpiOverdue">—</div>
+      </div>
+      <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:10px 14px; text-align:center;">
+        <div style="font-size:11px; color:var(--muted); font-weight:600; text-transform:uppercase;">Fines in Range</div>
+        <div style="font-size:18px; font-weight:800; color:#B45309; margin-top:2px;" id="circKpiFines">—</div>
+      </div>
+    </div>
+
+    <!-- Table Wrap -->
     <div class="table-wrap">
       <table>
-        <thead><tr><th>#</th><th>Patron</th><th>Book Title</th><th>Issue Date</th><th>Due Date</th><th>Return Date</th><th>Status</th></tr></thead>
-        <tbody>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Patron</th>
+            <th>Reg. / Staff No</th>
+            <th>Book Title</th>
+            <th>Accession / Barcode</th>
+            <th>Issue Date</th>
+            <th>Due Date</th>
+            <th>Return Date</th>
+            <th>Status</th>
+            <th>Fine</th>
+          </tr>
+        </thead>
+        <tbody id="circHistoryTbody">
         {% for txn in history %}
         <tr>
           <td class="text-muted text-sm">{{ txn.id }}</td>
-          <td style="font-weight:600">{{ txn.patron_name }}</td>
-          <td style="max-width:240px">{{ txn.book_title }}</td>
+          <td style="font-weight:600">
+            {{ txn.patron_name }}
+            {% if txn.patron_designation %}
+              <div style="font-size:11px; font-weight:500; color:var(--muted); margin-top:2px;">
+                <i class="fa fa-briefcase" style="font-size:9.5px; opacity:0.8;"></i> {{ txn.patron_designation }}
+              </div>
+            {% endif %}
+          </td>
+          <td class="text-sm">
+            {{ txn.register_number or '—' }}
+            <div><span class="badge badge-{% if txn.patron_type=='teacher' %}purple{% else %}info{% endif %}" style="font-size:10px;">{{ (txn.patron_type or '').title() }}</span></div>
+          </td>
+          <td style="max-width:220px; font-weight:500">{{ txn.book_title }}</td>
+          <td class="text-sm">
+            <code style="font-size:11px; color:var(--info);">{{ txn.book_barcode }}</code>
+          </td>
           <td class="text-sm text-muted">{{ txn.issue_date }}</td>
           <td class="text-sm text-muted">{{ txn.due_date }}</td>
           <td class="text-sm">{{ txn.return_date or '—' }}</td>
           <td>
-            {% if txn.status == 'returned' %}<span class="badge badge-success">Returned</span>
-            {% else %}<span class="badge badge-info">Currently Issued</span>{% endif %}
+            {% if txn.status == 'returned' %}
+              <span class="badge badge-success">Returned</span>
+            {% else %}
+              <span class="badge badge-info">Currently Borrowed</span>
+            {% endif %}
+          </td>
+          <td style="font-weight:600; font-size:12px;">
+            {% if txn.fine_amount and txn.fine_amount > 0 %}
+              <span style="color:var(--danger);">₹{{ "%.2f"|format(txn.fine_amount) }}</span>
+            {% else %}
+              <span class="text-muted">₹0.00</span>
+            {% endif %}
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="7" style="text-align:center; padding:30px; color:var(--muted)">No transactions recorded yet.</td></tr>
+        <tr><td colspan="10" style="text-align:center; padding:30px; color:var(--muted)">No transactions recorded yet.</td></tr>
         {% endfor %}
         </tbody>
       </table>
@@ -548,6 +681,160 @@ async function toggleFinePaid(btn, id, paidStatus, calcFine) {
 
 function markPaid(id) {
   toggleFinePaid(null, id, 1, 0);
+}
+
+// ─── Date-Wise Circulation Search & Reports ───
+function setCircDatePreset(preset) {
+  const fromEl = document.getElementById('circFromDate');
+  const toEl = document.getElementById('circToDate');
+  const today = new Date();
+  
+  const formatDate = d => d.toISOString().split('T')[0];
+
+  if (preset === 'today') {
+    fromEl.value = formatDate(today);
+    toEl.value = formatDate(today);
+  } else if (preset === 'yesterday') {
+    const yest = new Date(today);
+    yest.setDate(yest.getDate() - 1);
+    fromEl.value = formatDate(yest);
+    toEl.value = formatDate(yest);
+  } else if (preset === 'this_week') {
+    const day = today.getDay();
+    const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(today);
+    monday.setDate(diff);
+    fromEl.value = formatDate(monday);
+    toEl.value = formatDate(today);
+  } else if (preset === 'this_month') {
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    fromEl.value = formatDate(firstDay);
+    toEl.value = formatDate(today);
+  } else if (preset === 'last_30') {
+    const past = new Date(today);
+    past.setDate(past.getDate() - 30);
+    fromEl.value = formatDate(past);
+    toEl.value = formatDate(today);
+  } else if (preset === 'all') {
+    fromEl.value = '';
+    toEl.value = '';
+  }
+  searchCirculationRecords();
+}
+
+async function searchCirculationRecords() {
+  const fromDate = document.getElementById('circFromDate').value;
+  const toDate = document.getElementById('circToDate').value;
+  const dateType = document.getElementById('circDateType').value;
+  const status = document.getElementById('circStatus').value;
+  const q = document.getElementById('circKeyword').value.trim();
+
+  const tbody = document.getElementById('circHistoryTbody');
+  tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:32px; color:var(--muted);"><i class="fa fa-spinner fa-spin"></i> Filtering circulation records...</td></tr>';
+
+  try {
+    const params = new URLSearchParams({
+      from_date: fromDate,
+      to_date: toDate,
+      date_type: dateType,
+      status: status,
+      q: q
+    });
+
+    const res = await fetch(`/api/reports/circulation_search?${params.toString()}`).then(r => r.json());
+    if (!res.success) {
+      tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:24px; color:var(--danger);">${res.message || 'Error searching records'}</td></tr>`;
+      return;
+    }
+
+    const sum = res.summary || {};
+    document.getElementById('circKpiTotal').textContent = sum.total ?? res.transactions.length;
+    document.getElementById('circKpiIssued').textContent = sum.issued ?? '—';
+    document.getElementById('circKpiReturned').textContent = sum.returned ?? '—';
+    document.getElementById('circKpiOverdue').textContent = sum.overdue ?? '—';
+    document.getElementById('circKpiFines').textContent = '₹' + Number(sum.total_fines || 0).toFixed(2);
+
+    if (!res.transactions.length) {
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:36px; color:var(--muted);">No circulation records found matching the selected dates and filters.</td></tr>';
+      return;
+    }
+
+    let rowsHtml = '';
+    res.transactions.forEach(t => {
+      let statusBadge = '';
+      if (t.status === 'returned') {
+        statusBadge = '<span class="badge badge-success">Returned</span>';
+      } else if (t.is_overdue) {
+        statusBadge = `<span class="badge badge-danger">Overdue (${t.overdue_days}d)</span>`;
+      } else {
+        statusBadge = '<span class="badge badge-warning">Borrowed</span>';
+      }
+
+      const desigHtml = t.patron_designation 
+        ? `<div style="font-size:11px; font-weight:500; color:var(--muted); margin-top:2px;"><i class="fa fa-briefcase" style="font-size:9.5px; opacity:0.8;"></i> ${t.patron_designation}</div>` 
+        : '';
+
+      const ptype = (t.patron_type || '').toLowerCase();
+      const ptypeBadge = `<span class="badge badge-${ptype==='teacher'?'purple':'info'}" style="font-size:10px;">${(t.patron_type||'').charAt(0).toUpperCase() + (t.patron_type||'').slice(1)}</span>`;
+
+      const fineDisplay = (t.fine_payable && t.fine_payable > 0)
+        ? `<span style="color:var(--danger); font-weight:700;">₹${Number(t.fine_payable).toFixed(2)}</span>`
+        : `<span class="text-muted">₹0.00</span>`;
+
+      rowsHtml += `
+        <tr>
+          <td class="text-muted text-sm">${t.id}</td>
+          <td style="font-weight:600">
+            ${t.patron_name}
+            ${desigHtml}
+          </td>
+          <td class="text-sm">
+            ${t.patron_reg || '—'}
+            <div>${ptypeBadge}</div>
+          </td>
+          <td style="max-width:220px; font-weight:500">${t.book_title}</td>
+          <td class="text-sm">
+            <code style="font-size:11px; color:var(--info);">${t.book_barcode}</code>
+            ${t.book_acc ? `<span class="text-muted text-sm"> (Acc: ${t.book_acc})</span>` : ''}
+          </td>
+          <td class="text-sm text-muted">${t.issue_date || '—'}</td>
+          <td class="text-sm text-muted">${t.due_date || '—'}</td>
+          <td class="text-sm">${t.return_date || '—'}</td>
+          <td>${statusBadge}</td>
+          <td style="font-weight:600; font-size:12px;">${fineDisplay}</td>
+        </tr>
+      `;
+    });
+    tbody.innerHTML = rowsHtml;
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:24px; color:var(--danger);">Error loading data: ${err}</td></tr>`;
+  }
+}
+
+function resetCirculationFilters() {
+  document.getElementById('circFromDate').value = '';
+  document.getElementById('circToDate').value = '';
+  document.getElementById('circDateType').value = 'issue_date';
+  document.getElementById('circStatus').value = 'all';
+  document.getElementById('circKeyword').value = '';
+  searchCirculationRecords();
+}
+
+function exportCirculationCSV() {
+  const fromDate = document.getElementById('circFromDate').value;
+  const toDate = document.getElementById('circToDate').value;
+  const dateType = document.getElementById('circDateType').value;
+  const status = document.getElementById('circStatus').value;
+  const q = document.getElementById('circKeyword').value.trim();
+
+  const params = new URLSearchParams({
+    from_date: fromDate,
+    to_date: toDate,
+    date_type: dateType,
+    status: status,
+    q: q
+  });
+  window.location.href = `/reports/export_csv?${params.toString()}`;
 }
 </script>
 {% endblock %}
