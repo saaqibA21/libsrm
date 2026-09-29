@@ -42,25 +42,16 @@
       <div class="card" style="max-width:600px">
         <div class="card-title">Email Dispatch Configuration</div>
 
-        <!-- Brevo API Key Highlight Card -->
+        <!-- Brevo API Key Card -->
         <div style="background:#F0FDF4; border:1.5px solid #86EFAC; border-radius:14px; padding:18px 20px; margin-bottom:20px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
-            <label style="font-weight:700; color:#14532D; font-size:14px; margin:0; display:flex; align-items:center; gap:8px;">
-              <i class="fa fa-bolt" style="color:#16A34A;"></i> Brevo API Key (Recommended for Render)
-            </label>
-            <span class="badge badge-success" style="font-size:11px;">300 Free Emails / Day</span>
-          </div>
-          <p style="font-size:12px; color:#166534; line-height:1.5; margin:0 0 10px;">
-            Sends directly over <strong>HTTPS (Port 443)</strong>, which is never blocked by Render's firewall.
-          </p>
-          <div style="position:relative; display:flex; align-items:center;">
-            <input class="form-control" type="password" id="brevoApiKeyInput" name="brevo_api_key" value="{{ settings.brevo_api_key or '' }}" placeholder="Paste your Brevo API key (e.g. xkeysib-...)" style="padding-right:42px;">
-            <button type="button" onclick="toggleBrevoKey()" title="Show / Hide Key" style="position:absolute; right:10px; background:none; border:none; color:#15803D; cursor:pointer; font-size:15px; padding:4px;">
-              <i class="fa fa-eye" id="brevoEyeIcon"></i>
-            </button>
-          </div>
-          <div style="font-size:11.5px; color:#15803D; margin-top:8px; margin-bottom:12px;">
-            👉 <strong>API Key:</strong> Found at <a href="https://app.brevo.com/settings/keys/api" target="_blank" style="color:#14532D; font-weight:700; text-decoration:underline;">app.brevo.com/settings/keys/api</a>
+          <div class="form-group" style="margin-bottom:12px;">
+            <label style="font-weight:700; color:#14532D; font-size:13px;">Brevo API Key</label>
+            <div style="position:relative; display:flex; align-items:center;">
+              <input class="form-control" type="password" id="brevoApiKeyInput" name="brevo_api_key" value="{{ settings.brevo_api_key or '' }}" placeholder="Paste your Brevo API key (e.g. xkeysib-...)" style="padding-right:42px;">
+              <button type="button" onclick="toggleBrevoKey()" title="Show / Hide Key" style="position:absolute; right:10px; background:none; border:none; color:#15803D; cursor:pointer; font-size:15px; padding:4px;">
+                <i class="fa fa-eye" id="brevoEyeIcon"></i>
+              </button>
+            </div>
           </div>
 
           <div class="form-row cols-2" style="margin-top:10px;">
