@@ -293,7 +293,11 @@
  <span class="badge badge-info">Issued</span>
  {% endif %}
  </td>
- <td style="color:var(--muted); font-size:12px;">{{ txn.return_date or txn.issue_date }}</td>
+ <td style="color:var(--muted); font-size:12px;">
+ <div>{{ txn.return_date or txn.issue_date }}</div>
+ {% set time_val = txn.return_time if txn.status == 'returned' else txn.issue_time %}
+ {% if time_val %}<div style="font-size:10.5px; opacity:0.8;"><i class="fa fa-clock" style="font-size:9px;"></i> {{ time_val }}</div>{% endif %}
+ </td>
  </tr>
  {% else %}
  <tr><td colspan="4" style="text-align:center; color:var(--muted); padding:28px;">No transactions recorded yet</td></tr>

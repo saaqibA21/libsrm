@@ -21,14 +21,21 @@
  <div class="scan-status" id="bookStatus"></div>
  </div>
 
- <!-- Return Date (Manual or Default Today) -->
+ <!-- Return Date & Timing (Manual or Default Today) -->
  <div class="card" style="margin-bottom:16px;">
  <div class="card-title" style="margin-bottom:10px; font-size:14px; display:flex; align-items:center; justify-content:space-between;">
- <span><i class="fa fa-calendar-check" style="color:var(--warning);"></i> Return Date</span>
+ <span><i class="fa fa-calendar-check" style="color:var(--warning);"></i> Return Date & Time</span>
  <span style="font-size:11px;color:var(--muted);font-weight:normal;">(Change to add past return records)</span>
  </div>
+ <div class="form-row cols-2" style="margin-bottom:0;">
  <div class="form-group" style="margin-bottom:0;">
+ <label style="font-size:12px;font-weight:600;">Return Date</label>
  <input type="date" id="returnDate" class="form-control" onchange="updateFineDisplay()">
+ </div>
+ <div class="form-group" style="margin-bottom:0;">
+ <label style="font-size:12px;font-weight:600;">Return Time</label>
+ <input type="time" id="returnTime" class="form-control">
+ </div>
  </div>
  </div>
 
@@ -109,6 +116,10 @@ bookInput.addEventListener('input', () => {
 function initReturnDate() {
  const today = new Date().toISOString().split('T')[0];
  document.getElementById('returnDate').value = today;
+ const hh = String(new Date().getHours()).padStart(2, '0');
+ const mm = String(new Date().getMinutes()).padStart(2, '0');
+ const timeEl = document.getElementById('returnTime');
+ if (timeEl) timeEl.value = `${hh}:${mm}`;
 }
 
 function updateFineDisplay() {
@@ -179,7 +190,7 @@ async function scanBook() {
  document.getElementById('p-name').textContent = txn.patron_name;
  document.getElementById('p-reg').textContent = txn.register_number || '—';
  document.getElementById('p-type').textContent = (txn.patron_type || 'student').charAt(0).toUpperCase() + (txn.patron_type || 'student').slice(1);
- document.getElementById('p-issued').textContent = txn.issue_date;
+ document.getElementById('p-issued').textContent = txn.issue_date + (txn.issue_time ? ' (' + txn.issue_time + ')' : '');
 
  updateFineDisplay();
 
@@ -218,7 +229,7 @@ async function doReturn() {
  <i class="fa fa-circle-check"></i> Book Returned Successfully!
  </div>
  <div style="margin-top:8px;font-size:14px;color:var(--text);">
- Returned Date Recorded: <strong>${returnDate || 'Today'}</strong>
+ Returned Timestamp: <strong>${returnDate || 'Today'}${returnTime ? ' at ' + returnTime : ''}</strong>
  </div>
  <div style="margin-top:6px;font-size:14.5px;font-weight:700;color:${color};">
  ${fine > 0 ? 'Late Fine: ₹' + fine.toFixed(2) : 'No fine — returned on time!'}

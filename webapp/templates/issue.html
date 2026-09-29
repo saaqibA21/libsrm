@@ -81,10 +81,14 @@
  <span><i class="fa fa-calendar-days" style="color:var(--primary);"></i> Issue & Due Dates</span>
  <span style="font-size:11px;color:var(--muted);font-weight:normal;">(Editable for older records)</span>
  </div>
- <div class="form-row cols-2" style="margin-bottom:0;">
+ <div class="form-row cols-3" style="margin-bottom:0;">
  <div class="form-group" style="margin-bottom:0;">
  <label style="font-size:12px;font-weight:600;">Issue Date</label>
  <input type="date" id="issueDate" class="form-control" onchange="recalculateDueDate()">
+ </div>
+ <div class="form-group" style="margin-bottom:0;">
+ <label style="font-size:12px;font-weight:600;">Issue Time</label>
+ <input type="time" id="issueTime" class="form-control">
  </div>
  <div class="form-group" style="margin-bottom:0;">
  <label style="font-size:12px;font-weight:600;">Due Date</label>
@@ -328,6 +332,7 @@ async function doIssue() {
  patron_type: patronData.patron_type,
  book_ids: bookIds,
  issue_date: document.getElementById('issueDate').value,
+ issue_time: document.getElementById('issueTime') ? document.getElementById('issueTime').value : '',
  due_date: document.getElementById('dueDate').value
  };
 
@@ -347,7 +352,7 @@ async function doIssue() {
  Issued to: <strong>${patronData.name}</strong> (${patronData.register_number || patronData.barcode})
  </div>
  <div style="margin-top:4px;color:var(--muted);font-size:12.5px;">
- Total books checked out in this session: <strong>${res.issued_count || bookIds.length}</strong>
+ Issue Recorded: <strong>${document.getElementById('issueDate').value}${document.getElementById('issueTime') && document.getElementById('issueTime').value ? ' at ' + document.getElementById('issueTime').value : ''}</strong> | Total books: <strong>${res.issued_count || bookIds.length}</strong>
  </div>
  `;
  showToast(`Successfully issued ${res.issued_count || bookIds.length} book(s)!`, 'success');
@@ -436,9 +441,16 @@ function setStatus(id, msg, type) {
 }
 
 function initDates() {
- const today = new Date().toISOString().split('T')[0];
+ const now = new Date();
+ const today = now.toISOString().split('T')[0];
  const dateInput = document.getElementById('issueDate');
  if (dateInput) dateInput.value = today;
+ const timeInput = document.getElementById('issueTime');
+ if (timeInput) {
+   const hh = String(now.getHours()).padStart(2, '0');
+   const mm = String(now.getMinutes()).padStart(2, '0');
+   timeInput.value = `${hh}:${mm}`;
+ }
  recalculateDueDate();
 }
 

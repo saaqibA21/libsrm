@@ -70,8 +70,10 @@ def initialize_db():
             book_id INTEGER NOT NULL,
             patron_id INTEGER NOT NULL,
             issue_date TEXT NOT NULL,
+            issue_time TEXT,
             due_date TEXT NOT NULL,
             return_date TEXT,
+            return_time TEXT,
             fine_amount REAL DEFAULT 0.0,
             fine_paid INTEGER DEFAULT 0,
             notes TEXT,
@@ -80,6 +82,16 @@ def initialize_db():
             FOREIGN KEY (patron_id) REFERENCES patrons(id)
         )
     """)
+
+    # Schema migration: ensure issue_time and return_time exist in transactions
+    try:
+        c.execute("ALTER TABLE transactions ADD COLUMN issue_time TEXT")
+    except Exception:
+        pass
+    try:
+        c.execute("ALTER TABLE transactions ADD COLUMN return_time TEXT")
+    except Exception:
+        pass
 
     # Settings table
     c.execute("""
@@ -417,7 +429,24 @@ def count_patrons():
 
 # ─── Transactions ──────────────────────────────────────────────────────────────
 
-def issue_book(book_id, patron_id, patron_type="student", issue_date=None, due_date=None):
+def format_time_str(time_val=None):
+    """Normalize time string to standard 'HH:MM AM/PM' format or current time."""
+    if not time_val:
+        return datetime.now().strftime("%I:%M %p")
+    t = str(time_val).strip()
+    if not t:
+        return datetime.now().strftime("%I:%M %p")
+    if "AM" in t.upper() or "PM" in t.upper():
+        return t.upper()
+    for fmt in ("%H:%M", "%H:%M:%S", "%I:%M"):
+        try:
+            return datetime.strptime(t, fmt).strftime("%I:%M %p")
+        except ValueError:
+            pass
+    return t
+
+
+def issue_book(book_id, patron_id, patron_type="student", issue_date=None, due_date=None, issue_time=None):
     conn = get_connection()
     try:
         # Check book availability
@@ -435,20 +464,23 @@ def issue_book(book_id, patron_id, patron_type="student", issue_date=None, due_d
         loan_key = "loan_period_teacher" if patron_type == "teacher" else "loan_period_student"
         loan_days = int(conn.execute("SELECT value FROM settings WHERE key=?", (loan_key,)).fetchone()["value"])
 
+        now_dt = datetime.now()
         if not issue_date:
-            issue_date = datetime.now().strftime("%Y-%m-%d")
+            issue_date = now_dt.strftime("%Y-%m-%d")
+
+        issue_time = format_time_str(issue_time)
 
         if not due_date:
             try:
                 base_dt = datetime.strptime(issue_date, "%Y-%m-%d")
             except Exception:
-                base_dt = datetime.now()
+                base_dt = now_dt
             due_date = (base_dt + timedelta(days=loan_days)).strftime("%Y-%m-%d")
 
         conn.execute("""
-            INSERT INTO transactions (book_id, patron_id, issue_date, due_date, status)
-            VALUES (?,?,?,?,'issued')
-        """, (book_id, patron_id, issue_date, due_date))
+            INSERT INTO transactions (book_id, patron_id, issue_date, issue_time, due_date, status)
+            VALUES (?,?,?,?,?,'issued')
+        """, (book_id, patron_id, issue_date, issue_time, due_date))
 
         conn.execute("UPDATE books SET status='issued' WHERE id=?", (book_id,))
         conn.commit()
@@ -459,7 +491,7 @@ def issue_book(book_id, patron_id, patron_type="student", issue_date=None, due_d
         conn.close()
 
 
-def return_book(transaction_id, return_date=None):
+def return_book(transaction_id, return_date=None, return_time=None):
     conn = get_connection()
     try:
         txn = conn.execute("SELECT * FROM transactions WHERE id=?", (transaction_id,)).fetchone()
@@ -468,13 +500,16 @@ def return_book(transaction_id, return_date=None):
         if txn["status"] == "returned":
             return False, "Book already returned"
 
+        now_dt = datetime.now()
         if not return_date:
-            return_date = datetime.now().strftime("%Y-%m-%d")
+            return_date = now_dt.strftime("%Y-%m-%d")
+
+        return_time = format_time_str(return_time)
 
         try:
             ret_date_obj = datetime.strptime(return_date, "%Y-%m-%d")
         except Exception:
-            ret_date_obj = datetime.now()
+            ret_date_obj = now_dt
             return_date = ret_date_obj.strftime("%Y-%m-%d")
 
         due_date = datetime.strptime(txn["due_date"], "%Y-%m-%d")
@@ -488,9 +523,9 @@ def return_book(transaction_id, return_date=None):
             fine = overdue_days * fine_per_day
 
         conn.execute("""
-            UPDATE transactions SET return_date=?, fine_amount=?, status='returned'
+            UPDATE transactions SET return_date=?, return_time=?, fine_amount=?, status='returned'
             WHERE id=?
-        """, (return_date, fine, transaction_id))
+        """, (return_date, return_time, fine, transaction_id))
 
         conn.execute("UPDATE books SET status='available' WHERE id=?", (txn["book_id"],))
         conn.commit()
@@ -950,7 +985,7 @@ def get_book_with_full_details(book_id):
         d["availability_class"] = "badge-success"
 
     history = conn.execute("""
-        SELECT t.issue_date, t.due_date, t.return_date, t.status
+        SELECT t.issue_date, t.issue_time, t.due_date, t.return_date, t.return_time, t.status
         FROM transactions t
         WHERE t.book_id = ?
         ORDER BY t.id DESC

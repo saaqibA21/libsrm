@@ -83,7 +83,10 @@
  <td style="font-weight:600; max-width:240px; color:var(--text);">{{ l.book_title }}</td>
  <td style="font-size:12px; color:var(--muted);">{{ l.book_authors or '—' }}</td>
  <td><code>{{ l.book_account_number or '—' }}</code></td>
- <td style="font-size:12.5px; color:var(--muted);">{{ l.issue_date }}</td>
+ <td style="font-size:12.5px; color:var(--muted);">
+ <div>{{ l.issue_date }}</div>
+ {% if l.issue_time %}<div style="font-size:11px; opacity:0.8;"><i class="fa fa-clock" style="font-size:9.5px;"></i> {{ l.issue_time }}</div>{% endif %}
+ </td>
  <td style="font-size:12.5px; font-weight:600;">{{ l.due_date }}</td>
  <td>
  <span class="badge {{ l.status_class }}">{{ l.status_label }}</span>

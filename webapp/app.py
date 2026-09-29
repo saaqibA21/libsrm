@@ -339,13 +339,14 @@ def api_issue():
 
     issue_date = (data.get("issue_date") or "").strip() or None
     due_date = (data.get("due_date") or "").strip() or None
+    issue_time = (data.get("issue_time") or "").strip() or None
 
     issued_count = 0
     errors = []
     due_dates = []
 
     for bid in book_ids:
-        success, msg = issue_book(bid, patron_id, patron_type, issue_date=issue_date, due_date=due_date)
+        success, msg = issue_book(bid, patron_id, patron_type, issue_date=issue_date, due_date=due_date, issue_time=issue_time)
         if success:
             issued_count += 1
             if "Due date:" in msg:
@@ -381,13 +382,15 @@ def api_return():
     data = request.json or {}
     transaction_id = data.get("transaction_id")
     return_date = (data.get("return_date") or "").strip() or None
-    success, result = return_book(transaction_id, return_date=return_date)
+    return_time = (data.get("return_time") or "").strip() or None
+    success, result = return_book(transaction_id, return_date=return_date, return_time=return_time)
     if success:
         fine = float(result)
+        time_display = f" at {return_time}" if return_time else ""
         return jsonify({
             "success": True,
             "fine": fine,
-            "message": f"Returned on {return_date or 'today'}! Fine: ₹{fine:.2f}" if fine > 0 else f"Returned on {return_date or 'today'} — no fine!"
+            "message": f"Returned on {return_date or 'today'}{time_display}! Fine: ₹{fine:.2f}" if fine > 0 else f"Returned on {return_date or 'today'}{time_display} — no fine!"
         })
     return jsonify({"success": False, "message": str(result)})
 
@@ -931,7 +934,7 @@ def export_reports_csv():
     writer.writerow([
         "Transaction ID", "Patron Name", "Register/Staff No", "Patron Type",
         "Designation", "Year/Section", "Book Title", "Book Barcode", "Accession No",
-        "Issue Date", "Due Date", "Return Date", "Status", "Fine Amount (INR)", "Fine Paid"
+        "Issue Date", "Issue Time", "Due Date", "Return Date", "Return Time", "Status", "Fine Amount (INR)", "Fine Paid"
     ])
     for t in txns:
         writer.writerow([
@@ -945,8 +948,10 @@ def export_reports_csv():
             t.get("book_barcode"),
             t.get("book_acc") or "",
             t.get("issue_date"),
+            t.get("issue_time") or "",
             t.get("due_date"),
             t.get("return_date") or "",
+            t.get("return_time") or "",
             t.get("status"),
             f"{t.get('fine_payable', 0.0):.2f}",
             "Paid" if t.get("fine_paid") else "Unpaid"

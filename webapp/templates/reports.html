@@ -375,9 +375,9 @@
  <th>Reg. / Staff No</th>
  <th>Book Title</th>
  <th>Accession / Barcode</th>
- <th>Issue Date</th>
+ <th>Issue Date & Time</th>
  <th>Due Date</th>
- <th>Return Date</th>
+ <th>Return Date & Time</th>
  <th>Status</th>
  <th>Fine</th>
  </tr>
@@ -402,9 +402,17 @@
  <td class="text-sm">
  <code style="font-size:11px; color:var(--info);">{{ txn.book_barcode }}</code>
  </td>
- <td class="text-sm text-muted">{{ txn.issue_date }}</td>
+ <td class="text-sm">
+ <div style="font-weight:500;">{{ txn.issue_date }}</div>
+ {% if txn.issue_time %}<div class="text-muted" style="font-size:11px;"><i class="fa fa-clock" style="font-size:9.5px; opacity:0.75;"></i> {{ txn.issue_time }}</div>{% endif %}
+ </td>
  <td class="text-sm text-muted">{{ txn.due_date }}</td>
- <td class="text-sm">{{ txn.return_date or '—' }}</td>
+ <td class="text-sm">
+ {% if txn.return_date %}
+ <div style="font-weight:500;">{{ txn.return_date }}</div>
+ {% if txn.return_time %}<div class="text-muted" style="font-size:11px;"><i class="fa fa-clock" style="font-size:9.5px; opacity:0.75;"></i> {{ txn.return_time }}</div>{% endif %}
+ {% else %}—{% endif %}
+ </td>
  <td>
  {% if txn.status == 'returned' %}
  <span class="badge badge-success">Returned</span>
@@ -795,9 +803,17 @@ async function searchCirculationRecords() {
  <code style="font-size:11px; color:var(--info);">${t.book_barcode}</code>
  ${t.book_acc ? `<span class="text-muted text-sm"> (Acc: ${t.book_acc})</span>` : ''}
  </td>
- <td class="text-sm text-muted">${t.issue_date || '—'}</td>
+ <td class="text-sm">
+ <div style="font-weight:500;">${t.issue_date || '—'}</div>
+ ${t.issue_time ? `<div class="text-muted" style="font-size:11px;"><i class="fa fa-clock" style="font-size:9.5px; opacity:0.75;"></i> ${t.issue_time}</div>` : ''}
+ </td>
  <td class="text-sm text-muted">${t.due_date || '—'}</td>
- <td class="text-sm">${t.return_date || '—'}</td>
+ <td class="text-sm">
+ ${t.return_date ? `
+ <div style="font-weight:500;">${t.return_date}</div>
+ ${t.return_time ? `<div class="text-muted" style="font-size:11px;"><i class="fa fa-clock" style="font-size:9.5px; opacity:0.75;"></i> ${t.return_time}</div>` : ''}
+ ` : '—'}
+ </td>
  <td>${statusBadge}</td>
  <td style="font-weight:600; font-size:12px;">${fineDisplay}</td>
  </tr>
