@@ -617,9 +617,9 @@ def search_patron_borrow_stats(query="", limit=50):
     return [dict(r) for r in rows]
 
 
-def mark_fine_paid(transaction_id):
+def mark_fine_paid(transaction_id, paid=1):
     conn = get_connection()
-    conn.execute("UPDATE transactions SET fine_paid=1 WHERE id=?", (transaction_id,))
+    conn.execute("UPDATE transactions SET fine_paid=? WHERE id=?", (1 if paid else 0, transaction_id))
     conn.commit()
     conn.close()
 

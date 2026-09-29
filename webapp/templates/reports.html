@@ -57,8 +57,30 @@
           <td class="text-sm">{{ txn.issue_date }}</td>
           <td><span class="badge badge-danger">{{ txn.due_date }}</span></td>
           <td style="font-weight:700">{{ txn.overdue_days }} days</td>
-          <td style="font-weight:700">₹{{ "%.2f"|format(txn.fine) }}</td>
-          <td><button class="btn btn-success btn-sm" onclick="markPaid({{ txn.id }})">✅ Mark Paid</button></td>
+          <td style="font-weight:700" id="fine-val-{{ txn.id }}">
+            {% if txn.fine_paid %}
+              <span style="text-decoration:line-through; color:var(--muted); font-size:11px; margin-right:4px;">₹{{ "%.2f"|format(txn.calculated_fine) }}</span>
+              <span style="color:var(--success);">₹0.00</span>
+            {% else %}
+              ₹{{ "%.2f"|format(txn.calculated_fine) }}
+            {% endif %}
+          </td>
+          <td id="fine-action-{{ txn.id }}">
+            {% if txn.fine_paid %}
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="badge badge-success" style="padding:5px 10px; font-size:11.5px; font-weight:700;">
+                  <i class="fa fa-check-circle"></i> Paid
+                </span>
+                <button type="button" class="btn btn-outline btn-xs" onclick="toggleFinePaid(this, {{ txn.id }}, 0, {{ txn.calculated_fine }})" title="Unmark / Reopen fine" style="font-size:11px; padding:3px 8px;">
+                  Undo
+                </button>
+              </div>
+            {% else %}
+              <button type="button" class="btn btn-success btn-sm" onclick="toggleFinePaid(this, {{ txn.id }}, 1, {{ txn.calculated_fine }})">
+                ✅ Mark Paid
+              </button>
+            {% endif %}
+          </td>
         </tr>
         {% else %}
         <tr><td colspan="9" style="text-align:center; padding:36px; color:var(--success); font-weight:500;">🎉 No overdue books! All borrowed books are on schedule.</td></tr>
@@ -473,10 +495,59 @@ async function sendReminders() {
   showToast(res.message || `Sent: ${res.sent}`, 'info');
 }
 
-async function markPaid(id) {
-  await postJSON(`/api/mark_fine_paid/${id}`, {});
-  showToast('Fine marked as paid', 'success');
-  setTimeout(() => location.reload(), 800);
+async function toggleFinePaid(btn, id, paidStatus, calcFine) {
+  const origHtml = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+  }
+  try {
+    const res = await postJSON(`/api/mark_fine_paid/${id}`, { paid: paidStatus });
+    if (res && res.success) {
+      const fineValEl = document.getElementById(`fine-val-${id}`);
+      const fineActionEl = document.getElementById(`fine-action-${id}`);
+      if (paidStatus === 1) {
+        if (fineValEl) {
+          fineValEl.innerHTML = `<span style="text-decoration:line-through; color:var(--muted); font-size:11px; margin-right:4px;">₹${Number(calcFine).toFixed(2)}</span><span style="color:var(--success);">₹0.00</span>`;
+        }
+        if (fineActionEl) {
+          fineActionEl.innerHTML = `
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span class="badge badge-success" style="padding:5px 10px; font-size:11.5px; font-weight:700;"><i class="fa fa-check-circle"></i> Paid</span>
+              <button type="button" class="btn btn-outline btn-xs" onclick="toggleFinePaid(this, ${id}, 0, ${calcFine})" title="Unmark / Reopen fine" style="font-size:11px; padding:3px 8px;">Undo</button>
+            </div>
+          `;
+        }
+        showToast('Fine marked as paid!', 'success');
+      } else {
+        if (fineValEl) {
+          fineValEl.innerHTML = `₹${Number(calcFine).toFixed(2)}`;
+        }
+        if (fineActionEl) {
+          fineActionEl.innerHTML = `
+            <button type="button" class="btn btn-success btn-sm" onclick="toggleFinePaid(this, ${id}, 1, ${calcFine})">✅ Mark Paid</button>
+          `;
+        }
+        showToast('Fine reverted to unpaid', 'info');
+      }
+    } else {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+      }
+      showToast((res && res.message) || 'Error updating fine status', 'error');
+    }
+  } catch (err) {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+    }
+    showToast('Failed to contact server: ' + (err.message || err), 'error');
+  }
+}
+
+function markPaid(id) {
+  toggleFinePaid(null, id, 1, 0);
 }
 </script>
 {% endblock %}

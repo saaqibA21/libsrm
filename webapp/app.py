@@ -811,8 +811,9 @@ def reports_page():
 
     for txn in overdue:
         due = datetime.strptime(txn["due_date"], "%Y-%m-%d")
-        txn["overdue_days"] = (today - due).days
-        txn["fine"] = txn["overdue_days"] * fine_rate
+        txn["overdue_days"] = max(0, (today - due).days)
+        txn["calculated_fine"] = txn["overdue_days"] * fine_rate
+        txn["fine"] = 0.0 if txn.get("fine_paid") else txn["calculated_fine"]
 
     for txn in active:
         due = datetime.strptime(txn["due_date"], "%Y-%m-%d")
@@ -900,8 +901,11 @@ def send_overdue_emails():
 def api_mark_fine_paid(txn_id):
     if not require_staff():
         return jsonify({"success": False, "message": "Unauthorized"}), 403
-    mark_fine_paid(txn_id)
-    return jsonify({"success": True})
+    paid = 1
+    if request.is_json and request.json and "paid" in request.json:
+        paid = 1 if request.json["paid"] else 0
+    mark_fine_paid(txn_id, paid)
+    return jsonify({"success": True, "fine_paid": bool(paid)})
 
 
 @app.route("/api/send_patron_barcode/<int:patron_id>", methods=["POST"])
