@@ -1,215 +1,212 @@
 {% extends "base.html" %}
 {% block title %}Settings — SRM Library{% endblock %}
-{% block page_title %}⚙️ Settings{% endblock %}
+{% block page_title %}Settings{% endblock %}
 {% block content %}
 
 <div id="tabContainer">
-  <div class="tab-bar">
-    <button class="tab-btn active" data-tab="tab-library">📚 Library</button>
-    <button class="tab-btn" data-tab="tab-email">📧 Email</button>
-    <button class="tab-btn" data-tab="tab-about">ℹ️ About</button>
-  </div>
+ <div class="tab-bar">
+ <button class="tab-btn active" data-tab="tab-library">Library</button>
+ <button class="tab-btn" data-tab="tab-email">Email</button>
+ <button class="tab-btn" data-tab="tab-about">ℹ️ About</button>
+ </div>
 
-  <!-- Library Settings -->
-  <div class="tab-pane active" id="tab-library">
-    <form id="libraryForm">
-      <div class="card" style="max-width:600px">
-        <div class="card-title">Library Information</div>
-        <div class="form-group"><label>Library Name</label>
-          <input class="form-control" name="library_name" value="{{ settings.library_name }}"></div>
-        <div class="form-group"><label>Librarian Desk PIN</label>
-          <input class="form-control" type="password" name="staff_pin" value="{{ settings.staff_pin or '1234' }}" placeholder="Default: 1234"></div>
-        <hr class="divider">
-        <div class="card-title">Borrowing Periods</div>
-        <div class="form-row cols-2">
-          <div class="form-group"><label>Student Borrowing Period (days)</label>
-            <input class="form-control" type="number" name="loan_period_student" value="{{ settings.loan_period_student }}" min="1"></div>
-          <div class="form-group"><label>Teacher Borrowing Period (days)</label>
-            <input class="form-control" type="number" name="loan_period_teacher" value="{{ settings.loan_period_teacher }}" min="1"></div>
-        </div>
-        <div class="form-group"><label>Fine per Day (₹)</label>
-          <input class="form-control" type="number" name="fine_per_day" value="{{ settings.fine_per_day }}" step="0.5" min="0"></div>
-        <div style="margin-top:20px">
-          <button type="button" class="btn btn-success" onclick="saveLibrarySettings()"><i class="fa fa-save"></i> Save Settings</button>
-        </div>
-      </div>
-    </form>
-  </div>
+ <!-- Library Settings -->
+ <div class="tab-pane active" id="tab-library">
+ <form id="libraryForm">
+ <div class="card" style="max-width:600px">
+ <div class="card-title">Library Information</div>
+ <div class="form-group"><label>Library Name</label>
+ <input class="form-control" name="library_name" value="{{ settings.library_name }}"></div>
+ <div class="form-group"><label>Librarian Desk PIN</label>
+ <input class="form-control" type="password" name="staff_pin" value="{{ settings.staff_pin or '1234' }}" placeholder="Default: 1234"></div>
+ <hr class="divider">
+ <div class="card-title">Borrowing Periods</div>
+ <div class="form-row cols-2">
+ <div class="form-group"><label>Student Borrowing Period (days)</label>
+ <input class="form-control" type="number" name="loan_period_student" value="{{ settings.loan_period_student }}" min="1"></div>
+ <div class="form-group"><label>Teacher Borrowing Period (days)</label>
+ <input class="form-control" type="number" name="loan_period_teacher" value="{{ settings.loan_period_teacher }}" min="1"></div>
+ </div>
+ <div class="form-group"><label>Fine per Day (₹)</label>
+ <input class="form-control" type="number" name="fine_per_day" value="{{ settings.fine_per_day }}" step="0.5" min="0"></div>
+ <div style="margin-top:20px">
+ <button type="button" class="btn btn-success" onclick="saveLibrarySettings()"><i class="fa fa-save"></i> Save Settings</button>
+ </div>
+ </div>
+ </form>
+ </div>
 
-  <!-- Email Settings -->
-  <div class="tab-pane" id="tab-email">
-    <form id="emailForm">
-      <div class="card" style="max-width:600px">
-        <div class="card-title">Email Dispatch Configuration</div>
+ <!-- Email Settings -->
+ <div class="tab-pane" id="tab-email">
+ <form id="emailForm">
+ <div class="card" style="max-width:600px">
+ <div class="card-title">Email Dispatch Configuration</div>
 
-        <!-- Brevo API Key Card -->
-        <div style="background:#F0FDF4; border:1.5px solid #86EFAC; border-radius:14px; padding:18px 20px; margin-bottom:20px;">
-          <div class="form-group" style="margin-bottom:12px;">
-            <label style="font-weight:700; color:#14532D; font-size:13px;">Brevo API Key</label>
-            <div style="position:relative; display:flex; align-items:center;">
-              <input class="form-control" type="password" id="brevoApiKeyInput" name="brevo_api_key" value="{{ settings.brevo_api_key or '' }}" placeholder="Paste your Brevo API key (e.g. xkeysib-...)" style="padding-right:42px;">
-              <button type="button" onclick="toggleBrevoKey()" title="Show / Hide Key" style="position:absolute; right:10px; background:none; border:none; color:#15803D; cursor:pointer; font-size:15px; padding:4px;">
-                <i class="fa fa-eye" id="brevoEyeIcon"></i>
-              </button>
-            </div>
-          </div>
+ <!-- Brevo API Key Card -->
+ <div style="background:#F0FDF4; border:1.5px solid #86EFAC; border-radius:14px; padding:18px 20px; margin-bottom:20px;">
+ <div class="form-group" style="margin-bottom:12px;">
+ <label style="font-weight:700; color:#14532D; font-size:13px;">Brevo API Key</label>
+ <div style="position:relative; display:flex; align-items:center;">
+ <input class="form-control" type="password" id="brevoApiKeyInput" name="brevo_api_key" value="{{ settings.brevo_api_key or '' }}" placeholder="Paste your Brevo API key (e.g. xkeysib-...)" style="padding-right:42px;">
+ <button type="button" onclick="toggleBrevoKey()" title="Show / Hide Key" style="position:absolute; right:10px; background:none; border:none; color:#15803D; cursor:pointer; font-size:15px; padding:4px;">
+ <i class="fa fa-eye" id="brevoEyeIcon"></i>
+ </button>
+ </div>
+ </div>
 
-          <div class="form-row cols-2" style="margin-top:10px;">
-            <div class="form-group" style="margin-bottom:0;">
-              <label style="font-size:11.5px; font-weight:700; color:#14532D;">Brevo Verified Sender Email</label>
-              <input class="form-control" name="brevo_sender_email" value="{{ settings.brevo_sender_email or 'saaqibheroindia@gmail.com' }}" placeholder="saaqibheroindia@gmail.com" style="background:#FFFFFF; font-size:12.5px;">
-              <span style="font-size:10.5px; color:#15803D; display:block; margin-top:3px;">
-                Verified in Brevo account (<a href="https://app.brevo.com/senders" target="_blank" style="color:#14532D; text-decoration:underline;">app.brevo.com/senders</a>)
-              </span>
-            </div>
-            <div class="form-group" style="margin-bottom:0;">
-              <label style="font-size:11.5px; font-weight:700; color:#14532D;">Reply-To Email Address</label>
-              <input class="form-control" name="email_reply_to" value="{{ settings.email_reply_to or 'srmeeelibraray@gmail.com' }}" placeholder="srmeeelibraray@gmail.com" style="background:#FFFFFF; font-size:12.5px;">
-              <span style="font-size:10.5px; color:#15803D; display:block; margin-top:3px;">
-                Where patron replies arrive
-              </span>
-            </div>
-          </div>
-        </div>
+ <div class="form-row cols-2" style="margin-top:10px;">
+ <div class="form-group" style="margin-bottom:0;">
+ <label style="font-size:11.5px; font-weight:700; color:#14532D;">Brevo Verified Sender Email</label>
+ <input class="form-control" name="brevo_sender_email" value="{{ settings.brevo_sender_email or 'saaqibheroindia@gmail.com' }}" placeholder="saaqibheroindia@gmail.com" style="background:#FFFFFF; font-size:12.5px;">
+ <span style="font-size:10.5px; color:#15803D; display:block; margin-top:3px;">
+ Verified in Brevo account (<a href="https://app.brevo.com/senders" target="_blank" style="color:#14532D; text-decoration:underline;">app.brevo.com/senders</a>)
+ </span>
+ </div>
+ <div class="form-group" style="margin-bottom:0;">
+ <label style="font-size:11.5px; font-weight:700; color:#14532D;">Reply-To Email Address</label>
+ <input class="form-control" name="email_reply_to" value="{{ settings.email_reply_to or 'srmeeelibraray@gmail.com' }}" placeholder="srmeeelibraray@gmail.com" style="background:#FFFFFF; font-size:12.5px;">
+ <span style="font-size:10.5px; color:#15803D; display:block; margin-top:3px;">
+ Where patron replies arrive
+ </span>
+ </div>
+ </div>
+ </div>
 
-        <div style="text-align:center; font-size:11px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin:14px 0 12px;">
-          — OR Fallback SMTP Configuration —
-        </div>
+ <div style="text-align:center; font-size:11px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin:14px 0 12px;">
+ — OR Fallback SMTP Configuration —
+ </div>
 
-        <div class="form-row cols-2">
-          <div class="form-group"><label>SMTP Host</label>
-            <input class="form-control" name="email_host" value="{{ settings.email_host }}" placeholder="smtp.gmail.com"></div>
-          <div class="form-group"><label>SMTP Port (465 for SSL, 587 for TLS)</label>
-            <input class="form-control" type="number" name="email_port" value="{{ settings.email_port or '465' }}" placeholder="465"></div>
-        </div>
-        <div class="form-group"><label>Email Address</label>
-          <input class="form-control" name="email_user" value="{{ settings.email_user }}" placeholder="your@gmail.com"></div>
-        <div class="form-group"><label>App Password</label>
-          <input class="form-control" type="password" name="email_password" value="{{ settings.email_password }}" placeholder="Gmail App Password (not your main password)"></div>
-        <div class="form-group"><label>From Address (optional)</label>
-          <input class="form-control" name="email_from" value="{{ settings.email_from }}" placeholder="Leave blank to use email address above"></div>
+ <div class="form-row cols-2">
+ <div class="form-group"><label>SMTP Host</label>
+ <input class="form-control" name="email_host" value="{{ settings.email_host }}" placeholder="smtp.gmail.com"></div>
+ <div class="form-group"><label>SMTP Port (465 for SSL, 587 for TLS)</label>
+ <input class="form-control" type="number" name="email_port" value="{{ settings.email_port or '465' }}" placeholder="465"></div>
+ </div>
+ <div class="form-group"><label>Email Address</label>
+ <input class="form-control" name="email_user" value="{{ settings.email_user }}" placeholder="your@gmail.com"></div>
+ <div class="form-group"><label>App Password</label>
+ <input class="form-control" type="password" name="email_password" value="{{ settings.email_password }}" placeholder="Gmail App Password (not your main password)"></div>
+ <div class="form-group"><label>From Address (optional)</label>
+ <input class="form-control" name="email_from" value="{{ settings.email_from }}" placeholder="Leave blank to use email address above"></div>
 
-        <div style="background:rgba(22,101,52,0.06); border:1px solid rgba(22,101,52,0.2); border-radius:12px; padding:16px 18px; margin:18px 0; font-size:12.5px; color:#1C3022; line-height:1.6;">
-          <strong style="font-size:13.5px; display:block; margin-bottom:6px; color:#14532D;"><i class="fa fa-key"></i> How to Activate Google SMTP (App Password):</strong>
-          <ol style="margin:0; padding-left:18px;">
-            <li>Sign in to your Google Account (<a href="https://myaccount.google.com/security" target="_blank" style="color:var(--accent); text-decoration:underline;">myaccount.google.com/security</a>).</li>
-            <li>Make sure <strong>2-Step Verification</strong> is switched <strong>ON</strong>.</li>
-            <li>Go to <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color:var(--accent); text-decoration:underline;">myaccount.google.com/apppasswords</a>.</li>
-            <li>Type an app name, e.g. <code>SRM Library</code>, and click <strong>Create</strong>.</li>
-            <li>Google generates a <strong>16-character App Password</strong> (e.g. <code>abcd efgh ijkl mnop</code>).</li>
-            <li>Copy and paste that 16-character code into the <strong>App Password</strong> field above.</li>
-            <li>Click <strong>Save Email Settings</strong>, then test it by clicking <strong>Send Test Email</strong>!</li>
-          </ol>
-        </div>
+ <div style="background:rgba(22,101,52,0.06); border:1px solid rgba(22,101,52,0.2); border-radius:12px; padding:16px 18px; margin:18px 0; font-size:12.5px; color:#1C3022; line-height:1.6;">
+ <strong style="font-size:13.5px; display:block; margin-bottom:6px; color:#14532D;"><i class="fa fa-key"></i> How to Activate Google SMTP (App Password):</strong>
+ <ol style="margin:0; padding-left:18px;">
+ <li>Sign in to your Google Account (<a href="https://myaccount.google.com/security" target="_blank" style="color:var(--accent); text-decoration:underline;">myaccount.google.com/security</a>).</li>
+ <li>Make sure <strong>2-Step Verification</strong> is switched <strong>ON</strong>.</li>
+ <li>Go to <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color:var(--accent); text-decoration:underline;">myaccount.google.com/apppasswords</a>.</li>
+ <li>Type an app name, e.g. <code>SRM Library</code>, and click <strong>Create</strong>.</li>
+ <li>Google generates a <strong>16-character App Password</strong> (e.g. <code>abcd efgh ijkl mnop</code>).</li>
+ <li>Copy and paste that 16-character code into the <strong>App Password</strong> field above.</li>
+ <li>Click <strong>Save Email Settings</strong>, then test it by clicking <strong>Send Test Email</strong>!</li>
+ </ol>
+ </div>
 
-        <div class="form-group" style="margin-top:16px; padding-top:14px; border-top:1px dashed var(--border);">
-          <label style="display:flex; justify-content:space-between; align-items:center;">
-            <span>Send Test Email To (Recipient)</span>
-            <span style="font-size:11px; color:var(--muted); font-weight:normal;">e.g. tp7053@srmist.edu.in</span>
-          </label>
-          <input class="form-control" name="test_recipient" id="testRecipient" placeholder="Enter recipient email (e.g. tp7053@srmist.edu.in)">
-        </div>
+ <div class="form-group" style="margin-top:16px; padding-top:14px; border-top:1px dashed var(--border);">
+ <label style="display:flex; justify-content:space-between; align-items:center;">
+ <span>Send Test Email To (Recipient)</span>
+ <span style="font-size:11px; color:var(--muted); font-weight:normal;">e.g. tp7053@srmist.edu.in</span>
+ </label>
+ <input class="form-control" name="test_recipient" id="testRecipient" placeholder="Enter recipient email (e.g. tp7053@srmist.edu.in)">
+ </div>
 
-        <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
-          <button type="button" class="btn btn-outline" id="btnTestEmail" onclick="testEmail()"><i class="fa fa-paper-plane"></i> Send Test Email</button>
-          <button type="button" class="btn btn-success" onclick="saveEmailSettings()"><i class="fa fa-save"></i> Save Email Settings</button>
-        </div>
+ <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
+ <button type="button" class="btn btn-outline" id="btnTestEmail" onclick="testEmail()"><i class="fa fa-paper-plane"></i> Send Test Email</button>
+ <button type="button" class="btn btn-success" onclick="saveEmailSettings()"><i class="fa fa-save"></i> Save Email Settings</button>
+ </div>
 
-        <div id="emailTestStatus" style="display:none; margin-top:14px; padding:12px 14px; border-radius:10px; font-size:12.5px; line-height:1.5;"></div>
-      </div>
-    </form>
-  </div>
+ <div id="emailTestStatus" style="display:none; margin-top:14px; padding:12px 14px; border-radius:10px; font-size:12.5px; line-height:1.5;"></div>
+ </div>
+ </form>
+ </div>
 
-  <!-- About -->
-  <div class="tab-pane" id="tab-about">
-    <div class="card" style="max-width:500px;text-align:center;padding:40px">
-      <div style="font-size:48px;margin-bottom:16px">📚</div>
-      <h2 style="font-size:20px;margin-bottom:8px">SRM EEE Library Management System</h2>
-      <p class="text-muted" style="margin-bottom:8px">Version 1.0 &nbsp;•&nbsp; Web Edition</p>
-      <p class="text-muted text-sm" style="line-height:1.6">
-        A barcode-based library system for SRM EEE Department.<br>
-        Supports students, staff, book issue/return, fines, and email reminders.<br><br>
-        Built with Python Flask + SQLite.
-      </p>
-      <hr class="divider">
-      <div class="text-muted text-sm" style="margin-bottom:14px;">Database: <code>library.db</code> (SQLite)</div>
-      <a href="/api/backup/database" class="btn btn-outline" style="font-size:12px;">
-        <i class="fa fa-download"></i> Download Full Database Backup (.db)
-      </a>
-    </div>
-  </div>
-</div>
-
-{% endblock %}
+ <!-- About -->
+ <div class="tab-pane" id="tab-about">
+ <div class="card" style="max-width:500px;text-align:center;padding:40px">
+ <div style="font-size:48px;margin-bottom:16px"></div>
+ <h2 style="font-size:20px;margin-bottom:8px">SRM EEE Library Management System</h2>
+ <p class="text-muted" style="margin-bottom:8px">Version 1.0 &nbsp;•&nbsp; Web Edition</p>
+ <p class="text-muted text-sm" style="line-height:1.6">
+ A barcode-based library system for SRM EEE Department.<br>
+ Supports students, staff, book issue/return, fines, and email reminders.<br><br>
+ Built with Python Flask + SQLite.
+ </p>
+ <hr class="divider">
+ <div class="text-muted text-sm" style="margin-bottom:14px;">Database: <code>library.db</code> (SQLite)</div>
+ <a href="/api/backup/database" class="btn btn-outline" style="font-size:12px;">
+ <i class="fa fa-download"></i> Download Full Database Backup (.db)
+ </a>
+ </div>
+ </div>
+</div>{% endblock %}
 {% block scripts %}
 <script>
 initTabs('tabContainer');
 
 function toggleBrevoKey() {
-  const inp = document.getElementById('brevoApiKeyInput');
-  const icon = document.getElementById('brevoEyeIcon');
-  if (inp.type === 'password') {
-    inp.type = 'text';
-    icon.className = 'fa fa-eye-slash';
-  } else {
-    inp.type = 'password';
-    icon.className = 'fa fa-eye';
-  }
+ const inp = document.getElementById('brevoApiKeyInput');
+ const icon = document.getElementById('brevoEyeIcon');
+ if (inp.type === 'password') {
+ inp.type = 'text';
+ icon.className = 'fa fa-eye-slash';
+ } else {
+ inp.type = 'password';
+ icon.className = 'fa fa-eye';
+ }
 }
 
 async function saveLibrarySettings() {
-  const fd = new FormData(document.getElementById('libraryForm'));
-  const res = await fetch('/settings', {method:'POST', body:fd}).then(r=>r.json());
-  showToast(res.message, res.success ? 'success' : 'error');
+ const fd = new FormData(document.getElementById('libraryForm'));
+ const res = await fetch('/settings', {method:'POST', body:fd}).then(r=>r.json());
+ showToast(res.message, res.success ? 'success' : 'error');
 }
 
 async function saveEmailSettings() {
-  const fd = new FormData(document.getElementById('emailForm'));
-  const res = await fetch('/settings', {method:'POST', body:fd}).then(r=>r.json());
-  showToast(res.message, res.success ? 'success' : 'error');
+ const fd = new FormData(document.getElementById('emailForm'));
+ const res = await fetch('/settings', {method:'POST', body:fd}).then(r=>r.json());
+ showToast(res.message, res.success ? 'success' : 'error');
 }
 
 async function testEmail() {
-  const form = document.getElementById('emailForm');
-  const fd = new FormData(form);
-  const data = {};
-  fd.forEach((v, k) => data[k] = v);
-  const statusDiv = document.getElementById('emailTestStatus');
-  const btn = document.getElementById('btnTestEmail');
-  
-  btn.disabled = true;
-  btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Connecting to SMTP…';
-  statusDiv.style.display = 'block';
-  statusDiv.style.background = '#F8FAFC';
-  statusDiv.style.border = '1px solid #CBD5E1';
-  statusDiv.style.color = '#334155';
-  statusDiv.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Connecting to SMTP server & verifying credentials...';
+ const form = document.getElementById('emailForm');
+ const fd = new FormData(form);
+ const data = {};
+ fd.forEach((v, k) => data[k] = v);
+ const statusDiv = document.getElementById('emailTestStatus');
+ const btn = document.getElementById('btnTestEmail');
+ 
+ btn.disabled = true;
+ btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Connecting to SMTP…';
+ statusDiv.style.display = 'block';
+ statusDiv.style.background = '#F8FAFC';
+ statusDiv.style.border = '1px solid #CBD5E1';
+ statusDiv.style.color = '#334155';
+ statusDiv.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Connecting to SMTP server & verifying credentials...';
 
-  try {
-    const res = await postJSON('/api/test_email', data);
-    if (res.success) {
-      statusDiv.style.background = '#ECFDF5';
-      statusDiv.style.border = '1px solid #A7F3D0';
-      statusDiv.style.color = '#065F46';
-      statusDiv.innerHTML = `<strong>${res.message}</strong><br><span style="font-size:11.5px;">Check recipient inbox or spam folder.</span>`;
-      showToast(res.message, 'success');
-    } else {
-      statusDiv.style.background = '#FEF2F2';
-      statusDiv.style.border = '1px solid #FECACA';
-      statusDiv.style.color = '#991B1B';
-      statusDiv.innerHTML = `<strong>❌ ${res.message}</strong>`;
-      showToast('Email test failed — see details below', 'error');
-    }
-  } catch (err) {
-    statusDiv.style.background = '#FEF2F2';
-    statusDiv.style.border = '1px solid #FECACA';
-    statusDiv.style.color = '#991B1B';
-    statusDiv.innerHTML = `<strong>❌ Request error:</strong> ${err.message || err}`;
-    showToast('Failed to reach server', 'error');
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fa fa-paper-plane"></i> Send Test Email';
-  }
+ try {
+ const res = await postJSON('/api/test_email', data);
+ if (res.success) {
+ statusDiv.style.background = '#ECFDF5';
+ statusDiv.style.border = '1px solid #A7F3D0';
+ statusDiv.style.color = '#065F46';
+ statusDiv.innerHTML = `<strong>${res.message}</strong><br><span style="font-size:11.5px;">Check recipient inbox or spam folder.</span>`;
+ showToast(res.message, 'success');
+ } else {
+ statusDiv.style.background = '#FEF2F2';
+ statusDiv.style.border = '1px solid #FECACA';
+ statusDiv.style.color = '#991B1B';
+ statusDiv.innerHTML = `<strong>${res.message}</strong>`;
+ showToast('Email test failed — see details below', 'error');
+ }
+ } catch (err) {
+ statusDiv.style.background = '#FEF2F2';
+ statusDiv.style.border = '1px solid #FECACA';
+ statusDiv.style.color = '#991B1B';
+ statusDiv.innerHTML = `<strong>Request error:</strong> ${err.message || err}`;
+ showToast('Failed to reach server', 'error');
+ } finally {
+ btn.disabled = false;
+ btn.innerHTML = '<i class="fa fa-paper-plane"></i> Send Test Email';
+ }
 }
-</script>
-{% endblock %}
+</script>{% endblock %}

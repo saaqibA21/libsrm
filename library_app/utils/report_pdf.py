@@ -142,7 +142,7 @@ def generate_circulation_report_pdf(output_path_or_buf=None) -> bytes:
 
     # ── Section 1: Overdue Books ──
     overdue = get_overdue_transactions()
-    story.append(Paragraph(f"⚠️ Overdue Borrowed Books ({len(overdue)})", section_heading))
+    story.append(Paragraph(f"Overdue Borrowed Books ({len(overdue)})", section_heading))
     
     now_dt = datetime.now()
     if overdue:
@@ -188,7 +188,7 @@ def generate_circulation_report_pdf(output_path_or_buf=None) -> bytes:
 
     # ── Section 2: Active Loans (On Schedule) ──
     active = get_all_active_transactions()
-    story.append(Paragraph(f"📤 Active Book Circulation ({len(active)})", section_heading))
+    story.append(Paragraph(f"Active Book Circulation ({len(active)})", section_heading))
     if active:
         active_table_data = [[
             Paragraph("Borrower Name", cell_header),
@@ -236,7 +236,7 @@ def generate_circulation_report_pdf(output_path_or_buf=None) -> bytes:
 
     # ── Section 3: Most Borrowed Books ──
     top_books = get_most_borrowed_books(10)
-    story.append(Paragraph("🏆 Most Borrowed Books (Circulation Frequency)", section_heading))
+    story.append(Paragraph("Most Borrowed Books (Circulation Frequency)", section_heading))
     if top_books:
         tb_data = [[
             Paragraph("Rank", cell_header),
@@ -266,7 +266,7 @@ def generate_circulation_report_pdf(output_path_or_buf=None) -> bytes:
 
     # ── Section 4: Most Active Borrowers ──
     top_patrons = get_most_active_patrons(10)
-    story.append(Paragraph("🌟 Most Active Library Patrons", section_heading))
+    story.append(Paragraph("Most Active Library Patrons", section_heading))
     if top_patrons:
         tp_data = [[
             Paragraph("Rank", cell_header),

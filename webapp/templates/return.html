@@ -1,97 +1,95 @@
 {% extends "base.html" %}
 {% block title %}Return Book — SRM Library{% endblock %}
-{% block page_title %}📥 Return Book Desk{% endblock %}
+{% block page_title %}Return Book Desk{% endblock %}
 {% block content %}
 
 <p class="text-muted" style="margin-bottom:20px;font-size:13.5px;">
-  Scan or type the book barcode to identify the borrowed book. You can adjust the <strong>Return Date</strong> manually to record returns that occurred earlier.
+ Scan or type the book barcode to identify the borrowed book. You can adjust the <strong>Return Date</strong> manually to record returns that occurred earlier.
 </p>
 
 <div class="two-col">
-  <!-- LEFT: Scan & Date Selection -->
-  <div>
-    <div class="card" style="margin-bottom:16px;">
-      <div class="card-title"><i class="fa fa-barcode"></i> Scan Book Barcode</div>
-      <div class="scan-box">
-        <i class="fa fa-barcode scan-icon"></i>
-        <input type="text" id="bookBarcode" placeholder="Scan or type book barcode and press Enter…" autofocus autocomplete="off">
-        <button type="button" class="btn btn-primary btn-sm" onclick="openCameraScanner('book')" style="margin-right:4px;" title="Scan with camera"><i class="fa fa-camera"></i> Camera</button>
-        <button type="button" class="btn btn-outline btn-sm" onclick="scanBook()" style="margin-right:4px;">Find</button>
-      </div>
-      <div class="scan-status" id="bookStatus"></div>
-    </div>
+ <!-- LEFT: Scan & Date Selection -->
+ <div>
+ <div class="card" style="margin-bottom:16px;">
+ <div class="card-title"><i class="fa fa-barcode"></i> Scan Book Barcode</div>
+ <div class="scan-box">
+ <i class="fa fa-barcode scan-icon"></i>
+ <input type="text" id="bookBarcode" placeholder="Scan or type book barcode and press Enter…" autofocus autocomplete="off">
+ <button type="button" class="btn btn-primary btn-sm" onclick="openCameraScanner('book')" style="margin-right:4px;" title="Scan with camera"><i class="fa fa-camera"></i> Camera</button>
+ <button type="button" class="btn btn-outline btn-sm" onclick="scanBook()" style="margin-right:4px;">Find</button>
+ </div>
+ <div class="scan-status" id="bookStatus"></div>
+ </div>
 
-    <!-- Return Date (Manual or Default Today) -->
-    <div class="card" style="margin-bottom:16px;">
-      <div class="card-title" style="margin-bottom:10px; font-size:14px; display:flex; align-items:center; justify-content:space-between;">
-        <span><i class="fa fa-calendar-check" style="color:var(--warning);"></i> Return Date</span>
-        <span style="font-size:11px;color:var(--muted);font-weight:normal;">(Change to add past return records)</span>
-      </div>
-      <div class="form-group" style="margin-bottom:0;">
-        <input type="date" id="returnDate" class="form-control" onchange="updateFineDisplay()">
-      </div>
-    </div>
+ <!-- Return Date (Manual or Default Today) -->
+ <div class="card" style="margin-bottom:16px;">
+ <div class="card-title" style="margin-bottom:10px; font-size:14px; display:flex; align-items:center; justify-content:space-between;">
+ <span><i class="fa fa-calendar-check" style="color:var(--warning);"></i> Return Date</span>
+ <span style="font-size:11px;color:var(--muted);font-weight:normal;">(Change to add past return records)</span>
+ </div>
+ <div class="form-group" style="margin-bottom:0;">
+ <input type="date" id="returnDate" class="form-control" onchange="updateFineDisplay()">
+ </div>
+ </div>
 
-    <button class="btn btn-warning btn-lg" id="returnBtn" disabled onclick="doReturn()" style="width:100%;justify-content:center;padding:14px;font-size:16px;">
-      <i class="fa fa-download"></i> PROCESS BOOK RETURN
-    </button>
-    <button class="btn btn-outline" onclick="clearAll()" style="width:100%;justify-content:center;margin-top:10px;">
-      <i class="fa fa-rotate-left"></i> Clear / New Return
-    </button>
+ <button class="btn btn-warning btn-lg" id="returnBtn" disabled onclick="doReturn()" style="width:100%;justify-content:center;padding:14px;font-size:16px;">
+ <i class="fa fa-download"></i> PROCESS BOOK RETURN
+ </button>
+ <button class="btn btn-outline" onclick="clearAll()" style="width:100%;justify-content:center;margin-top:10px;">
+ <i class="fa fa-rotate-left"></i> Clear / New Return
+ </button>
 
-    <div id="resultBox" style="display:none;margin-top:16px;" class="card"></div>
-  </div>
+ <div id="resultBox" style="display:none;margin-top:16px;" class="card"></div>
+ </div>
 
-  <!-- RIGHT: Details -->
-  <div>
-    <div class="card" style="margin-bottom:16px;">
-      <div class="card-title"><i class="fa fa-book"></i> Book Details</div>
-      <div class="info-card">
-        <div class="info-row"><span class="lbl">Title</span><span class="val" id="d-title">—</span></div>
-        <div class="info-row"><span class="lbl">Barcode</span><span class="val" id="d-barcode">—</span></div>
-        <div class="info-row"><span class="lbl">Account No.</span><span class="val" id="d-accnum">—</span></div>
-        <div class="info-row"><span class="lbl">Authors</span><span class="val" id="d-authors">—</span></div>
-        <div class="info-row"><span class="lbl">Status</span><span class="val" id="d-status">—</span></div>
-      </div>
-    </div>
+ <!-- RIGHT: Details -->
+ <div>
+ <div class="card" style="margin-bottom:16px;">
+ <div class="card-title"><i class="fa fa-book"></i> Book Details</div>
+ <div class="info-card">
+ <div class="info-row"><span class="lbl">Title</span><span class="val" id="d-title">—</span></div>
+ <div class="info-row"><span class="lbl">Barcode</span><span class="val" id="d-barcode">—</span></div>
+ <div class="info-row"><span class="lbl">Account No.</span><span class="val" id="d-accnum">—</span></div>
+ <div class="info-row"><span class="lbl">Authors</span><span class="val" id="d-authors">—</span></div>
+ <div class="info-row"><span class="lbl">Status</span><span class="val" id="d-status">—</span></div>
+ </div>
+ </div>
 
-    <div class="card">
-      <div class="card-title"><i class="fa fa-user"></i> Borrower & Borrowing Details</div>
-      <div class="info-card">
-        <div class="info-row"><span class="lbl">Borrower</span><span class="val" id="p-name">—</span></div>
-        <div class="info-row"><span class="lbl">Reg. / Staff ID</span><span class="val" id="p-reg">—</span></div>
-        <div class="info-row"><span class="lbl">Patron Type</span><span class="val" id="p-type">—</span></div>
-        <div class="info-row"><span class="lbl">Issued Date</span><span class="val" id="p-issued">—</span></div>
-        <div class="info-row"><span class="lbl">Due Date</span><span class="val" id="p-due">—</span></div>
-        <div class="info-row"><span class="lbl">Fine Status</span><span class="val" id="p-fine">—</span></div>
-      </div>
-    </div>
-  </div>
+ <div class="card">
+ <div class="card-title"><i class="fa fa-user"></i> Borrower & Borrowing Details</div>
+ <div class="info-card">
+ <div class="info-row"><span class="lbl">Borrower</span><span class="val" id="p-name">—</span></div>
+ <div class="info-row"><span class="lbl">Reg. / Staff ID</span><span class="val" id="p-reg">—</span></div>
+ <div class="info-row"><span class="lbl">Patron Type</span><span class="val" id="p-type">—</span></div>
+ <div class="info-row"><span class="lbl">Issued Date</span><span class="val" id="p-issued">—</span></div>
+ <div class="info-row"><span class="lbl">Due Date</span><span class="val" id="p-due">—</span></div>
+ <div class="info-row"><span class="lbl">Fine Status</span><span class="val" id="p-fine">—</span></div>
+ </div>
+ </div>
+ </div>
 </div>
 
 <!-- Camera Scanner Modal -->
 <div id="cameraModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;align-items:center;justify-content:center;padding:16px;">
-  <div style="background:var(--card-bg,#fff);width:100%;max-width:480px;border-radius:16px;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,0.5);display:flex;flex-direction:column;">
-    <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--warning);color:#fff;">
-      <h3 style="margin:0;font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px;">
-        <i class="fa fa-camera"></i> <span id="cameraModalTitle">Scan Book Barcode</span>
-      </h3>
-      <button onclick="closeCameraModal()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:0 6px;line-height:1;">&times;</button>
-    </div>
-    <div style="padding:16px;background:#000;display:flex;flex-direction:column;align-items:center;">
-      <div id="cameraReader" style="width:100%;min-height:280px;border-radius:12px;overflow:hidden;"></div>
-      <p style="color:#aaa;font-size:12px;margin-top:10px;text-align:center;margin-bottom:0;">
-        Position the physical book barcode inside the camera frame to scan.
-      </p>
-    </div>
-    <div style="padding:12px 18px;display:flex;justify-content:space-between;align-items:center;background:var(--bg,#f8fafc);border-top:1px solid var(--border);">
-      <span id="cameraScanMsg" style="font-size:13px;color:var(--text);font-weight:600;">Looking for code…</span>
-      <button class="btn btn-outline btn-sm" onclick="closeCameraModal()">Cancel</button>
-    </div>
-  </div>
-</div>
-
-{% endblock %}
+ <div style="background:var(--card-bg,#fff);width:100%;max-width:480px;border-radius:16px;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,0.5);display:flex;flex-direction:column;">
+ <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--warning);color:#fff;">
+ <h3 style="margin:0;font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px;">
+ <i class="fa fa-camera"></i> <span id="cameraModalTitle">Scan Book Barcode</span>
+ </h3>
+ <button onclick="closeCameraModal()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:0 6px;line-height:1;">&times;</button>
+ </div>
+ <div style="padding:16px;background:#000;display:flex;flex-direction:column;align-items:center;">
+ <div id="cameraReader" style="width:100%;min-height:280px;border-radius:12px;overflow:hidden;"></div>
+ <p style="color:#aaa;font-size:12px;margin-top:10px;text-align:center;margin-bottom:0;">
+ Position the physical book barcode inside the camera frame to scan.
+ </p>
+ </div>
+ <div style="padding:12px 18px;display:flex;justify-content:space-between;align-items:center;background:var(--bg,#f8fafc);border-top:1px solid var(--border);">
+ <span id="cameraScanMsg" style="font-size:13px;color:var(--text);font-weight:600;">Looking for code…</span>
+ <button class="btn btn-outline btn-sm" onclick="closeCameraModal()">Cancel</button>
+ </div>
+ </div>
+</div>{% endblock %}
 {% block scripts %}
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
@@ -102,176 +100,176 @@ bookInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventD
 
 let scanTimer;
 bookInput.addEventListener('input', () => {
-  clearTimeout(scanTimer);
-  scanTimer = setTimeout(() => {
-    if (bookInput.value.trim().length >= 4) scanBook();
-  }, 400);
+ clearTimeout(scanTimer);
+ scanTimer = setTimeout(() => {
+ if (bookInput.value.trim().length >= 4) scanBook();
+ }, 400);
 });
 
 function initReturnDate() {
-  const today = new Date().toISOString().split('T')[0];
-  document.getElementById('returnDate').value = today;
+ const today = new Date().toISOString().split('T')[0];
+ document.getElementById('returnDate').value = today;
 }
 
 function updateFineDisplay() {
-  if (!activeTxn) return;
-  const returnDateVal = document.getElementById('returnDate').value;
-  const due = document.getElementById('p-due');
-  const fineEl = document.getElementById('p-fine');
+ if (!activeTxn) return;
+ const returnDateVal = document.getElementById('returnDate').value;
+ const due = document.getElementById('p-due');
+ const fineEl = document.getElementById('p-fine');
 
-  due.textContent = activeTxn.due_date;
+ due.textContent = activeTxn.due_date;
 
-  if (!returnDateVal) return;
+ if (!returnDateVal) return;
 
-  const returnDateObj = new Date(returnDateVal + 'T00:00:00');
-  const dueDateObj = new Date(activeTxn.due_date + 'T00:00:00');
+ const returnDateObj = new Date(returnDateVal + 'T00:00:00');
+ const dueDateObj = new Date(activeTxn.due_date + 'T00:00:00');
 
-  if (returnDateObj > dueDateObj) {
-    const diffTime = returnDateObj - dueDateObj;
-    const days = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    const fineRate = 2.0; // ₹2/day
-    const estFine = days * fineRate;
-    due.style.color = 'var(--danger)';
-    due.style.fontWeight = '700';
-    fineEl.textContent = `⚠️ OVERDUE by ${days} day${days > 1 ? 's' : ''} (Est. Fine: ₹${estFine.toFixed(2)})`;
-    fineEl.style.color = 'var(--danger)';
-    fineEl.style.fontWeight = '700';
-  } else {
-    due.style.color = 'var(--text)';
-    due.style.fontWeight = '500';
-    fineEl.textContent = '✅ Returned on or before due date — No fine';
-    fineEl.style.color = 'var(--success)';
-    fineEl.style.fontWeight = '600';
-  }
+ if (returnDateObj > dueDateObj) {
+ const diffTime = returnDateObj - dueDateObj;
+ const days = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+ const fineRate = 2.0; // ₹2/day
+ const estFine = days * fineRate;
+ due.style.color = 'var(--danger)';
+ due.style.fontWeight = '700';
+ fineEl.textContent = `OVERDUE by ${days} day${days > 1 ? 's' : ''} (Est. Fine: ₹${estFine.toFixed(2)})`;
+ fineEl.style.color = 'var(--danger)';
+ fineEl.style.fontWeight = '700';
+ } else {
+ due.style.color = 'var(--text)';
+ due.style.fontWeight = '500';
+ fineEl.textContent = 'Returned on or before due date — No fine';
+ fineEl.style.color = 'var(--success)';
+ fineEl.style.fontWeight = '600';
+ }
 }
 
 async function scanBook() {
-  const barcode = bookInput.value.trim();
-  if (!barcode) return;
-  setStatus('bookStatus', 'Searching book…', '');
+ const barcode = bookInput.value.trim();
+ if (!barcode) return;
+ setStatus('bookStatus', 'Searching book…', '');
 
-  try {
-    const data = await fetch(`/api/scan/book/${encodeURIComponent(barcode)}`).then(r => r.json());
-    if (!data.found) {
-      setStatus('bookStatus', data.message || `Book '${barcode}' not found`, 'err');
-      clearBookDetails();
-      return;
-    }
+ try {
+ const data = await fetch(`/api/scan/book/${encodeURIComponent(barcode)}`).then(r => r.json());
+ if (!data.found) {
+ setStatus('bookStatus', data.message || `Book '${barcode}' not found`, 'err');
+ clearBookDetails();
+ return;
+ }
 
-    bookData = data.book;
-    document.getElementById('d-title').textContent = data.book.title;
-    document.getElementById('d-barcode').textContent = data.book.barcode;
-    document.getElementById('d-accnum').textContent = data.book.account_number || '—';
-    document.getElementById('d-authors').textContent = data.book.authors || '—';
-    
-    const s = document.getElementById('d-status');
-    s.textContent = (data.book.status || '').toUpperCase();
-    s.style.color = data.book.status === 'issued' ? 'var(--danger)' : 'var(--success)';
-    s.style.fontWeight = '700';
+ bookData = data.book;
+ document.getElementById('d-title').textContent = data.book.title;
+ document.getElementById('d-barcode').textContent = data.book.barcode;
+ document.getElementById('d-accnum').textContent = data.book.account_number || '—';
+ document.getElementById('d-authors').textContent = data.book.authors || '—';
+ 
+ const s = document.getElementById('d-status');
+ s.textContent = (data.book.status || '').toUpperCase();
+ s.style.color = data.book.status === 'issued' ? 'var(--danger)' : 'var(--success)';
+ s.style.fontWeight = '700';
 
-    if (!data.active_transaction) {
-      setStatus('bookStatus', '⚠️ This book is marked Available — no active borrow record was found to return!', 'warn');
-      clearPatronDetails();
-      document.getElementById('returnBtn').disabled = true;
-      return;
-    }
+ if (!data.active_transaction) {
+ setStatus('bookStatus', 'This book is marked Available — no active borrow record was found to return!', 'warn');
+ clearPatronDetails();
+ document.getElementById('returnBtn').disabled = true;
+ return;
+ }
 
-    activeTxn = data.active_transaction;
-    const txn = activeTxn;
-    document.getElementById('p-name').textContent = txn.patron_name;
-    document.getElementById('p-reg').textContent = txn.register_number || '—';
-    document.getElementById('p-type').textContent = (txn.patron_type || 'student').charAt(0).toUpperCase() + (txn.patron_type || 'student').slice(1);
-    document.getElementById('p-issued').textContent = txn.issue_date;
+ activeTxn = data.active_transaction;
+ const txn = activeTxn;
+ document.getElementById('p-name').textContent = txn.patron_name;
+ document.getElementById('p-reg').textContent = txn.register_number || '—';
+ document.getElementById('p-type').textContent = (txn.patron_type || 'student').charAt(0).toUpperCase() + (txn.patron_type || 'student').slice(1);
+ document.getElementById('p-issued').textContent = txn.issue_date;
 
-    updateFineDisplay();
+ updateFineDisplay();
 
-    setStatus('bookStatus', `✅ Borrow record identified for "${data.book.title.substring(0,35)}" — Borrower: ${txn.patron_name}`, 'ok');
-    document.getElementById('returnBtn').disabled = false;
-  } catch (err) {
-    setStatus('bookStatus', 'Failed to scan book', 'err');
-  }
+ setStatus('bookStatus', `Borrow record identified for "${data.book.title.substring(0,35)}" — Borrower: ${txn.patron_name}`, 'ok');
+ document.getElementById('returnBtn').disabled = false;
+ } catch (err) {
+ setStatus('bookStatus', 'Failed to scan book', 'err');
+ }
 }
 
 async function doReturn() {
-  if (!activeTxn) return;
+ if (!activeTxn) return;
 
-  const btn = document.getElementById('returnBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Processing Return…';
+ const btn = document.getElementById('returnBtn');
+ btn.disabled = true;
+ btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Processing Return…';
 
-  const returnDate = document.getElementById('returnDate').value;
-  const payload = {
-    transaction_id: activeTxn.id,
-    return_date: returnDate
-  };
+ const returnDate = document.getElementById('returnDate').value;
+ const payload = {
+ transaction_id: activeTxn.id,
+ return_date: returnDate
+ };
 
-  try {
-    const res = await postJSON('/api/return', payload);
-    const box = document.getElementById('resultBox');
-    box.style.display = 'block';
+ try {
+ const res = await postJSON('/api/return', payload);
+ const box = document.getElementById('resultBox');
+ box.style.display = 'block';
 
-    if (res.success) {
-      const fine = res.fine || 0;
-      const color = fine > 0 ? 'var(--warning)' : 'var(--success)';
-      box.style.border = `1px solid ${color}`;
-      box.style.background = fine > 0 ? 'rgba(160, 100, 52, 0.05)' : 'rgba(22, 101, 52, 0.05)';
-      box.innerHTML = `
-        <div style="color:${color};font-size:16px;font-weight:700;">
-          <i class="fa fa-circle-check"></i> Book Returned Successfully!
-        </div>
-        <div style="margin-top:8px;font-size:14px;color:var(--text);">
-          Returned Date Recorded: <strong>${returnDate || 'Today'}</strong>
-        </div>
-        <div style="margin-top:6px;font-size:14.5px;font-weight:700;color:${color};">
-          ${fine > 0 ? '💰 Late Fine: ₹' + fine.toFixed(2) : '✅ No fine — returned on time!'}
-        </div>
-      `;
-      showToast('Book returned successfully!', 'success');
-      setTimeout(clearAll, 4000);
-    } else {
-      box.style.border = '1px solid var(--danger)';
-      box.innerHTML = `<div style="color:var(--danger);font-weight:700;"><i class="fa fa-circle-xmark"></i> ${res.message}</div>`;
-      showToast(res.message, 'error');
-    }
-  } catch (err) {
-    showToast('Failed to return book', 'error');
-  } finally {
-    btn.innerHTML = '<i class="fa fa-download"></i> PROCESS BOOK RETURN';
-  }
+ if (res.success) {
+ const fine = res.fine || 0;
+ const color = fine > 0 ? 'var(--warning)' : 'var(--success)';
+ box.style.border = `1px solid ${color}`;
+ box.style.background = fine > 0 ? 'rgba(160, 100, 52, 0.05)' : 'rgba(22, 101, 52, 0.05)';
+ box.innerHTML = `
+ <div style="color:${color};font-size:16px;font-weight:700;">
+ <i class="fa fa-circle-check"></i> Book Returned Successfully!
+ </div>
+ <div style="margin-top:8px;font-size:14px;color:var(--text);">
+ Returned Date Recorded: <strong>${returnDate || 'Today'}</strong>
+ </div>
+ <div style="margin-top:6px;font-size:14.5px;font-weight:700;color:${color};">
+ ${fine > 0 ? 'Late Fine: ₹' + fine.toFixed(2) : 'No fine — returned on time!'}
+ </div>
+ `;
+ showToast('Book returned successfully!', 'success');
+ setTimeout(clearAll, 4000);
+ } else {
+ box.style.border = '1px solid var(--danger)';
+ box.innerHTML = `<div style="color:var(--danger);font-weight:700;"><i class="fa fa-circle-xmark"></i> ${res.message}</div>`;
+ showToast(res.message, 'error');
+ }
+ } catch (err) {
+ showToast('Failed to return book', 'error');
+ } finally {
+ btn.innerHTML = '<i class="fa fa-download"></i> PROCESS BOOK RETURN';
+ }
 }
 
 function clearBookDetails() {
-  ['d-title','d-barcode','d-accnum','d-authors','d-status'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) { el.textContent = '—'; el.style.color = ''; el.style.fontWeight = ''; }
-  });
+ ['d-title','d-barcode','d-accnum','d-authors','d-status'].forEach(id => {
+ const el = document.getElementById(id);
+ if (el) { el.textContent = '—'; el.style.color = ''; el.style.fontWeight = ''; }
+ });
 }
 
 function clearPatronDetails() {
-  ['p-name','p-reg','p-type','p-issued','p-due','p-fine'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) { el.textContent = '—'; el.style.color = ''; el.style.fontWeight = ''; }
-  });
+ ['p-name','p-reg','p-type','p-issued','p-due','p-fine'].forEach(id => {
+ const el = document.getElementById(id);
+ if (el) { el.textContent = '—'; el.style.color = ''; el.style.fontWeight = ''; }
+ });
 }
 
 function setStatus(id, msg, type) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.textContent = msg;
-  el.className = `scan-status ${type}`;
+ const el = document.getElementById(id);
+ if (!el) return;
+ el.textContent = msg;
+ el.className = `scan-status ${type}`;
 }
 
 function clearAll() {
-  bookData = null;
-  activeTxn = null;
-  bookInput.value = '';
-  document.getElementById('returnBtn').disabled = true;
-  document.getElementById('resultBox').style.display = 'none';
-  setStatus('bookStatus', '', '');
-  clearBookDetails();
-  clearPatronDetails();
-  initReturnDate();
-  bookInput.focus();
+ bookData = null;
+ activeTxn = null;
+ bookInput.value = '';
+ document.getElementById('returnBtn').disabled = true;
+ document.getElementById('resultBox').style.display = 'none';
+ setStatus('bookStatus', '', '');
+ clearBookDetails();
+ clearPatronDetails();
+ initReturnDate();
+ bookInput.focus();
 }
 
 initReturnDate();
@@ -280,69 +278,68 @@ initReturnDate();
 let html5QrScanner = null;
 
 function playScanBeep() {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(880, ctx.currentTime);
-    gain.gain.setValueAtTime(0.2, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.15);
-  } catch(e) {}
+ try {
+ const ctx = new (window.AudioContext || window.webkitAudioContext)();
+ const osc = ctx.createOscillator();
+ const gain = ctx.createGain();
+ osc.type = 'sine';
+ osc.frequency.setValueAtTime(880, ctx.currentTime);
+ gain.gain.setValueAtTime(0.2, ctx.currentTime);
+ gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+ osc.connect(gain);
+ gain.connect(ctx.destination);
+ osc.start();
+ osc.stop(ctx.currentTime + 0.15);
+ } catch(e) {}
 }
 
 async function openCameraScanner() {
-  const modal = document.getElementById('cameraModal');
-  const msg = document.getElementById('cameraScanMsg');
-  msg.textContent = 'Starting camera…';
-  modal.style.display = 'flex';
+ const modal = document.getElementById('cameraModal');
+ const msg = document.getElementById('cameraScanMsg');
+ msg.textContent = 'Starting camera…';
+ modal.style.display = 'flex';
 
-  try {
-    if (html5QrScanner) {
-      await html5QrScanner.stop().catch(() => {});
-    }
-    html5QrScanner = new Html5Qrcode("cameraReader");
-    const config = {
-      fps: 15,
-      qrbox: { width: 250, height: 250 },
-      aspectRatio: 1.0
-    };
-    
-    await html5QrScanner.start(
-      { facingMode: "environment" },
-      config,
-      (decodedText) => {
-        playScanBeep();
-        msg.textContent = `Scanned: ${decodedText}`;
-        bookInput.value = decodedText;
-        scanBook();
-        closeCameraModal();
-      },
-      (errorMessage) => {
-        // frame decode ignore
-      }
-    );
-    msg.textContent = 'Point camera at book barcode';
-  } catch (err) {
-    console.error('Camera error:', err);
-    msg.textContent = 'Camera error: ' + (err.name || err.message || 'Permission denied');
-  }
+ try {
+ if (html5QrScanner) {
+ await html5QrScanner.stop().catch(() => {});
+ }
+ html5QrScanner = new Html5Qrcode("cameraReader");
+ const config = {
+ fps: 15,
+ qrbox: { width: 250, height: 250 },
+ aspectRatio: 1.0
+ };
+ 
+ await html5QrScanner.start(
+ { facingMode: "environment" },
+ config,
+ (decodedText) => {
+ playScanBeep();
+ msg.textContent = `Scanned: ${decodedText}`;
+ bookInput.value = decodedText;
+ scanBook();
+ closeCameraModal();
+ },
+ (errorMessage) => {
+ // frame decode ignore
+ }
+ );
+ msg.textContent = 'Point camera at book barcode';
+ } catch (err) {
+ console.error('Camera error:', err);
+ msg.textContent = 'Camera error: ' + (err.name || err.message || 'Permission denied');
+ }
 }
 
 async function closeCameraModal() {
-  const modal = document.getElementById('cameraModal');
-  modal.style.display = 'none';
-  if (html5QrScanner) {
-    try {
-      await html5QrScanner.stop();
-      html5QrScanner.clear();
-    } catch(e) {}
-    html5QrScanner = null;
-  }
+ const modal = document.getElementById('cameraModal');
+ modal.style.display = 'none';
+ if (html5QrScanner) {
+ try {
+ await html5QrScanner.stop();
+ html5QrScanner.clear();
+ } catch(e) {}
+ html5QrScanner = null;
+ }
 }
-</script>
-{% endblock %}
+</script>{% endblock %}

@@ -341,13 +341,13 @@ def build_patron_barcode_email(patron: dict, library_name: str = "SRM EEE Depart
             </div>
 
             <div style="margin-top:14px; font-size:11.5px; color:#166534; font-weight:600;">
-              💡 Tip: Turn phone brightness to 100% when presenting to the desk scanner
+              Tip: Turn phone brightness to 100% when presenting to the desk scanner
             </div>
           </div>
 
           <!-- Instructions -->
           <div style="text-align:left; background:#EBF2E9; border-radius:12px; padding:16px 18px; margin-top:18px; font-size:12.5px; color:#26432D; line-height:1.6;">
-            <strong>📱 Fast Scanning Instructions:</strong>
+            <strong>Fast Scanning Instructions:</strong>
             <ul style="margin:6px 0 0; padding-left:20px;">
               <li>Open this email or save this digital card image to your phone gallery.</li>
               <li>When borrowing or returning books, show your <strong>barcode</strong> to the librarian scanner.</li>
@@ -417,7 +417,7 @@ def build_due_reminder_email(patron_name: str, books: list[dict], library_name: 
     return f"""
     <html><body style="font-family:'Segoe UI',Arial,sans-serif;color:#333;max-width:580px;margin:auto;padding:20px;">
     <div style="background:#1C3022;color:white;padding:20px;border-radius:12px 12px 0 0;text-align:center;">
-        <h2 style="margin:0;">📚 {library_name}</h2>
+        <h2 style="margin:0;">{library_name}</h2>
         <p style="margin:5px 0 0;color:#A7BFA0;">Book Return Due Date Reminder</p>
     </div>
     <div style="padding:24px;background:#f9f9f9;border:1px solid #eee;border-radius:0 0 12px 12px;">
@@ -465,8 +465,8 @@ def build_overdue_email(patron_name: str, books: list[dict],
     return f"""
     <html><body style="font-family:'Segoe UI',Arial,sans-serif;color:#333;max-width:580px;margin:auto;padding:20px;">
     <div style="background:#991B1B;color:white;padding:20px;border-radius:12px 12px 0 0;text-align:center;">
-        <h2 style="margin:0;">📚 {library_name}</h2>
-        <p style="margin:5px 0 0;color:#FECACA;">⚠️ Overdue Textbook Notice</p>
+        <h2 style="margin:0;">{library_name}</h2>
+        <p style="margin:5px 0 0;color:#FECACA;">Overdue Textbook Notice</p>
     </div>
     <div style="padding:24px;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:0 0 12px 12px;">
         <p>Dear <strong>{patron_name}</strong>,</p>

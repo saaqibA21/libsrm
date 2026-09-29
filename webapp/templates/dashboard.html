@@ -5,154 +5,151 @@
 
 <!-- Hero Banner (Ostra Style) -->
 <div style="background: linear-gradient(135deg, #E6EFE4 0%, #D8E5D5 100%); border: 1px solid #D1E0CE; border-radius: 24px; padding: 36px 40px; margin-bottom: 28px; position: relative; overflow: hidden; box-shadow: var(--shadow-sm);">
-  <div style="max-width: 680px; position: relative; z-index: 2;">
-    <div style="display:inline-flex; align-items:center; gap:8px; background: rgba(255,255,255,0.7); backdrop-filter: blur(8px); padding: 5px 14px; border-radius: 9999px; font-size: 12px; font-weight: 600; color: var(--accent-text); margin-bottom: 14px; border: 1px solid rgba(255,255,255,0.6);">
-      <span style="width:6px; height:6px; background:#166534; border-radius:50%;"></span> SRM Department of Electrical & Electronics Engineering
-    </div>
-    <h1 class="serif-heading" style="font-size: 34px; line-height: 1.15; color: #16291C; margin-bottom: 12px;">
-      Seamless Circulation Starts with <em>Effortless Library Operations</em>
-    </h1>
-    <p style="font-size: 14px; line-height: 1.6; color: #435A48; margin-bottom: 24px;">
-      Instant barcode scanning, patron borrow tracking, automated due dates, and fine management — all consolidated in one clean, beautiful system.
-    </p>
-    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-      <a href="/issue" class="btn btn-primary btn-lg" style="box-shadow: 0 6px 16px rgba(28,48,34,0.25);">
-        <i class="fa fa-arrow-up-right-from-square"></i> Issue Book
-      </a>
-      <a href="/return" class="btn btn-warning btn-lg" style="box-shadow: 0 6px 16px rgba(160,100,52,0.25);">
-        <i class="fa fa-arrow-down-left-and-up-right-to-center"></i> Return Book
-      </a>
-      <button class="btn btn-outline" onclick="refreshStats()" style="background: rgba(255,255,255,0.85);">
-        <i class="fa fa-arrows-rotate"></i> Refresh
-      </button>
-    </div>
-  </div>
-  <!-- Subtle decorative watermark icon -->
-  <div style="position: absolute; right: 20px; bottom: -20px; font-size: 180px; color: rgba(43, 70, 48, 0.06); pointer-events: none; z-index: 1;">
-    <i class="fa fa-book-bookmark"></i>
-  </div>
+ <div style="max-width: 680px; position: relative; z-index: 2;">
+ <div style="display:inline-flex; align-items:center; gap:8px; background: rgba(255,255,255,0.7); backdrop-filter: blur(8px); padding: 5px 14px; border-radius: 9999px; font-size: 12px; font-weight: 600; color: var(--accent-text); margin-bottom: 14px; border: 1px solid rgba(255,255,255,0.6);">
+ <span style="width:6px; height:6px; background:#166534; border-radius:50%;"></span> SRM Department of Electrical & Electronics Engineering
+ </div>
+ <h1 class="serif-heading" style="font-size: 34px; line-height: 1.15; color: #16291C; margin-bottom: 12px;">
+ Seamless Circulation Starts with <em>Effortless Library Operations</em>
+ </h1>
+ <p style="font-size: 14px; line-height: 1.6; color: #435A48; margin-bottom: 24px;">
+ Instant barcode scanning, patron borrow tracking, automated due dates, and fine management — all consolidated in one clean, beautiful system.
+ </p>
+ <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+ <a href="/issue" class="btn btn-primary btn-lg" style="box-shadow: 0 6px 16px rgba(28,48,34,0.25);">
+ <i class="fa fa-arrow-up-right-from-square"></i> Issue Book
+ </a>
+ <a href="/return" class="btn btn-warning btn-lg" style="box-shadow: 0 6px 16px rgba(160,100,52,0.25);">
+ <i class="fa fa-arrow-down-left-and-up-right-to-center"></i> Return Book
+ </a>
+ <button class="btn btn-outline" onclick="refreshStats()" style="background: rgba(255,255,255,0.85);">
+ <i class="fa fa-arrows-rotate"></i> Refresh
+ </button>
+ </div>
+ </div>
+ <!-- Subtle decorative watermark icon -->
+ <div style="position: absolute; right: 20px; bottom: -20px; font-size: 180px; color: rgba(43, 70, 48, 0.06); pointer-events: none; z-index: 1;">
+ <i class="fa fa-book-bookmark"></i>
+ </div>
 </div>
 
 <!-- Stats Grid -->
 <div class="stats-grid" id="statsGrid">
-  <div class="stat-card">
-    <div class="icon-pill"><i class="fa fa-book"></i></div>
-    <div class="num" id="s-total_books">{{ stats.total_books }}</div>
-    <div class="lbl">Total Books</div>
-  </div>
-  <div class="stat-card">
-    <div class="icon-pill" style="background:#F0FDF4; color:#166534;"><i class="fa fa-circle-check"></i></div>
-    <div class="num c-green" id="s-available_books">{{ stats.available_books }}</div>
-    <div class="lbl">Available</div>
-  </div>
-  <div class="stat-card">
-    <div class="icon-pill" style="background:#ECFEFF; color:#0E7490;"><i class="fa fa-hand-holding-hand"></i></div>
-    <div class="num c-cyan" id="s-issued_books">{{ stats.issued_books }}</div>
-    <div class="lbl">Currently Issued</div>
-  </div>
-  <div class="stat-card">
-    <div class="icon-pill" style="background:#FAF5FF; color:#7E22CE;"><i class="fa fa-users"></i></div>
-    <div class="num c-purple" id="s-total_patrons">{{ stats.total_patrons }}</div>
-    <div class="lbl">Total Patrons</div>
-  </div>
-  <div class="stat-card">
-    <div class="icon-pill" style="background:#FEF2F2; color:#991B1B;"><i class="fa fa-triangle-exclamation"></i></div>
-    <div class="num c-red" id="s-overdue">{{ stats.overdue }}</div>
-    <div class="lbl">Overdue Books</div>
-  </div>
-  <div class="stat-card">
-    <div class="icon-pill" style="background:#EFF6FF; color:#1E40AF;"><i class="fa fa-clipboard-list"></i></div>
-    <div class="num c-blue" id="s-issued_today">{{ stats.issued_today }}</div>
-    <div class="lbl">Issued Today</div>
-  </div>
-  <div class="stat-card">
-    <div class="icon-pill" style="background:#F0FDF4; color:#166534;"><i class="fa fa-rotate-left"></i></div>
-    <div class="num c-green" id="s-returned_today">{{ stats.returned_today }}</div>
-    <div class="lbl">Returned Today</div>
-  </div>
-  <div class="stat-card">
-    <div class="icon-pill" style="background:#FFFBEB; color:#B45309;"><i class="fa fa-coins"></i></div>
-    <div class="num c-yellow" id="s-pending_fines">₹{{ "%.0f"|format(stats.pending_fines) }}</div>
-    <div class="lbl">Pending Fines</div>
-  </div>
+ <div class="stat-card">
+ <div class="icon-pill"><i class="fa fa-book"></i></div>
+ <div class="num" id="s-total_books">{{ stats.total_books }}</div>
+ <div class="lbl">Total Books</div>
+ </div>
+ <div class="stat-card">
+ <div class="icon-pill" style="background:#F0FDF4; color:#166534;"><i class="fa fa-circle-check"></i></div>
+ <div class="num c-green" id="s-available_books">{{ stats.available_books }}</div>
+ <div class="lbl">Available</div>
+ </div>
+ <div class="stat-card">
+ <div class="icon-pill" style="background:#ECFEFF; color:#0E7490;"><i class="fa fa-hand-holding-hand"></i></div>
+ <div class="num c-cyan" id="s-issued_books">{{ stats.issued_books }}</div>
+ <div class="lbl">Currently Issued</div>
+ </div>
+ <div class="stat-card">
+ <div class="icon-pill" style="background:#FAF5FF; color:#7E22CE;"><i class="fa fa-users"></i></div>
+ <div class="num c-purple" id="s-total_patrons">{{ stats.total_patrons }}</div>
+ <div class="lbl">Total Patrons</div>
+ </div>
+ <div class="stat-card">
+ <div class="icon-pill" style="background:#FEF2F2; color:#991B1B;"><i class="fa fa-triangle-exclamation"></i></div>
+ <div class="num c-red" id="s-overdue">{{ stats.overdue }}</div>
+ <div class="lbl">Overdue Books</div>
+ </div>
+ <div class="stat-card">
+ <div class="icon-pill" style="background:#EFF6FF; color:#1E40AF;"><i class="fa fa-clipboard-list"></i></div>
+ <div class="num c-blue" id="s-issued_today">{{ stats.issued_today }}</div>
+ <div class="lbl">Issued Today</div>
+ </div>
+ <div class="stat-card">
+ <div class="icon-pill" style="background:#F0FDF4; color:#166534;"><i class="fa fa-rotate-left"></i></div>
+ <div class="num c-green" id="s-returned_today">{{ stats.returned_today }}</div>
+ <div class="lbl">Returned Today</div>
+ </div>
+ <div class="stat-card">
+ <div class="icon-pill" style="background:#FFFBEB; color:#B45309;"><i class="fa fa-coins"></i></div>
+ <div class="num c-yellow" id="s-pending_fines">₹{{ "%.0f"|format(stats.pending_fines) }}</div>
+ <div class="lbl">Pending Fines</div>
+ </div>
 </div>
 
 <!-- Bottom two columns -->
 <div class="two-col">
-  <!-- Recent transactions -->
-  <div class="card">
-    <div class="card-title">
-      <i class="fa fa-clock-rotate-left" style="color:var(--muted); font-size:16px;"></i> Recent Transactions
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Book Title</th><th>Patron</th><th>Status</th><th>Date</th></tr></thead>
-        <tbody>
-        {% for txn in recent %}
-        <tr>
-          <td style="max-width:170px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600;" title="{{ txn.book_title }}">{{ txn.book_title[:45] }}</td>
-          <td style="color:var(--muted); font-weight:500;">{{ txn.patron_name }}</td>
-          <td>
-            {% if txn.status == 'returned' %}
-              <span class="badge badge-success">Returned</span>
-            {% else %}
-              <span class="badge badge-info">Issued</span>
-            {% endif %}
-          </td>
-          <td style="color:var(--muted); font-size:12px;">{{ txn.return_date or txn.issue_date }}</td>
-        </tr>
-        {% else %}
-        <tr><td colspan="4" style="text-align:center; color:var(--muted); padding:28px;">No transactions recorded yet</td></tr>
-        {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
+ <!-- Recent transactions -->
+ <div class="card">
+ <div class="card-title">
+ <i class="fa fa-clock-rotate-left" style="color:var(--muted); font-size:16px;"></i> Recent Transactions
+ </div>
+ <div class="table-wrap">
+ <table>
+ <thead><tr><th>Book Title</th><th>Patron</th><th>Status</th><th>Date</th></tr></thead>
+ <tbody>
+ {% for txn in recent %}
+ <tr>
+ <td style="max-width:170px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600;" title="{{ txn.book_title }}">{{ txn.book_title[:45] }}</td>
+ <td style="color:var(--muted); font-weight:500;">{{ txn.patron_name }}</td>
+ <td>
+ {% if txn.status == 'returned' %}
+ <span class="badge badge-success">Returned</span>
+ {% else %}
+ <span class="badge badge-info">Issued</span>
+ {% endif %}
+ </td>
+ <td style="color:var(--muted); font-size:12px;">{{ txn.return_date or txn.issue_date }}</td>
+ </tr>
+ {% else %}
+ <tr><td colspan="4" style="text-align:center; color:var(--muted); padding:28px;">No transactions recorded yet</td></tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+ </div>
 
-  <!-- Overdue -->
-  <div class="card">
-    <div class="card-title" style="color: var(--danger);">
-      <i class="fa fa-bell" style="font-size:16px;"></i> Overdue Books
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Patron</th><th>Book Title</th><th>Due Date</th></tr></thead>
-        <tbody>
-        {% for txn in overdue %}
-        <tr>
-          <td style="font-weight:600;">{{ txn.patron_name }}</td>
-          <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted);">{{ txn.book_title[:40] }}</td>
-          <td><span class="badge badge-danger">{{ txn.due_date }}</span></td>
-        </tr>
-        {% else %}
-        <tr><td colspan="3" style="text-align:center; color:var(--success); padding:28px; font-weight:500;">🌿 All books are on schedule — no overdue items!</td></tr>
-        {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% if overdue %}
-    <div style="margin-top:14px; text-align:right;">
-      <a href="/reports" class="btn btn-outline btn-sm">View in Reports <i class="fa fa-arrow-right"></i></a>
-    </div>
-    {% endif %}
-  </div>
-</div>
-
-{% endblock %}
+ <!-- Overdue -->
+ <div class="card">
+ <div class="card-title" style="color: var(--danger);">
+ <i class="fa fa-bell" style="font-size:16px;"></i> Overdue Books
+ </div>
+ <div class="table-wrap">
+ <table>
+ <thead><tr><th>Patron</th><th>Book Title</th><th>Due Date</th></tr></thead>
+ <tbody>
+ {% for txn in overdue %}
+ <tr>
+ <td style="font-weight:600;">{{ txn.patron_name }}</td>
+ <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted);">{{ txn.book_title[:40] }}</td>
+ <td><span class="badge badge-danger">{{ txn.due_date }}</span></td>
+ </tr>
+ {% else %}
+ <tr><td colspan="3" style="text-align:center; color:var(--success); padding:28px; font-weight:500;">All books are on schedule — no overdue items!</td></tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+ {% if overdue %}
+ <div style="margin-top:14px; text-align:right;">
+ <a href="/reports" class="btn btn-outline btn-sm">View in Reports <i class="fa fa-arrow-right"></i></a>
+ </div>
+ {% endif %}
+ </div>
+</div>{% endblock %}
 {% block scripts %}
 <script>
 async function refreshStats() {
-  const data = await fetch('/api/stats').then(r=>r.json());
-  document.getElementById('s-total_books').textContent = data.total_books;
-  document.getElementById('s-available_books').textContent = data.available_books;
-  document.getElementById('s-issued_books').textContent = data.issued_books;
-  document.getElementById('s-total_patrons').textContent = data.total_patrons;
-  document.getElementById('s-overdue').textContent = data.overdue;
-  document.getElementById('s-issued_today').textContent = data.issued_today;
-  document.getElementById('s-returned_today').textContent = data.returned_today;
-  document.getElementById('s-pending_fines').textContent = '₹' + Math.round(data.pending_fines);
-  showToast('Dashboard metrics refreshed', 'info');
+ const data = await fetch('/api/stats').then(r=>r.json());
+ document.getElementById('s-total_books').textContent = data.total_books;
+ document.getElementById('s-available_books').textContent = data.available_books;
+ document.getElementById('s-issued_books').textContent = data.issued_books;
+ document.getElementById('s-total_patrons').textContent = data.total_patrons;
+ document.getElementById('s-overdue').textContent = data.overdue;
+ document.getElementById('s-issued_today').textContent = data.issued_today;
+ document.getElementById('s-returned_today').textContent = data.returned_today;
+ document.getElementById('s-pending_fines').textContent = '₹' + Math.round(data.pending_fines);
+ showToast('Dashboard metrics refreshed', 'info');
 }
 setInterval(refreshStats, 30000);
-</script>
-{% endblock %}
+</script>{% endblock %}

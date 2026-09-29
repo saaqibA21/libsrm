@@ -1,178 +1,176 @@
 {% extends "base.html" %}
 {% block title %}Issue Books — SRM Library{% endblock %}
-{% block page_title %}📤 Issue Books (Multi-Book Lending){% endblock %}
+{% block page_title %}Issue Books (Multi-Book Lending){% endblock %}
 {% block content %}
 
 <p class="text-muted" style="margin-bottom:20px;font-size:13.5px;">
-  Fast multi-book checkout: Scan or search the <strong>Patron Barcode</strong> first, then scan multiple <strong>Book Barcodes</strong> one after another into the queue, and click <strong>Issue</strong>.
+ Fast multi-book checkout: Scan or search the <strong>Patron Barcode</strong> first, then scan multiple <strong>Book Barcodes</strong> one after another into the queue, and click <strong>Issue</strong>.
 </p>
 
 <div class="two-col">
 
-  <!-- LEFT: Scanning & Checkout Queue -->
-  <div>
-    <!-- Step 1: Patron Identification -->
-    <div class="card" style="margin-bottom:16px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <div class="card-title" style="margin-bottom:0;">
-          <span style="background:var(--primary);color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;margin-right:6px;">1</span>
-          Scan / Search Patron Barcode
-        </div>
-        <span id="patronBadge" class="badge badge-info" style="display:none;"><i class="fa fa-user-check"></i> Patron Selected</span>
-      </div>
-      <div class="scan-box">
-        <i class="fa fa-id-card scan-icon"></i>
-        <input type="text" id="patronBarcode" placeholder="Scan Patron Barcode or Register No. (Press Enter)…" autofocus autocomplete="off">
-        <button type="button" class="btn btn-primary btn-sm" onclick="openCameraScanner('patron')" style="margin-right:4px;" title="Scan QR directly from student phone screen"><i class="fa fa-camera"></i> Camera</button>
-        <button type="button" class="btn btn-outline btn-sm" onclick="scanPatron()" style="margin-right:4px;">Find</button>
-      </div>
-      <div class="scan-status" id="patronStatus"></div>
-    </div>
+ <!-- LEFT: Scanning & Checkout Queue -->
+ <div>
+ <!-- Step 1: Patron Identification -->
+ <div class="card" style="margin-bottom:16px;">
+ <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+ <div class="card-title" style="margin-bottom:0;">
+ <span style="background:var(--primary);color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;margin-right:6px;">1</span>
+ Scan / Search Patron Barcode
+ </div>
+ <span id="patronBadge" class="badge badge-info" style="display:none;"><i class="fa fa-user-check"></i> Patron Selected</span>
+ </div>
+ <div class="scan-box">
+ <i class="fa fa-id-card scan-icon"></i>
+ <input type="text" id="patronBarcode" placeholder="Scan Patron Barcode or Register No. (Press Enter)…" autofocus autocomplete="off">
+ <button type="button" class="btn btn-primary btn-sm" onclick="openCameraScanner('patron')" style="margin-right:4px;" title="Scan QR directly from student phone screen"><i class="fa fa-camera"></i> Camera</button>
+ <button type="button" class="btn btn-outline btn-sm" onclick="scanPatron()" style="margin-right:4px;">Find</button>
+ </div>
+ <div class="scan-status" id="patronStatus"></div>
+ </div>
 
-    <!-- Step 2: Book Barcode Scanning (Continuous Multi-Book Cart) -->
-    <div class="card" style="margin-bottom:16px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <div class="card-title" style="margin-bottom:0;">
-          <span style="background:var(--primary);color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;margin-right:6px;">2</span>
-          Scan Book Barcodes to Add to Queue
-        </div>
-        <span class="badge badge-success" id="queueCountBadge">0 Books Queued</span>
-      </div>
-      <div class="scan-box">
-        <i class="fa fa-barcode scan-icon"></i>
-        <input type="text" id="bookBarcode" placeholder="Scan Book Barcode or Acc No. and press Enter…" autocomplete="off">
-        <button type="button" class="btn btn-outline btn-sm" onclick="openCameraScanner('book')" style="margin-right:4px;" title="Scan book with camera"><i class="fa fa-camera"></i></button>
-        <button type="button" class="btn btn-success btn-sm" onclick="scanBook()" style="margin-right:4px;"><i class="fa fa-plus"></i> Add</button>
-      </div>
-      <div class="scan-status" id="bookStatus"></div>
+ <!-- Step 2: Book Barcode Scanning (Continuous Multi-Book Cart) -->
+ <div class="card" style="margin-bottom:16px;">
+ <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+ <div class="card-title" style="margin-bottom:0;">
+ <span style="background:var(--primary);color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;margin-right:6px;">2</span>
+ Scan Book Barcodes to Add to Queue
+ </div>
+ <span class="badge badge-success" id="queueCountBadge">0 Books Queued</span>
+ </div>
+ <div class="scan-box">
+ <i class="fa fa-barcode scan-icon"></i>
+ <input type="text" id="bookBarcode" placeholder="Scan Book Barcode or Acc No. and press Enter…" autocomplete="off">
+ <button type="button" class="btn btn-outline btn-sm" onclick="openCameraScanner('book')" style="margin-right:4px;" title="Scan book with camera"><i class="fa fa-camera"></i></button>
+ <button type="button" class="btn btn-success btn-sm" onclick="scanBook()" style="margin-right:4px;"><i class="fa fa-plus"></i> Add</button>
+ </div>
+ <div class="scan-status" id="bookStatus"></div>
 
-      <!-- Books Queue Table -->
-      <div style="margin-top:16px;">
-        <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">
-          Books To Be Issued
-        </div>
-        <div class="table-wrap" style="max-height:280px; overflow-y:auto; border:1px solid var(--border); border-radius:10px;">
-          <table style="margin-bottom:0;">
-            <thead>
-              <tr style="font-size:12px;">
-                <th style="width:36px;">#</th>
-                <th>Barcode</th>
-                <th>Title</th>
-                <th>Acc No.</th>
-                <th style="width:50px; text-align:center;">Action</th>
-              </tr>
-            </thead>
-            <tbody id="queueTbody">
-              <tr id="emptyQueueRow">
-                <td colspan="5" style="text-align:center; padding:28px; color:var(--muted); font-size:13px;">
-                  <i class="fa fa-cart-shopping" style="font-size:24px; opacity:0.3; display:block; margin-bottom:8px;"></i>
-                  No books added to queue yet.<br>Scan or type a book barcode above to add.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+ <!-- Books Queue Table -->
+ <div style="margin-top:16px;">
+ <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">
+ Books To Be Issued
+ </div>
+ <div class="table-wrap" style="max-height:280px; overflow-y:auto; border:1px solid var(--border); border-radius:10px;">
+ <table style="margin-bottom:0;">
+ <thead>
+ <tr style="font-size:12px;">
+ <th style="width:36px;">#</th>
+ <th>Barcode</th>
+ <th>Title</th>
+ <th>Acc No.</th>
+ <th style="width:50px; text-align:center;">Action</th>
+ </tr>
+ </thead>
+ <tbody id="queueTbody">
+ <tr id="emptyQueueRow">
+ <td colspan="5" style="text-align:center; padding:28px; color:var(--muted); font-size:13px;">
+ <i class="fa fa-cart-shopping" style="font-size:24px; opacity:0.3; display:block; margin-bottom:8px;"></i>
+ No books added to queue yet.<br>Scan or type a book barcode above to add.
+ </td>
+ </tr>
+ </tbody>
+ </table>
+ </div>
+ </div>
+ </div>
 
-    <!-- Step 3: Transaction Dates (Manual or Default Today) -->
-    <div class="card" style="margin-bottom:16px;">
-      <div class="card-title" style="margin-bottom:10px; font-size:14px; display:flex; align-items:center; justify-content:space-between;">
-        <span><i class="fa fa-calendar-days" style="color:var(--primary);"></i> Issue & Due Dates</span>
-        <span style="font-size:11px;color:var(--muted);font-weight:normal;">(Editable for older records)</span>
-      </div>
-      <div class="form-row cols-2" style="margin-bottom:0;">
-        <div class="form-group" style="margin-bottom:0;">
-          <label style="font-size:12px;font-weight:600;">Issue Date</label>
-          <input type="date" id="issueDate" class="form-control" onchange="recalculateDueDate()">
-        </div>
-        <div class="form-group" style="margin-bottom:0;">
-          <label style="font-size:12px;font-weight:600;">Due Date</label>
-          <input type="date" id="dueDate" class="form-control">
-        </div>
-      </div>
-    </div>
+ <!-- Step 3: Transaction Dates (Manual or Default Today) -->
+ <div class="card" style="margin-bottom:16px;">
+ <div class="card-title" style="margin-bottom:10px; font-size:14px; display:flex; align-items:center; justify-content:space-between;">
+ <span><i class="fa fa-calendar-days" style="color:var(--primary);"></i> Issue & Due Dates</span>
+ <span style="font-size:11px;color:var(--muted);font-weight:normal;">(Editable for older records)</span>
+ </div>
+ <div class="form-row cols-2" style="margin-bottom:0;">
+ <div class="form-group" style="margin-bottom:0;">
+ <label style="font-size:12px;font-weight:600;">Issue Date</label>
+ <input type="date" id="issueDate" class="form-control" onchange="recalculateDueDate()">
+ </div>
+ <div class="form-group" style="margin-bottom:0;">
+ <label style="font-size:12px;font-weight:600;">Due Date</label>
+ <input type="date" id="dueDate" class="form-control">
+ </div>
+ </div>
+ </div>
 
-    <!-- Issue Action Buttons -->
-    <div class="card" style="padding:16px;">
-      <button class="btn btn-success btn-lg" id="issueBtn" disabled onclick="doIssue()" style="width:100%;justify-content:center;padding:14px;font-size:16px;">
-        <i class="fa fa-upload"></i> <span id="issueBtnText">ISSUE BOOKS</span>
-      </button>
-      <button class="btn btn-outline" onclick="clearAll()" style="width:100%;justify-content:center;margin-top:10px;">
-        <i class="fa fa-rotate-left"></i> Clear / New Transaction
-      </button>
-    </div>
+ <!-- Issue Action Buttons -->
+ <div class="card" style="padding:16px;">
+ <button class="btn btn-success btn-lg" id="issueBtn" disabled onclick="doIssue()" style="width:100%;justify-content:center;padding:14px;font-size:16px;">
+ <i class="fa fa-upload"></i> <span id="issueBtnText">ISSUE BOOKS</span>
+ </button>
+ <button class="btn btn-outline" onclick="clearAll()" style="width:100%;justify-content:center;margin-top:10px;">
+ <i class="fa fa-rotate-left"></i> Clear / New Transaction
+ </button>
+ </div>
 
-    <!-- Result / Confirmation Box -->
-    <div id="resultBox" style="display:none;margin-top:16px;" class="card"></div>
-  </div>
+ <!-- Result / Confirmation Box -->
+ <div id="resultBox" style="display:none;margin-top:16px;" class="card"></div>
+ </div>
 
-  <!-- RIGHT: Patron & Book Details Panel -->
-  <div>
-    <!-- Patron Profile Card -->
-    <div class="card" style="margin-bottom:16px;">
-      <div class="card-title"><i class="fa fa-user"></i> Patron Details</div>
-      <div class="info-card" id="patronDetails">
-        <div class="info-row"><span class="lbl">Name</span><span class="val" id="p-name">—</span></div>
-        <div class="info-row"><span class="lbl">Reg / Staff ID</span><span class="val" id="p-reg">—</span></div>
-        <div class="info-row"><span class="lbl">Patron Type</span><span class="val" id="p-type">—</span></div>
-        <div class="info-row"><span class="lbl">Year / Section</span><span class="val" id="p-year">—</span></div>
-        <div class="info-row"><span class="lbl">Mobile</span><span class="val" id="p-mobile">—</span></div>
-        <div class="info-row"><span class="lbl">Email</span><span class="val" id="p-email">—</span></div>
-        <div class="info-row"><span class="lbl">Active Borrowed</span><span class="val" id="p-held">—</span></div>
-      </div>
+ <!-- RIGHT: Patron & Book Details Panel -->
+ <div>
+ <!-- Patron Profile Card -->
+ <div class="card" style="margin-bottom:16px;">
+ <div class="card-title"><i class="fa fa-user"></i> Patron Details</div>
+ <div class="info-card" id="patronDetails">
+ <div class="info-row"><span class="lbl">Name</span><span class="val" id="p-name">—</span></div>
+ <div class="info-row"><span class="lbl">Reg / Staff ID</span><span class="val" id="p-reg">—</span></div>
+ <div class="info-row"><span class="lbl">Patron Type</span><span class="val" id="p-type">—</span></div>
+ <div class="info-row"><span class="lbl">Year / Section</span><span class="val" id="p-year">—</span></div>
+ <div class="info-row"><span class="lbl">Mobile</span><span class="val" id="p-mobile">—</span></div>
+ <div class="info-row"><span class="lbl">Email</span><span class="val" id="p-email">—</span></div>
+ <div class="info-row"><span class="lbl">Active Borrowed</span><span class="val" id="p-held">—</span></div>
+ </div>
 
-      <!-- Currently Held Books by Patron -->
-      <div id="activeBooksSection" style="display:none;margin-top:14px;">
-        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;">ALREADY BORROWED BOOKS</div>
-        <div class="table-wrap" style="max-height:160px; overflow-y:auto; border:1px solid var(--border); border-radius:8px;">
-          <table>
-            <thead><tr><th>Book Title</th><th>Due Date</th></tr></thead>
-            <tbody id="activeBooksTbody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+ <!-- Currently Held Books by Patron -->
+ <div id="activeBooksSection" style="display:none;margin-top:14px;">
+ <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;">ALREADY BORROWED BOOKS</div>
+ <div class="table-wrap" style="max-height:160px; overflow-y:auto; border:1px solid var(--border); border-radius:8px;">
+ <table>
+ <thead><tr><th>Book Title</th><th>Due Date</th></tr></thead>
+ <tbody id="activeBooksTbody"></tbody>
+ </table>
+ </div>
+ </div>
+ </div>
 
-    <!-- Latest Scanned Book Preview -->
-    <div class="card">
-      <div class="card-title"><i class="fa fa-book-bookmark"></i> Last Scanned Book Preview</div>
-      <div class="info-card" id="bookDetails">
-        <div class="info-row"><span class="lbl">Title</span><span class="val" id="d-title">—</span></div>
-        <div class="info-row"><span class="lbl">Barcode</span><span class="val" id="d-barcode">—</span></div>
-        <div class="info-row"><span class="lbl">Account No.</span><span class="val" id="d-accnum">—</span></div>
-        <div class="info-row"><span class="lbl">Authors</span><span class="val" id="d-authors">—</span></div>
-        <div class="info-row"><span class="lbl">Publisher</span><span class="val" id="d-publisher">—</span></div>
-        <div class="info-row"><span class="lbl">Status</span><span class="val" id="d-status">—</span></div>
-      </div>
-    </div>
-  </div>
+ <!-- Latest Scanned Book Preview -->
+ <div class="card">
+ <div class="card-title"><i class="fa fa-book-bookmark"></i> Last Scanned Book Preview</div>
+ <div class="info-card" id="bookDetails">
+ <div class="info-row"><span class="lbl">Title</span><span class="val" id="d-title">—</span></div>
+ <div class="info-row"><span class="lbl">Barcode</span><span class="val" id="d-barcode">—</span></div>
+ <div class="info-row"><span class="lbl">Account No.</span><span class="val" id="d-accnum">—</span></div>
+ <div class="info-row"><span class="lbl">Authors</span><span class="val" id="d-authors">—</span></div>
+ <div class="info-row"><span class="lbl">Publisher</span><span class="val" id="d-publisher">—</span></div>
+ <div class="info-row"><span class="lbl">Status</span><span class="val" id="d-status">—</span></div>
+ </div>
+ </div>
+ </div>
 
 <!-- Camera Scanner Modal -->
 <div id="cameraModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;align-items:center;justify-content:center;padding:16px;">
-  <div style="background:var(--card-bg,#fff);width:100%;max-width:480px;border-radius:16px;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,0.5);display:flex;flex-direction:column;">
-    <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--primary);color:#fff;">
-      <h3 style="margin:0;font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px;">
-        <i class="fa fa-camera"></i> <span id="cameraModalTitle">Scan Barcode / QR Code</span>
-      </h3>
-      <button onclick="closeCameraModal()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:0 6px;line-height:1;">&times;</button>
-    </div>
-    <div style="padding:16px;background:#000;display:flex;flex-direction:column;align-items:center;">
-      <div id="cameraReader" style="width:100%;min-height:280px;border-radius:12px;overflow:hidden;"></div>
-      <p style="color:#aaa;font-size:12px;margin-top:10px;text-align:center;margin-bottom:0;">
-        Position the phone screen QR code or physical book barcode inside the camera frame.
-      </p>
-    </div>
-    <div style="padding:12px 18px;display:flex;justify-content:space-between;align-items:center;background:var(--bg,#f8fafc);border-top:1px solid var(--border);">
-      <span id="cameraScanMsg" style="font-size:13px;color:var(--text);font-weight:600;">Looking for code…</span>
-      <button class="btn btn-outline btn-sm" onclick="closeCameraModal()">Cancel</button>
-    </div>
-  </div>
+ <div style="background:var(--card-bg,#fff);width:100%;max-width:480px;border-radius:16px;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,0.5);display:flex;flex-direction:column;">
+ <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--primary);color:#fff;">
+ <h3 style="margin:0;font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px;">
+ <i class="fa fa-camera"></i> <span id="cameraModalTitle">Scan Barcode / QR Code</span>
+ </h3>
+ <button onclick="closeCameraModal()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:0 6px;line-height:1;">&times;</button>
+ </div>
+ <div style="padding:16px;background:#000;display:flex;flex-direction:column;align-items:center;">
+ <div id="cameraReader" style="width:100%;min-height:280px;border-radius:12px;overflow:hidden;"></div>
+ <p style="color:#aaa;font-size:12px;margin-top:10px;text-align:center;margin-bottom:0;">
+ Position the phone screen QR code or physical book barcode inside the camera frame.
+ </p>
+ </div>
+ <div style="padding:12px 18px;display:flex;justify-content:space-between;align-items:center;background:var(--bg,#f8fafc);border-top:1px solid var(--border);">
+ <span id="cameraScanMsg" style="font-size:13px;color:var(--text);font-weight:600;">Looking for code…</span>
+ <button class="btn btn-outline btn-sm" onclick="closeCameraModal()">Cancel</button>
+ </div>
+ </div>
 </div>
 
-</div>
-
-{% endblock %}
+</div>{% endblock %}
 {% block scripts %}
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
@@ -188,286 +186,286 @@ bookInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventD
 // Quick scanner handler
 let patronTimer, bookTimer;
 patronInput.addEventListener('input', () => {
-  clearTimeout(patronTimer);
-  patronTimer = setTimeout(() => {
-    if (patronInput.value.trim().length >= 6) scanPatron();
-  }, 400);
+ clearTimeout(patronTimer);
+ patronTimer = setTimeout(() => {
+ if (patronInput.value.trim().length >= 6) scanPatron();
+ }, 400);
 });
 
 async function scanPatron() {
-  const barcode = patronInput.value.trim();
-  if (!barcode) return;
-  setStatus('patronStatus', 'Searching patron…', '');
-  
-  try {
-    const data = await fetch(`/api/scan/patron/${encodeURIComponent(barcode)}`).then(r => r.json());
-    if (!data.found) {
-      setStatus('patronStatus', data.message || 'Patron not found', 'err');
-      clearPatronDetails();
-      updateIssueButton();
-      return;
-    }
-    patronData = data.patron;
-    fillPatronDetails(data.patron, data.active_books || []);
-    document.getElementById('patronBadge').style.display = 'inline-flex';
-    setStatus('patronStatus', `✅ Identified: ${data.patron.name} (${data.patron.register_number || data.patron.barcode})`, 'ok');
-    recalculateDueDate();
-    updateIssueButton();
-    bookInput.focus();
-  } catch (err) {
-    setStatus('patronStatus', 'Failed to scan patron', 'err');
-  }
+ const barcode = patronInput.value.trim();
+ if (!barcode) return;
+ setStatus('patronStatus', 'Searching patron…', '');
+ 
+ try {
+ const data = await fetch(`/api/scan/patron/${encodeURIComponent(barcode)}`).then(r => r.json());
+ if (!data.found) {
+ setStatus('patronStatus', data.message || 'Patron not found', 'err');
+ clearPatronDetails();
+ updateIssueButton();
+ return;
+ }
+ patronData = data.patron;
+ fillPatronDetails(data.patron, data.active_books || []);
+ document.getElementById('patronBadge').style.display = 'inline-flex';
+ setStatus('patronStatus', `Identified: ${data.patron.name} (${data.patron.register_number || data.patron.barcode})`, 'ok');
+ recalculateDueDate();
+ updateIssueButton();
+ bookInput.focus();
+ } catch (err) {
+ setStatus('patronStatus', 'Failed to scan patron', 'err');
+ }
 }
 
 async function scanBook() {
-  const barcode = bookInput.value.trim();
-  if (!barcode) return;
+ const barcode = bookInput.value.trim();
+ if (!barcode) return;
 
-  // Check if already in queue
-  if (queuedBooks.some(b => b.barcode.toLowerCase() === barcode.toLowerCase() || (b.account_number && b.account_number === barcode))) {
-    setStatus('bookStatus', '⚠️ Book is already added to the checkout queue!', 'warn');
-    bookInput.value = '';
-    return;
-  }
+ // Check if already in queue
+ if (queuedBooks.some(b => b.barcode.toLowerCase() === barcode.toLowerCase() || (b.account_number && b.account_number === barcode))) {
+ setStatus('bookStatus', 'Book is already added to the checkout queue!', 'warn');
+ bookInput.value = '';
+ return;
+ }
 
-  setStatus('bookStatus', 'Checking book…', '');
-  try {
-    const data = await fetch(`/api/scan/book/${encodeURIComponent(barcode)}`).then(r => r.json());
-    if (!data.found) {
-      setStatus('bookStatus', data.message || `Book '${barcode}' not found`, 'err');
-      return;
-    }
+ setStatus('bookStatus', 'Checking book…', '');
+ try {
+ const data = await fetch(`/api/scan/book/${encodeURIComponent(barcode)}`).then(r => r.json());
+ if (!data.found) {
+ setStatus('bookStatus', data.message || `Book '${barcode}' not found`, 'err');
+ return;
+ }
 
-    const b = data.book;
-    fillBookDetails(b);
+ const b = data.book;
+ fillBookDetails(b);
 
-    if (b.status !== 'available') {
-      setStatus('bookStatus', `⚠️ Cannot add: Book "${b.title.substring(0,35)}" is currently ISSUED!`, 'warn');
-      return;
-    }
+ if (b.status !== 'available') {
+ setStatus('bookStatus', `Cannot add: Book "${b.title.substring(0,35)}" is currently ISSUED!`, 'warn');
+ return;
+ }
 
-    // Add to queue
-    queuedBooks.push(b);
-    renderQueue();
-    setStatus('bookStatus', `✅ Added: "${b.title.substring(0,35)}"`, 'ok');
-    bookInput.value = '';
-    bookInput.focus();
-    updateIssueButton();
-  } catch (err) {
-    setStatus('bookStatus', 'Error scanning book', 'err');
-  }
+ // Add to queue
+ queuedBooks.push(b);
+ renderQueue();
+ setStatus('bookStatus', `Added: "${b.title.substring(0,35)}"`, 'ok');
+ bookInput.value = '';
+ bookInput.focus();
+ updateIssueButton();
+ } catch (err) {
+ setStatus('bookStatus', 'Error scanning book', 'err');
+ }
 }
 
 function removeBookFromQueue(index) {
-  queuedBooks.splice(index, 1);
-  renderQueue();
-  updateIssueButton();
-  setStatus('bookStatus', 'Book removed from queue', '');
+ queuedBooks.splice(index, 1);
+ renderQueue();
+ updateIssueButton();
+ setStatus('bookStatus', 'Book removed from queue', '');
 }
 
 function renderQueue() {
-  const tbody = document.getElementById('queueTbody');
-  const countBadge = document.getElementById('queueCountBadge');
-  countBadge.textContent = `${queuedBooks.length} Book${queuedBooks.length === 1 ? '' : 's'} Queued`;
+ const tbody = document.getElementById('queueTbody');
+ const countBadge = document.getElementById('queueCountBadge');
+ countBadge.textContent = `${queuedBooks.length} Book${queuedBooks.length === 1 ? '' : 's'} Queued`;
 
-  if (queuedBooks.length === 0) {
-    tbody.innerHTML = `
-      <tr id="emptyQueueRow">
-        <td colspan="5" style="text-align:center; padding:28px; color:var(--muted); font-size:13px;">
-          <i class="fa fa-cart-shopping" style="font-size:24px; opacity:0.3; display:block; margin-bottom:8px;"></i>
-          No books added to queue yet.<br>Scan or type a book barcode above to add.
-        </td>
-      </tr>`;
-    return;
-  }
+ if (queuedBooks.length === 0) {
+ tbody.innerHTML = `
+ <tr id="emptyQueueRow">
+ <td colspan="5" style="text-align:center; padding:28px; color:var(--muted); font-size:13px;">
+ <i class="fa fa-cart-shopping" style="font-size:24px; opacity:0.3; display:block; margin-bottom:8px;"></i>
+ No books added to queue yet.<br>Scan or type a book barcode above to add.
+ </td>
+ </tr>`;
+ return;
+ }
 
-  tbody.innerHTML = queuedBooks.map((b, i) => `
-    <tr>
-      <td style="color:var(--muted); font-size:12px; font-weight:600;">${i + 1}</td>
-      <td><code style="font-size:11.5px; color:var(--info);">${b.barcode}</code></td>
-      <td style="max-width:200px; font-weight:500;">
-        ${b.title.substring(0, 50)}${b.title.length > 50 ? '…' : ''}
-        <div style="font-size:11px; color:var(--muted);">${(b.authors || '').substring(0, 30)}</div>
-      </td>
-      <td class="text-muted text-sm">${b.account_number || '—'}</td>
-      <td style="text-align:center;">
-        <button class="btn btn-danger btn-sm" style="padding:4px 8px;" onclick="removeBookFromQueue(${i})" title="Remove Book">
-          <i class="fa fa-trash"></i>
-        </button>
-      </td>
-    </tr>
-  `).join('');
+ tbody.innerHTML = queuedBooks.map((b, i) => `
+ <tr>
+ <td style="color:var(--muted); font-size:12px; font-weight:600;">${i + 1}</td>
+ <td><code style="font-size:11.5px; color:var(--info);">${b.barcode}</code></td>
+ <td style="max-width:200px; font-weight:500;">
+ ${b.title.substring(0, 50)}${b.title.length > 50 ? '…' : ''}
+ <div style="font-size:11px; color:var(--muted);">${(b.authors || '').substring(0, 30)}</div>
+ </td>
+ <td class="text-muted text-sm">${b.account_number || '—'}</td>
+ <td style="text-align:center;">
+ <button class="btn btn-danger btn-sm" style="padding:4px 8px;" onclick="removeBookFromQueue(${i})" title="Remove Book">
+ <i class="fa fa-trash"></i>
+ </button>
+ </td>
+ </tr>
+ `).join('');
 }
 
 function updateIssueButton() {
-  const btn = document.getElementById('issueBtn');
-  const btnText = document.getElementById('issueBtnText');
+ const btn = document.getElementById('issueBtn');
+ const btnText = document.getElementById('issueBtnText');
 
-  if (patronData && queuedBooks.length > 0) {
-    btn.disabled = false;
-    const count = queuedBooks.length;
-    btnText.textContent = `ISSUE ${count} BOOK${count > 1 ? 'S' : ''} TO ${patronData.name.toUpperCase()}`;
-  } else {
-    btn.disabled = true;
-    if (!patronData) {
-      btnText.textContent = 'ISSUE BOOKS (Scan Patron First)';
-    } else {
-      btnText.textContent = `ISSUE BOOKS (Scan Books for ${patronData.name})`;
-    }
-  }
+ if (patronData && queuedBooks.length > 0) {
+ btn.disabled = false;
+ const count = queuedBooks.length;
+ btnText.textContent = `ISSUE ${count} BOOK${count > 1 ? 'S' : ''} TO ${patronData.name.toUpperCase()}`;
+ } else {
+ btn.disabled = true;
+ if (!patronData) {
+ btnText.textContent = 'ISSUE BOOKS (Scan Patron First)';
+ } else {
+ btnText.textContent = `ISSUE BOOKS (Scan Books for ${patronData.name})`;
+ }
+ }
 }
 
 async function doIssue() {
-  if (!patronData || queuedBooks.length === 0) return;
+ if (!patronData || queuedBooks.length === 0) return;
 
-  const btn = document.getElementById('issueBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Processing Issue…';
+ const btn = document.getElementById('issueBtn');
+ btn.disabled = true;
+ btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Processing Issue…';
 
-  const bookIds = queuedBooks.map(b => b.id);
-  const payload = {
-    patron_id: patronData.id,
-    patron_type: patronData.patron_type,
-    book_ids: bookIds,
-    issue_date: document.getElementById('issueDate').value,
-    due_date: document.getElementById('dueDate').value
-  };
+ const bookIds = queuedBooks.map(b => b.id);
+ const payload = {
+ patron_id: patronData.id,
+ patron_type: patronData.patron_type,
+ book_ids: bookIds,
+ issue_date: document.getElementById('issueDate').value,
+ due_date: document.getElementById('dueDate').value
+ };
 
-  try {
-    const res = await postJSON('/api/issue', payload);
-    const box = document.getElementById('resultBox');
-    box.style.display = 'block';
+ try {
+ const res = await postJSON('/api/issue', payload);
+ const box = document.getElementById('resultBox');
+ box.style.display = 'block';
 
-    if (res.success) {
-      box.style.border = '1px solid var(--success)';
-      box.style.background = 'rgba(22, 101, 52, 0.05)';
-      box.innerHTML = `
-        <div style="color:var(--success);font-size:16px;font-weight:700;">
-          <i class="fa fa-circle-check"></i> ${res.message}
-        </div>
-        <div style="margin-top:8px;font-size:13.5px;">
-          👤 Issued to: <strong>${patronData.name}</strong> (${patronData.register_number || patronData.barcode})
-        </div>
-        <div style="margin-top:4px;color:var(--muted);font-size:12.5px;">
-          Total books checked out in this session: <strong>${res.issued_count || bookIds.length}</strong>
-        </div>
-      `;
-      showToast(`✅ Successfully issued ${res.issued_count || bookIds.length} book(s)!`, 'success');
-      
-      // Clear book queue
-      queuedBooks = [];
-      renderQueue();
-      
-      // Refresh patron details to update their active books count
-      setTimeout(async () => {
-        if (patronData) {
-          const fresh = await fetch(`/api/scan/patron/${encodeURIComponent(patronData.barcode)}`).then(r => r.json());
-          if (fresh.found) fillPatronDetails(fresh.patron, fresh.active_books || []);
-        }
-      }, 500);
+ if (res.success) {
+ box.style.border = '1px solid var(--success)';
+ box.style.background = 'rgba(22, 101, 52, 0.05)';
+ box.innerHTML = `
+ <div style="color:var(--success);font-size:16px;font-weight:700;">
+ <i class="fa fa-circle-check"></i> ${res.message}
+ </div>
+ <div style="margin-top:8px;font-size:13.5px;">
+ Issued to: <strong>${patronData.name}</strong> (${patronData.register_number || patronData.barcode})
+ </div>
+ <div style="margin-top:4px;color:var(--muted);font-size:12.5px;">
+ Total books checked out in this session: <strong>${res.issued_count || bookIds.length}</strong>
+ </div>
+ `;
+ showToast(`Successfully issued ${res.issued_count || bookIds.length} book(s)!`, 'success');
+ 
+ // Clear book queue
+ queuedBooks = [];
+ renderQueue();
+ 
+ // Refresh patron details to update their active books count
+ setTimeout(async () => {
+ if (patronData) {
+ const fresh = await fetch(`/api/scan/patron/${encodeURIComponent(patronData.barcode)}`).then(r => r.json());
+ if (fresh.found) fillPatronDetails(fresh.patron, fresh.active_books || []);
+ }
+ }, 500);
 
-    } else {
-      box.style.border = '1px solid var(--danger)';
-      box.style.background = 'rgba(153, 27, 27, 0.05)';
-      box.innerHTML = `<div style="color:var(--danger);font-weight:700;"><i class="fa fa-circle-xmark"></i> ${res.message}</div>`;
-      showToast(res.message, 'error');
-    }
-  } catch (err) {
-    showToast('Failed to connect to server', 'error');
-  } finally {
-    btn.innerHTML = '<i class="fa fa-upload"></i> <span id="issueBtnText">ISSUE BOOKS</span>';
-    updateIssueButton();
-  }
+ } else {
+ box.style.border = '1px solid var(--danger)';
+ box.style.background = 'rgba(153, 27, 27, 0.05)';
+ box.innerHTML = `<div style="color:var(--danger);font-weight:700;"><i class="fa fa-circle-xmark"></i> ${res.message}</div>`;
+ showToast(res.message, 'error');
+ }
+ } catch (err) {
+ showToast('Failed to connect to server', 'error');
+ } finally {
+ btn.innerHTML = '<i class="fa fa-upload"></i> <span id="issueBtnText">ISSUE BOOKS</span>';
+ updateIssueButton();
+ }
 }
 
 function fillBookDetails(b) {
-  document.getElementById('d-title').textContent = b.title || '—';
-  document.getElementById('d-barcode').textContent = b.barcode || '—';
-  document.getElementById('d-accnum').textContent = b.account_number || '—';
-  document.getElementById('d-authors').textContent = b.authors || '—';
-  document.getElementById('d-publisher').textContent = b.publisher || '—';
-  const s = document.getElementById('d-status');
-  s.textContent = (b.status || '').toUpperCase();
-  s.style.color = b.status === 'available' ? 'var(--success)' : 'var(--danger)';
-  s.style.fontWeight = '700';
+ document.getElementById('d-title').textContent = b.title || '—';
+ document.getElementById('d-barcode').textContent = b.barcode || '—';
+ document.getElementById('d-accnum').textContent = b.account_number || '—';
+ document.getElementById('d-authors').textContent = b.authors || '—';
+ document.getElementById('d-publisher').textContent = b.publisher || '—';
+ const s = document.getElementById('d-status');
+ s.textContent = (b.status || '').toUpperCase();
+ s.style.color = b.status === 'available' ? 'var(--success)' : 'var(--danger)';
+ s.style.fontWeight = '700';
 }
 
 function fillPatronDetails(p, activeBooks) {
-  document.getElementById('p-name').textContent = p.name || '—';
-  document.getElementById('p-reg').textContent = p.register_number || '—';
-  document.getElementById('p-type').textContent = (p.patron_type||'').charAt(0).toUpperCase()+(p.patron_type||'').slice(1);
-  document.getElementById('p-year').textContent = p.year ? `Year ${p.year} — Section ${p.section}` : '—';
-  document.getElementById('p-mobile').textContent = p.mobile || '—';
-  document.getElementById('p-email').textContent = p.email || '—';
-  document.getElementById('p-held').textContent = activeBooks.length;
-  
-  const tbody = document.getElementById('activeBooksTbody');
-  tbody.innerHTML = '';
-  if (activeBooks.length > 0) {
-    document.getElementById('activeBooksSection').style.display = 'block';
-    activeBooks.forEach(b => {
-      const color = b.overdue ? 'var(--danger)' : 'var(--text)';
-      tbody.innerHTML += `<tr><td style="color:${color}">${b.book_title}</td><td style="color:${color}">${b.due_date}</td></tr>`;
-    });
-  } else {
-    document.getElementById('activeBooksSection').style.display = 'none';
-  }
+ document.getElementById('p-name').textContent = p.name || '—';
+ document.getElementById('p-reg').textContent = p.register_number || '—';
+ document.getElementById('p-type').textContent = (p.patron_type||'').charAt(0).toUpperCase()+(p.patron_type||'').slice(1);
+ document.getElementById('p-year').textContent = p.year ? `Year ${p.year} — Section ${p.section}` : '—';
+ document.getElementById('p-mobile').textContent = p.mobile || '—';
+ document.getElementById('p-email').textContent = p.email || '—';
+ document.getElementById('p-held').textContent = activeBooks.length;
+ 
+ const tbody = document.getElementById('activeBooksTbody');
+ tbody.innerHTML = '';
+ if (activeBooks.length > 0) {
+ document.getElementById('activeBooksSection').style.display = 'block';
+ activeBooks.forEach(b => {
+ const color = b.overdue ? 'var(--danger)' : 'var(--text)';
+ tbody.innerHTML += `<tr><td style="color:${color}">${b.book_title}</td><td style="color:${color}">${b.due_date}</td></tr>`;
+ });
+ } else {
+ document.getElementById('activeBooksSection').style.display = 'none';
+ }
 }
 
 function clearBookDetails() {
-  ['d-title','d-barcode','d-accnum','d-authors','d-publisher','d-status'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = '—';
-  });
+ ['d-title','d-barcode','d-accnum','d-authors','d-publisher','d-status'].forEach(id => {
+ const el = document.getElementById(id);
+ if (el) el.textContent = '—';
+ });
 }
 
 function clearPatronDetails() {
-  ['p-name','p-reg','p-type','p-year','p-mobile','p-email','p-held'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = '—';
-  });
-  document.getElementById('activeBooksSection').style.display = 'none';
-  document.getElementById('patronBadge').style.display = 'none';
+ ['p-name','p-reg','p-type','p-year','p-mobile','p-email','p-held'].forEach(id => {
+ const el = document.getElementById(id);
+ if (el) el.textContent = '—';
+ });
+ document.getElementById('activeBooksSection').style.display = 'none';
+ document.getElementById('patronBadge').style.display = 'none';
 }
 
 function setStatus(id, msg, type) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.textContent = msg;
-  el.className = `scan-status ${type}`;
+ const el = document.getElementById(id);
+ if (!el) return;
+ el.textContent = msg;
+ el.className = `scan-status ${type}`;
 }
 
 function initDates() {
-  const today = new Date().toISOString().split('T')[0];
-  const dateInput = document.getElementById('issueDate');
-  if (dateInput) dateInput.value = today;
-  recalculateDueDate();
+ const today = new Date().toISOString().split('T')[0];
+ const dateInput = document.getElementById('issueDate');
+ if (dateInput) dateInput.value = today;
+ recalculateDueDate();
 }
 
 function recalculateDueDate() {
-  const iss = document.getElementById('issueDate') ? document.getElementById('issueDate').value : '';
-  if (!iss) return;
-  const d = new Date(iss);
-  const days = (patronData && patronData.patron_type === 'teacher') ? 30 : 15;
-  d.setDate(d.getDate() + days);
-  const dueInput = document.getElementById('dueDate');
-  if (dueInput) dueInput.value = d.toISOString().split('T')[0];
+ const iss = document.getElementById('issueDate') ? document.getElementById('issueDate').value : '';
+ if (!iss) return;
+ const d = new Date(iss);
+ const days = (patronData && patronData.patron_type === 'teacher') ? 30 : 15;
+ d.setDate(d.getDate() + days);
+ const dueInput = document.getElementById('dueDate');
+ if (dueInput) dueInput.value = d.toISOString().split('T')[0];
 }
 
 function clearAll() {
-  patronData = null;
-  queuedBooks = [];
-  patronInput.value = '';
-  bookInput.value = '';
-  clearPatronDetails();
-  clearBookDetails();
-  renderQueue();
-  updateIssueButton();
-  initDates();
-  document.getElementById('resultBox').style.display = 'none';
-  setStatus('patronStatus', '', '');
-  setStatus('bookStatus', '', '');
-  patronInput.focus();
+ patronData = null;
+ queuedBooks = [];
+ patronInput.value = '';
+ bookInput.value = '';
+ clearPatronDetails();
+ clearBookDetails();
+ renderQueue();
+ updateIssueButton();
+ initDates();
+ document.getElementById('resultBox').style.display = 'none';
+ setStatus('patronStatus', '', '');
+ setStatus('bookStatus', '', '');
+ patronInput.focus();
 }
 
 initDates();
@@ -477,80 +475,79 @@ let html5QrScanner = null;
 let currentScanTarget = 'patron';
 
 function playScanBeep() {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(880, ctx.currentTime);
-    gain.gain.setValueAtTime(0.2, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.15);
-  } catch(e) {}
+ try {
+ const ctx = new (window.AudioContext || window.webkitAudioContext)();
+ const osc = ctx.createOscillator();
+ const gain = ctx.createGain();
+ osc.type = 'sine';
+ osc.frequency.setValueAtTime(880, ctx.currentTime);
+ gain.gain.setValueAtTime(0.2, ctx.currentTime);
+ gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+ osc.connect(gain);
+ gain.connect(ctx.destination);
+ osc.start();
+ osc.stop(ctx.currentTime + 0.15);
+ } catch(e) {}
 }
 
 async function openCameraScanner(target) {
-  currentScanTarget = target;
-  const modal = document.getElementById('cameraModal');
-  const title = document.getElementById('cameraModalTitle');
-  const msg = document.getElementById('cameraScanMsg');
-  
-  title.innerHTML = target === 'patron' 
-    ? '<i class="fa fa-id-card"></i> Scan Student QR / Barcode' 
-    : '<i class="fa fa-barcode"></i> Scan Book Barcode';
-  msg.textContent = 'Starting camera…';
-  modal.style.display = 'flex';
+ currentScanTarget = target;
+ const modal = document.getElementById('cameraModal');
+ const title = document.getElementById('cameraModalTitle');
+ const msg = document.getElementById('cameraScanMsg');
+ 
+ title.innerHTML = target === 'patron' 
+ ? '<i class="fa fa-id-card"></i> Scan Student QR / Barcode' 
+ : '<i class="fa fa-barcode"></i> Scan Book Barcode';
+ msg.textContent = 'Starting camera…';
+ modal.style.display = 'flex';
 
-  try {
-    if (html5QrScanner) {
-      await html5QrScanner.stop().catch(() => {});
-    }
-    html5QrScanner = new Html5Qrcode("cameraReader");
-    const config = {
-      fps: 15,
-      qrbox: { width: 250, height: 250 },
-      aspectRatio: 1.0
-    };
-    
-    await html5QrScanner.start(
-      { facingMode: "environment" },
-      config,
-      (decodedText) => {
-        playScanBeep();
-        msg.textContent = `Scanned: ${decodedText}`;
-        if (currentScanTarget === 'patron') {
-          patronInput.value = decodedText;
-          scanPatron();
-        } else {
-          bookInput.value = decodedText;
-          scanBook();
-        }
-        closeCameraModal();
-      },
-      (errorMessage) => {
-        // frame decode ignore
-      }
-    );
-    msg.textContent = 'Point camera at code';
-  } catch (err) {
-    console.error('Camera error:', err);
-    msg.textContent = 'Camera error: ' + (err.name || err.message || 'Permission denied');
-  }
+ try {
+ if (html5QrScanner) {
+ await html5QrScanner.stop().catch(() => {});
+ }
+ html5QrScanner = new Html5Qrcode("cameraReader");
+ const config = {
+ fps: 15,
+ qrbox: { width: 250, height: 250 },
+ aspectRatio: 1.0
+ };
+ 
+ await html5QrScanner.start(
+ { facingMode: "environment" },
+ config,
+ (decodedText) => {
+ playScanBeep();
+ msg.textContent = `Scanned: ${decodedText}`;
+ if (currentScanTarget === 'patron') {
+ patronInput.value = decodedText;
+ scanPatron();
+ } else {
+ bookInput.value = decodedText;
+ scanBook();
+ }
+ closeCameraModal();
+ },
+ (errorMessage) => {
+ // frame decode ignore
+ }
+ );
+ msg.textContent = 'Point camera at code';
+ } catch (err) {
+ console.error('Camera error:', err);
+ msg.textContent = 'Camera error: ' + (err.name || err.message || 'Permission denied');
+ }
 }
 
 async function closeCameraModal() {
-  const modal = document.getElementById('cameraModal');
-  modal.style.display = 'none';
-  if (html5QrScanner) {
-    try {
-      await html5QrScanner.stop();
-      html5QrScanner.clear();
-    } catch(e) {}
-    html5QrScanner = null;
-  }
+ const modal = document.getElementById('cameraModal');
+ modal.style.display = 'none';
+ if (html5QrScanner) {
+ try {
+ await html5QrScanner.stop();
+ html5QrScanner.clear();
+ } catch(e) {}
+ html5QrScanner = null;
+ }
 }
-</script>
-{% endblock %}
+</script>{% endblock %}

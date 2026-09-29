@@ -1,551 +1,548 @@
 {% extends "base.html" %}
 {% block title %}Patrons — SRM Library{% endblock %}
-{% block page_title %}👥 Patrons{% endblock %}
+{% block page_title %}Patrons{% endblock %}
 {% block content %}
 
 <div class="toolbar">
-  <form method="get" style="display:contents;">
-    <div class="search-box">
-      <i class="fa fa-search"></i>
-      <input name="q" value="{{ q }}" placeholder="Search by name, reg. no., barcode…">
-    </div>
-    <select name="type" class="form-control" style="width:140px;" onchange="this.form.submit()">
-      <option value="">All Types</option>
-      <option value="student" {% if ptype=='student' %}selected{% endif %}>Students</option>
-      <option value="teacher" {% if ptype=='teacher' %}selected{% endif %}>Teachers</option>
-    </select>
-    <button type="submit" class="btn btn-primary"><i class="fa fa-search"></i> Search</button>
-  </form>
-  <button class="btn btn-success" onclick="openAddModal()"><i class="fa fa-plus"></i> Add Patron</button>
-  <button class="btn btn-outline" onclick="openModal('importStudModal')"><i class="fa fa-upload"></i> Import Students</button>
-  <button class="btn btn-outline" onclick="openModal('importStaffModal')"><i class="fa fa-upload"></i> Import Staff</button>
-  <a href="/patrons/barcodes" class="btn btn-outline"><i class="fa fa-barcode"></i> Print ID Cards PDF</a>
-  <button class="btn btn-primary" onclick="openModal('batchEmailModal')"><i class="fa fa-paper-plane"></i> Email Barcode Cards</button>
+ <form method="get" style="display:contents;">
+ <div class="search-box">
+ <i class="fa fa-search"></i>
+ <input name="q" value="{{ q }}" placeholder="Search by name, reg. no., barcode…">
+ </div>
+ <select name="type" class="form-control" style="width:140px;" onchange="this.form.submit()">
+ <option value="">All Types</option>
+ <option value="student" {% if ptype=='student' %}selected{% endif %}>Students</option>
+ <option value="teacher" {% if ptype=='teacher' %}selected{% endif %}>Teachers</option>
+ </select>
+ <button type="submit" class="btn btn-primary"><i class="fa fa-search"></i> Search</button>
+ </form>
+ <button class="btn btn-success" onclick="openAddModal()"><i class="fa fa-plus"></i> Add Patron</button>
+ <button class="btn btn-outline" onclick="openModal('importStudModal')"><i class="fa fa-upload"></i> Import Students</button>
+ <button class="btn btn-outline" onclick="openModal('importStaffModal')"><i class="fa fa-upload"></i> Import Staff</button>
+ <a href="/patrons/barcodes" class="btn btn-outline"><i class="fa fa-barcode"></i> Print ID Cards PDF</a>
+ <button class="btn btn-primary" onclick="openModal('batchEmailModal')"><i class="fa fa-paper-plane"></i> Email Barcode Cards</button>
 </div>
 
 <div style="margin-bottom:14px;font-size:13px;color:var(--muted);">
-  Total: <strong style="color:var(--text)">{{ counts.total }}</strong> &nbsp;•&nbsp;
-  Students: <strong style="color:var(--info)">{{ counts.students }}</strong> &nbsp;•&nbsp;
-  Teachers: <strong style="color:var(--purple, #a855f7)">{{ counts.teachers }}</strong>
-  &nbsp;&nbsp;<span>Showing {{ patrons|length }} results</span>
+ Total: <strong style="color:var(--text)">{{ counts.total }}</strong> &nbsp;•&nbsp;
+ Students: <strong style="color:var(--info)">{{ counts.students }}</strong> &nbsp;•&nbsp;
+ Teachers: <strong style="color:var(--purple, #a855f7)">{{ counts.teachers }}</strong>
+ &nbsp;&nbsp;<span>Showing {{ patrons|length }} results</span>
 </div>
 
 <div class="table-wrap">
-  <table>
-    <thead><tr><th>Barcode</th><th>Reg. No.</th><th>Name</th><th>Type</th><th>Year</th><th>Section</th><th>Mobile</th><th>Email</th><th>Actions</th></tr></thead>
-    <tbody>
-    {% for p in patrons %}
-    <tr>
-      <td><code style="font-size:11px;color:var(--info)">{{ p.barcode }}</code></td>
-      <td class="text-sm">{{ p.register_number or '—' }}</td>
-      <td style="font-weight:600">
-        {{ p.name }}
-        {% if p.designation %}
-          <div style="font-size:11.5px; font-weight:500; color:var(--muted); margin-top:2px;">
-            <i class="fa fa-briefcase" style="font-size:10.5px; color:var(--primary); opacity:0.8;"></i> {{ p.designation }}
-          </div>
-        {% endif %}
-      </td>
-      <td>
-        {% if p.patron_type == 'teacher' %}
-          <span class="badge badge-purple">Teacher</span>
-        {% else %}
-          <span class="badge badge-info">Student</span>
-        {% endif %}
-      </td>
-      <td class="text-muted text-sm">{{ p.year or '—' }}</td>
-      <td class="text-muted text-sm">{{ p.section or '—' }}</td>
-      <td class="text-sm">{{ p.mobile or '—' }}</td>
-      <td class="text-sm text-muted">{{ p.email or '—' }}</td>
-      <td style="white-space:nowrap">
-        <button class="btn btn-outline btn-sm" onclick="sendPatronBarcode(this, {{ p.id }}, '{{ p.name|e }}', '{{ p.email or '' }}')" title="Email digital barcode card"><i class="fa fa-paper-plane" style="color:var(--accent-text, #166534);"></i></button>
-        <button class="btn btn-outline btn-sm" onclick="viewHistory({{ p.id }}, '{{ p.name|e }}')" title="Borrowing History"><i class="fa fa-history"></i></button>
-        <button class="btn btn-outline btn-sm" onclick="editPatron({{ p.id }})" title="Edit"><i class="fa fa-edit"></i></button>
-        <button class="btn btn-danger btn-sm" onclick="deletePatron({{ p.id }}, '{{ p.name|e }}')" title="Delete"><i class="fa fa-trash"></i></button>
-      </td>
-    </tr>
-    {% else %}
-    <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--muted)">No patrons found. Import from Excel or add manually.</td></tr>
-    {% endfor %}
-    </tbody>
-  </table>
+ <table>
+ <thead><tr><th>Barcode</th><th>Reg. No.</th><th>Name</th><th>Type</th><th>Year</th><th>Section</th><th>Mobile</th><th>Email</th><th>Actions</th></tr></thead>
+ <tbody>
+ {% for p in patrons %}
+ <tr>
+ <td><code style="font-size:11px;color:var(--info)">{{ p.barcode }}</code></td>
+ <td class="text-sm">{{ p.register_number or '—' }}</td>
+ <td style="font-weight:600">
+ {{ p.name }}
+ {% if p.designation %}
+ <div style="font-size:11.5px; font-weight:500; color:var(--muted); margin-top:2px;">
+ <i class="fa fa-briefcase" style="font-size:10.5px; color:var(--primary); opacity:0.8;"></i> {{ p.designation }}
+ </div>
+ {% endif %}
+ </td>
+ <td>
+ {% if p.patron_type == 'teacher' %}
+ <span class="badge badge-purple">Teacher</span>
+ {% else %}
+ <span class="badge badge-info">Student</span>
+ {% endif %}
+ </td>
+ <td class="text-muted text-sm">{{ p.year or '—' }}</td>
+ <td class="text-muted text-sm">{{ p.section or '—' }}</td>
+ <td class="text-sm">{{ p.mobile or '—' }}</td>
+ <td class="text-sm text-muted">{{ p.email or '—' }}</td>
+ <td style="white-space:nowrap">
+ <button class="btn btn-outline btn-sm" onclick="sendPatronBarcode(this, {{ p.id }}, '{{ p.name|e }}', '{{ p.email or '' }}')" title="Email digital barcode card"><i class="fa fa-paper-plane" style="color:var(--accent-text, #166534);"></i></button>
+ <button class="btn btn-outline btn-sm" onclick="viewHistory({{ p.id }}, '{{ p.name|e }}')" title="Borrowing History"><i class="fa fa-history"></i></button>
+ <button class="btn btn-outline btn-sm" onclick="editPatron({{ p.id }})" title="Edit"><i class="fa fa-edit"></i></button>
+ <button class="btn btn-danger btn-sm" onclick="deletePatron({{ p.id }}, '{{ p.name|e }}')" title="Delete"><i class="fa fa-trash"></i></button>
+ </td>
+ </tr>
+ {% else %}
+ <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--muted)">No patrons found. Import from Excel or add manually.</td></tr>
+ {% endfor %}
+ </tbody>
+ </table>
 </div>
 
 <!-- Add/Edit Patron Modal -->
 <div class="modal-overlay" id="patronModal">
-  <div class="modal" style="max-width:600px">
-    <div class="modal-header">
-      <h3 id="patronModalTitle">➕ Add New Patron</h3>
-      <button class="modal-close" onclick="closeModal('patronModal')">✕</button>
-    </div>
-    <input type="hidden" id="editPatronId" value="">
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label>Barcode <small style="color:var(--muted);font-weight:normal;">(Auto-generated if left blank)</small></label>
-        <input class="form-control" id="fp-barcode" placeholder="Leave blank to auto-generate (e.g. ST… / TC…)">
-      </div>
-      <div class="form-group">
-        <label>Reg. / Employee No. *</label>
-        <input class="form-control" id="fp-reg" placeholder="Register / Employee number">
-      </div>
-    <div class="form-group"><label>Full Name *</label><input class="form-control" id="fp-name"></div>
-    <div class="form-group">
-      <label>Designation / Role <small style="color:var(--muted);font-weight:normal;">(For Faculty/Staff, e.g. Professor & Head / Assistant Professor)</small></label>
-      <input class="form-control" id="fp-designation" placeholder="e.g. Professor & Head / Assistant Professor / Research Scholar">
-    </div>
-    <div class="form-row cols-3">
-      <div class="form-group"><label>Type</label>
-        <select class="form-control" id="fp-type"><option value="student">Student</option><option value="teacher">Teacher</option></select>
-      </div>
-      <div class="form-group"><label>Year</label>
-        <select class="form-control" id="fp-year"><option value="">—</option><option>I</option><option>II</option><option>III</option><option>IV</option></select>
-      </div>
-      <div class="form-group"><label>Section</label><input class="form-control" id="fp-section" placeholder="A / B / C / D"></div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group"><label>Mobile</label><input class="form-control" id="fp-mobile"></div>
-      <div class="form-group"><label>Email</label><input class="form-control" id="fp-email" type="email"></div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group"><label>Parent Mobile</label><input class="form-control" id="fp-pmobile"></div>
-      <div class="form-group"><label>Parent Email</label><input class="form-control" id="fp-pemail" type="email"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal('patronModal')">Cancel</button>
-      <button class="btn btn-success" onclick="savePatron()"><i class="fa fa-save"></i> Save</button>
-    </div>
-  </div>
+ <div class="modal" style="max-width:600px">
+ <div class="modal-header">
+ <h3 id="patronModalTitle">Add New Patron</h3>
+ <button class="modal-close" onclick="closeModal('patronModal')">✕</button>
+ </div>
+ <input type="hidden" id="editPatronId" value="">
+ <div class="form-row cols-2">
+ <div class="form-group">
+ <label>Barcode <small style="color:var(--muted);font-weight:normal;">(Auto-generated if left blank)</small></label>
+ <input class="form-control" id="fp-barcode" placeholder="Leave blank to auto-generate (e.g. ST… / TC…)">
+ </div>
+ <div class="form-group">
+ <label>Reg. / Employee No. *</label>
+ <input class="form-control" id="fp-reg" placeholder="Register / Employee number">
+ </div>
+ <div class="form-group"><label>Full Name *</label><input class="form-control" id="fp-name"></div>
+ <div class="form-group">
+ <label>Designation / Role <small style="color:var(--muted);font-weight:normal;">(For Faculty/Staff, e.g. Professor & Head / Assistant Professor)</small></label>
+ <input class="form-control" id="fp-designation" placeholder="e.g. Professor & Head / Assistant Professor / Research Scholar">
+ </div>
+ <div class="form-row cols-3">
+ <div class="form-group"><label>Type</label>
+ <select class="form-control" id="fp-type"><option value="student">Student</option><option value="teacher">Teacher</option></select>
+ </div>
+ <div class="form-group"><label>Year</label>
+ <select class="form-control" id="fp-year"><option value="">—</option><option>I</option><option>II</option><option>III</option><option>IV</option></select>
+ </div>
+ <div class="form-group"><label>Section</label><input class="form-control" id="fp-section" placeholder="A / B / C / D"></div>
+ </div>
+ <div class="form-row cols-2">
+ <div class="form-group"><label>Mobile</label><input class="form-control" id="fp-mobile"></div>
+ <div class="form-group"><label>Email</label><input class="form-control" id="fp-email" type="email"></div>
+ </div>
+ <div class="form-row cols-2">
+ <div class="form-group"><label>Parent Mobile</label><input class="form-control" id="fp-pmobile"></div>
+ <div class="form-group"><label>Parent Email</label><input class="form-control" id="fp-pemail" type="email"></div>
+ </div>
+ <div class="modal-footer">
+ <button class="btn btn-outline" onclick="closeModal('patronModal')">Cancel</button>
+ <button class="btn btn-success" onclick="savePatron()"><i class="fa fa-save"></i> Save</button>
+ </div>
+ </div>
 </div>
 
 <!-- Import Students Modal -->
 <div class="modal-overlay" id="importStudModal">
-  <div class="modal">
-    <div class="modal-header"><h3>📥 Import Students from Excel</h3><button class="modal-close" onclick="closeModal('importStudModal')">✕</button></div>
-    <div class="form-group"><label>Excel File</label><input type="file" class="form-control" id="studFile" accept=".xlsx,.xls"></div>
-    <div class="form-row cols-2">
-      <div class="form-group"><label>Year</label>
-        <select class="form-control" id="studYear"><option>I</option><option>II</option><option>III</option><option>IV</option></select>
-      </div>
-      <div class="form-group"><label>Section</label><input class="form-control" id="studSection" placeholder="A" value="A"></div>
-    </div>
-    <div style="margin:8px 0 14px;">
-      <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; cursor:pointer;">
-        <input type="checkbox" id="studAutoEmail" value="1" checked>
-        <span><strong>✉️ Automatically email barcode cards</strong> to imported students</span>
-      </label>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal('importStudModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="doImportStudents()"><i class="fa fa-upload"></i> Import</button>
-    </div>
-  </div>
+ <div class="modal">
+ <div class="modal-header"><h3>Import Students from Excel</h3><button class="modal-close" onclick="closeModal('importStudModal')">✕</button></div>
+ <div class="form-group"><label>Excel File</label><input type="file" class="form-control" id="studFile" accept=".xlsx,.xls"></div>
+ <div class="form-row cols-2">
+ <div class="form-group"><label>Year</label>
+ <select class="form-control" id="studYear"><option>I</option><option>II</option><option>III</option><option>IV</option></select>
+ </div>
+ <div class="form-group"><label>Section</label><input class="form-control" id="studSection" placeholder="A" value="A"></div>
+ </div>
+ <div style="margin:8px 0 14px;">
+ <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; cursor:pointer;">
+ <input type="checkbox" id="studAutoEmail" value="1" checked>
+ <span><strong>Automatically email barcode cards</strong> to imported students</span>
+ </label>
+ </div>
+ <div class="modal-footer">
+ <button class="btn btn-outline" onclick="closeModal('importStudModal')">Cancel</button>
+ <button class="btn btn-primary" onclick="doImportStudents()"><i class="fa fa-upload"></i> Import</button>
+ </div>
+ </div>
 </div>
 
 <!-- Import Staff Modal -->
 <div class="modal-overlay" id="importStaffModal">
-  <div class="modal">
-    <div class="modal-header"><h3>📥 Import Staff from Excel</h3><button class="modal-close" onclick="closeModal('importStaffModal')">✕</button></div>
-    <p class="text-muted text-sm" style="margin-bottom:14px">Select the "Teaching and non teaching details" Excel file.</p>
-    <div class="form-group"><label>Excel File</label><input type="file" class="form-control" id="staffFile" accept=".xlsx,.xls"></div>
-    <div style="margin:8px 0 14px;">
-      <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; cursor:pointer;">
-        <input type="checkbox" id="staffAutoEmail" value="1" checked>
-        <span><strong>✉️ Automatically email barcode cards</strong> to imported faculty</span>
-      </label>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal('importStaffModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="doImportStaff()"><i class="fa fa-upload"></i> Import</button>
-    </div>
-  </div>
+ <div class="modal">
+ <div class="modal-header"><h3>Import Staff from Excel</h3><button class="modal-close" onclick="closeModal('importStaffModal')">✕</button></div>
+ <p class="text-muted text-sm" style="margin-bottom:14px">Select the "Teaching and non teaching details" Excel file.</p>
+ <div class="form-group"><label>Excel File</label><input type="file" class="form-control" id="staffFile" accept=".xlsx,.xls"></div>
+ <div style="margin:8px 0 14px;">
+ <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; cursor:pointer;">
+ <input type="checkbox" id="staffAutoEmail" value="1" checked>
+ <span><strong>Automatically email barcode cards</strong> to imported faculty</span>
+ </label>
+ </div>
+ <div class="modal-footer">
+ <button class="btn btn-outline" onclick="closeModal('importStaffModal')">Cancel</button>
+ <button class="btn btn-primary" onclick="doImportStaff()"><i class="fa fa-upload"></i> Import</button>
+ </div>
+ </div>
 </div>
 
 <!-- History Modal -->
 <div class="modal-overlay" id="historyModal">
-  <div class="modal" style="max-width:700px">
-    <div class="modal-header"><h3 id="historyTitle">📋 Borrowing History</h3><button class="modal-close" onclick="closeModal('historyModal')">✕</button></div>
-    <div class="table-wrap" style="max-height:400px;overflow-y:auto">
-      <table><thead><tr><th>Book (Click to View Barcode)</th><th>Issue Date</th><th>Due Date</th><th>Return Date</th><th>Fine</th></tr></thead>
-      <tbody id="historyTbody"></tbody></table>
-    </div>
-  </div>
+ <div class="modal" style="max-width:700px">
+ <div class="modal-header"><h3 id="historyTitle">Borrowing History</h3><button class="modal-close" onclick="closeModal('historyModal')">✕</button></div>
+ <div class="table-wrap" style="max-height:400px;overflow-y:auto">
+ <table><thead><tr><th>Book (Click to View Barcode)</th><th>Issue Date</th><th>Due Date</th><th>Return Date</th><th>Fine</th></tr></thead>
+ <tbody id="historyTbody"></tbody></table>
+ </div>
+ </div>
 </div>
 
 <!-- Book Details & Barcode Modal (Image 3) -->
 <div class="modal-overlay" id="bookModal" style="z-index:1001;">
-  <div class="modal" style="max-width:580px;">
-    <div class="modal-header">
-      <h3 class="serif-heading" id="bm-title" style="font-size:18px; margin:0; line-height:1.3; color:var(--text); padding-right:12px;">Book Details</h3>
-      <button class="modal-close" onclick="closeModal('bookModal')">✕</button>
-    </div>
+ <div class="modal" style="max-width:580px;">
+ <div class="modal-header">
+ <h3 class="serif-heading" id="bm-title" style="font-size:18px; margin:0; line-height:1.3; color:var(--text); padding-right:12px;">Book Details</h3>
+ <button class="modal-close" onclick="closeModal('bookModal')">✕</button>
+ </div>
 
-    <div id="bm-loading" style="text-align:center; padding:30px; color:var(--muted);">
-      <i class="fa fa-spinner fa-spin fa-2x"></i>
-      <div style="margin-top:10px; font-size:13px;">Loading book details & barcode…</div>
-    </div>
+ <div id="bm-loading" style="text-align:center; padding:30px; color:var(--muted);">
+ <i class="fa fa-spinner fa-spin fa-2x"></i>
+ <div style="margin-top:10px; font-size:13px;">Loading book details & barcode…</div>
+ </div>
 
-    <div id="bm-content" style="display:none;">
-      <!-- Availability Highlight Box -->
-      <div id="bm-avail-box" style="border-radius:14px; padding:14px 16px; margin-bottom:18px;"></div>
+ <div id="bm-content" style="display:none;">
+ <!-- Availability Highlight Box -->
+ <div id="bm-avail-box" style="border-radius:14px; padding:14px 16px; margin-bottom:18px;"></div>
 
-      <!-- Barcode Graphic Box -->
-      <div style="background:#F8FAF6; border:1px solid #E2E8F0; border-radius:14px; padding:16px; margin-bottom:18px; text-align:center;">
-        <img id="bm-barcode-img" src="" alt="Book Barcode" style="max-width:280px; width:100%; height:58px; object-fit:contain; display:block; margin:0 auto;">
-        <div id="bm-barcode-txt" style="font-family:'Consolas',monospace; font-size:16px; font-weight:700; color:var(--text); letter-spacing:3px; margin-top:6px;"></div>
-      </div>
+ <!-- Barcode Graphic Box -->
+ <div style="background:#F8FAF6; border:1px solid #E2E8F0; border-radius:14px; padding:16px; margin-bottom:18px; text-align:center;">
+ <img id="bm-barcode-img" src="" alt="Book Barcode" style="max-width:280px; width:100%; height:58px; object-fit:contain; display:block; margin:0 auto;">
+ <div id="bm-barcode-txt" style="font-family:'Consolas',monospace; font-size:16px; font-weight:700; color:var(--text); letter-spacing:3px; margin-top:6px;"></div>
+ </div>
 
-      <div class="info-card" style="margin-bottom:18px;">
-        <div class="info-row"><span class="lbl">Account No.</span><span class="val" id="bm-acc"></span></div>
-        <div class="info-row"><span class="lbl">Barcode ID</span><span class="val" id="bm-barcode"></span></div>
-        <div class="info-row"><span class="lbl">Authors</span><span class="val" id="bm-authors"></span></div>
-        <div class="info-row"><span class="lbl">Publisher</span><span class="val" id="bm-pub"></span></div>
-        <div class="info-row"><span class="lbl">Edition</span><span class="val" id="bm-edition"></span></div>
-      </div>
+ <div class="info-card" style="margin-bottom:18px;">
+ <div class="info-row"><span class="lbl">Account No.</span><span class="val" id="bm-acc"></span></div>
+ <div class="info-row"><span class="lbl">Barcode ID</span><span class="val" id="bm-barcode"></span></div>
+ <div class="info-row"><span class="lbl">Authors</span><span class="val" id="bm-authors"></span></div>
+ <div class="info-row"><span class="lbl">Publisher</span><span class="val" id="bm-pub"></span></div>
+ <div class="info-row"><span class="lbl">Edition</span><span class="val" id="bm-edition"></span></div>
+ </div>
 
-      <div style="font-size:12px; font-weight:700; color:var(--muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">
-        Circulation History (Past 10 Borrows)
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Issue Date</th><th>Due Date</th><th>Return Date</th><th>Status</th></tr></thead>
-          <tbody id="bm-history-tbody"></tbody>
-        </table>
-      </div>
-    </div>
+ <div style="font-size:12px; font-weight:700; color:var(--muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">
+ Circulation History (Past 10 Borrows)
+ </div>
+ <div class="table-wrap">
+ <table>
+ <thead><tr><th>Issue Date</th><th>Due Date</th><th>Return Date</th><th>Status</th></tr></thead>
+ <tbody id="bm-history-tbody"></tbody>
+ </table>
+ </div>
+ </div>
 
-    <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-      <div>
-        <a id="bm-print-label-btn" href="#" class="btn btn-outline btn-sm" target="_blank">
-          <i class="fa fa-print"></i> Print Barcode Sticker
-        </a>
-      </div>
-      <button class="btn btn-primary btn-sm" onclick="closeModal('bookModal')">Close</button>
-    </div>
-  </div>
+ <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+ <div>
+ <a id="bm-print-label-btn" href="#" class="btn btn-outline btn-sm" target="_blank">
+ <i class="fa fa-print"></i> Print Barcode Sticker
+ </a>
+ </div>
+ <button class="btn btn-primary btn-sm" onclick="closeModal('bookModal')">Close</button>
+ </div>
+ </div>
 </div>
 
 <!-- Batch Email Barcodes Modal -->
 <div class="modal-overlay" id="batchEmailModal">
-  <div class="modal" style="max-width:560px">
-    <div class="modal-header">
-      <h3>📧 Email Digital Barcode Cards</h3>
-      <button class="modal-close" onclick="closeModal('batchEmailModal')">✕</button>
-    </div>
-    <div style="font-size:13px; color:var(--muted); margin-bottom:16px; line-height:1.5;">
-      Send official digital library cards containing unique Code 128 barcodes directly to students and teachers. Patrons can scan them directly from their phone screen at the desk.
-    </div>
+ <div class="modal" style="max-width:560px">
+ <div class="modal-header">
+ <h3>Email Digital Barcode Cards</h3>
+ <button class="modal-close" onclick="closeModal('batchEmailModal')">✕</button>
+ </div>
+ <div style="font-size:13px; color:var(--muted); margin-bottom:16px; line-height:1.5;">
+ Send official digital library cards containing unique Code 128 barcodes directly to students and teachers. Patrons can scan them directly from their phone screen at the desk.
+ </div>
 
-    <div class="form-row cols-3">
-      <div class="form-group">
-        <label>Recipient Type</label>
-        <select class="form-control" id="batchEmailType">
-          <option value="all">All (Students & Staff)</option>
-          <option value="student">Students Only</option>
-          <option value="teacher">Teachers Only</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Year Filter</label>
-        <select class="form-control" id="batchEmailYear">
-          <option value="all">All Years</option>
-          <option value="I">Year I</option>
-          <option value="II">Year II</option>
-          <option value="III">Year III</option>
-          <option value="IV">Year IV</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Section Filter</label>
-        <select class="form-control" id="batchEmailSec">
-          <option value="all">All Sections</option>
-          <option value="A">Section A</option>
-          <option value="B">Section B</option>
-          <option value="C">Section C</option>
-          <option value="D">Section D</option>
-        </select>
-      </div>
-    </div>
+ <div class="form-row cols-3">
+ <div class="form-group">
+ <label>Recipient Type</label>
+ <select class="form-control" id="batchEmailType">
+ <option value="all">All (Students & Staff)</option>
+ <option value="student">Students Only</option>
+ <option value="teacher">Teachers Only</option>
+ </select>
+ </div>
+ <div class="form-group">
+ <label>Year Filter</label>
+ <select class="form-control" id="batchEmailYear">
+ <option value="all">All Years</option>
+ <option value="I">Year I</option>
+ <option value="II">Year II</option>
+ <option value="III">Year III</option>
+ <option value="IV">Year IV</option>
+ </select>
+ </div>
+ <div class="form-group">
+ <label>Section Filter</label>
+ <select class="form-control" id="batchEmailSec">
+ <option value="all">All Sections</option>
+ <option value="A">Section A</option>
+ <option value="B">Section B</option>
+ <option value="C">Section C</option>
+ <option value="D">Section D</option>
+ </select>
+ </div>
+ </div>
 
-    <div style="background:rgba(22,101,52,0.06); border:1px solid rgba(22,101,52,0.18); border-radius:10px; padding:12px 14px; font-size:12px; color:var(--accent-text); margin-bottom:16px;">
-      💡 <em>Make sure your Gmail App Password is configured under <strong>Settings → Email</strong> before sending.</em>
-    </div>
+ <div style="background:rgba(22,101,52,0.06); border:1px solid rgba(22,101,52,0.18); border-radius:10px; padding:12px 14px; font-size:12px; color:var(--accent-text); margin-bottom:16px;">
+ <em>Make sure your Gmail App Password is configured under <strong>Settings → Email</strong> before sending.</em>
+ </div>
 
-    <div id="batchEmailStatus" style="display:none; margin-bottom:16px;"></div>
+ <div id="batchEmailStatus" style="display:none; margin-bottom:16px;"></div>
 
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal('batchEmailModal')">Close</button>
-      <button class="btn btn-primary" id="btnStartBatchEmail" onclick="doBatchEmailBarcodes()"><i class="fa fa-paper-plane"></i> Send Barcodes Now</button>
-    </div>
-  </div>
-</div>
-
-{% endblock %}
+ <div class="modal-footer">
+ <button class="btn btn-outline" onclick="closeModal('batchEmailModal')">Close</button>
+ <button class="btn btn-primary" id="btnStartBatchEmail" onclick="doBatchEmailBarcodes()"><i class="fa fa-paper-plane"></i> Send Barcodes Now</button>
+ </div>
+ </div>
+</div>{% endblock %}
 {% block scripts %}
 <script>
 function openAddModal() {
-  document.getElementById('editPatronId').value='';
-  document.getElementById('patronModalTitle').textContent='➕ Add New Patron';
-  document.getElementById('fp-barcode').readOnly=false;
-  document.getElementById('fp-barcode').placeholder='Leave blank to auto-generate (e.g. ST… / TC…)';
-  ['fp-barcode','fp-reg','fp-name','fp-designation','fp-section','fp-mobile','fp-email','fp-pmobile','fp-pemail'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('fp-type').value='student';
-  document.getElementById('fp-year').value='';
-  openModal('patronModal');
+ document.getElementById('editPatronId').value='';
+ document.getElementById('patronModalTitle').textContent='Add New Patron';
+ document.getElementById('fp-barcode').readOnly=false;
+ document.getElementById('fp-barcode').placeholder='Leave blank to auto-generate (e.g. ST… / TC…)';
+ ['fp-barcode','fp-reg','fp-name','fp-designation','fp-section','fp-mobile','fp-email','fp-pmobile','fp-pemail'].forEach(id=>document.getElementById(id).value='');
+ document.getElementById('fp-type').value='student';
+ document.getElementById('fp-year').value='';
+ openModal('patronModal');
 }
 
 async function editPatron(id) {
-  const p = await fetch(`/patrons/get/${id}`).then(r=>r.json());
-  document.getElementById('editPatronId').value=id;
-  document.getElementById('patronModalTitle').textContent='✏️ Edit Patron';
-  document.getElementById('fp-barcode').value=p.barcode||''; document.getElementById('fp-barcode').readOnly=true;
-  document.getElementById('fp-reg').value=p.register_number||'';
-  document.getElementById('fp-name').value=p.name||'';
-  document.getElementById('fp-designation').value=p.designation||'';
-  document.getElementById('fp-type').value=p.patron_type||'student';
-  document.getElementById('fp-year').value=p.year||'';
-  document.getElementById('fp-section').value=p.section||'';
-  document.getElementById('fp-mobile').value=p.mobile||'';
-  document.getElementById('fp-email').value=p.email||'';
-  document.getElementById('fp-pmobile').value=p.parent_mobile||'';
-  document.getElementById('fp-pemail').value=p.parent_email||'';
-  openModal('patronModal');
+ const p = await fetch(`/patrons/get/${id}`).then(r=>r.json());
+ document.getElementById('editPatronId').value=id;
+ document.getElementById('patronModalTitle').textContent='Edit Patron';
+ document.getElementById('fp-barcode').value=p.barcode||''; document.getElementById('fp-barcode').readOnly=true;
+ document.getElementById('fp-reg').value=p.register_number||'';
+ document.getElementById('fp-name').value=p.name||'';
+ document.getElementById('fp-designation').value=p.designation||'';
+ document.getElementById('fp-type').value=p.patron_type||'student';
+ document.getElementById('fp-year').value=p.year||'';
+ document.getElementById('fp-section').value=p.section||'';
+ document.getElementById('fp-mobile').value=p.mobile||'';
+ document.getElementById('fp-email').value=p.email||'';
+ document.getElementById('fp-pmobile').value=p.parent_mobile||'';
+ document.getElementById('fp-pemail').value=p.parent_email||'';
+ openModal('patronModal');
 }
 
 async function savePatron() {
-  const id = document.getElementById('editPatronId').value;
-  const fd = new FormData();
-  ['barcode','reg','name','designation','type','year','section','mobile','email','pmobile','pemail'].forEach(k => {
-    fd.append(k==='reg'?'register_number':k==='type'?'patron_type':k==='pmobile'?'parent_mobile':k==='pemail'?'parent_email':k,
-      document.getElementById(`fp-${k}`).value);
-  });
-  if (!fd.get('name')) { showToast('Name is required','error'); return; }
-  const url = id ? `/patrons/edit/${id}` : '/patrons/add';
-  const res = await postForm(url, fd);
-  if (res.success) { showToast(res.message,'success'); closeModal('patronModal'); setTimeout(()=>location.reload(),800); }
-  else showToast(res.message,'error');
+ const id = document.getElementById('editPatronId').value;
+ const fd = new FormData();
+ ['barcode','reg','name','designation','type','year','section','mobile','email','pmobile','pemail'].forEach(k => {
+ fd.append(k==='reg'?'register_number':k==='type'?'patron_type':k==='pmobile'?'parent_mobile':k==='pemail'?'parent_email':k,
+ document.getElementById(`fp-${k}`).value);
+ });
+ if (!fd.get('name')) { showToast('Name is required','error'); return; }
+ const url = id ? `/patrons/edit/${id}` : '/patrons/add';
+ const res = await postForm(url, fd);
+ if (res.success) { showToast(res.message,'success'); closeModal('patronModal'); setTimeout(()=>location.reload(),800); }
+ else showToast(res.message,'error');
 }
 
 async function deletePatron(id, name) {
-  if (!confirm(`Delete patron: "${name}"?`)) return;
-  const res = await postForm(`/patrons/delete/${id}`, new FormData());
-  if (res.success) { showToast('Patron deleted','success'); setTimeout(()=>location.reload(),600); }
-  else showToast(res.message,'error');
+ if (!confirm(`Delete patron: "${name}"?`)) return;
+ const res = await postForm(`/patrons/delete/${id}`, new FormData());
+ if (res.success) { showToast('Patron deleted','success'); setTimeout(()=>location.reload(),600); }
+ else showToast(res.message,'error');
 }
 
 async function viewHistory(id, name) {
-  document.getElementById('historyTitle').textContent = `📋 History: ${name}`;
-  const data = await fetch(`/patrons/history/${id}`).then(r=>r.json());
-  const tbody = document.getElementById('historyTbody');
-  tbody.innerHTML = '';
-  if (!data.history.length) { tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted)">No borrowing history</td></tr>'; }
-  data.history.forEach(h => {
-    const color = h.status==='issued' ? 'var(--info)' : 'var(--text)';
-    tbody.innerHTML += `<tr style="color:${color}">
-      <td>
-        <a href="javascript:void(0)" onclick="showBookModal(${h.book_id})" style="color:var(--primary); font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:6px; cursor:pointer;" title="Click to view book barcode image & details">
-          <i class="fa fa-barcode" style="font-size:12px;"></i> ${h.book_title}
-          ${h.book_barcode ? `<span class="badge badge-outline" style="font-size:10px; font-weight:normal; margin-left:4px;">${h.book_barcode}</span>` : ''}
-        </a>
-      </td>
-      <td>${h.issue_date}</td><td>${h.due_date}</td>
-      <td>${h.return_date||'—'}</td><td>₹${(h.fine_amount||0).toFixed(2)}</td></tr>`;
-  });
-  openModal('historyModal');
+ document.getElementById('historyTitle').textContent = `History: ${name}`;
+ const data = await fetch(`/patrons/history/${id}`).then(r=>r.json());
+ const tbody = document.getElementById('historyTbody');
+ tbody.innerHTML = '';
+ if (!data.history.length) { tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted)">No borrowing history</td></tr>'; }
+ data.history.forEach(h => {
+ const color = h.status==='issued' ? 'var(--info)' : 'var(--text)';
+ tbody.innerHTML += `<tr style="color:${color}">
+ <td>
+ <a href="javascript:void(0)" onclick="showBookModal(${h.book_id})" style="color:var(--primary); font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:6px; cursor:pointer;" title="Click to view book barcode image & details">
+ <i class="fa fa-barcode" style="font-size:12px;"></i> ${h.book_title}
+ ${h.book_barcode ? `<span class="badge badge-outline" style="font-size:10px; font-weight:normal; margin-left:4px;">${h.book_barcode}</span>` : ''}
+ </a>
+ </td>
+ <td>${h.issue_date}</td><td>${h.due_date}</td>
+ <td>${h.return_date||'—'}</td><td>₹${(h.fine_amount||0).toFixed(2)}</td></tr>`;
+ });
+ openModal('historyModal');
 }
 
 async function showBookModal(bookId) {
-  openModal('bookModal');
-  document.getElementById('bm-loading').style.display = 'block';
-  document.getElementById('bm-content').style.display = 'none';
+ openModal('bookModal');
+ document.getElementById('bm-loading').style.display = 'block';
+ document.getElementById('bm-content').style.display = 'none';
 
-  try {
-    const data = await fetch(`/api/public/book/${bookId}`).then(r => r.json());
-    if (!data.found) {
-      showToast('Book details not found', 'error');
-      closeModal('bookModal');
-      return;
-    }
-    const b = data.book;
-    document.getElementById('bm-title').textContent = b.title;
-    document.getElementById('bm-acc').textContent = b.account_number || '—';
-    document.getElementById('bm-barcode').innerHTML = `<code>${b.barcode}</code>`;
-    document.getElementById('bm-barcode-img').src = `/api/barcode/image/${encodeURIComponent(b.barcode)}`;
-    document.getElementById('bm-barcode-txt').textContent = b.barcode;
-    const printBtn = document.getElementById('bm-print-label-btn');
-    if (printBtn) printBtn.href = `/books/barcode_label/${b.id}`;
-    document.getElementById('bm-authors').textContent = b.authors || '—';
-    document.getElementById('bm-pub').textContent = b.publisher || '—';
-    document.getElementById('bm-edition').textContent = b.edition || '—';
+ try {
+ const data = await fetch(`/api/public/book/${bookId}`).then(r => r.json());
+ if (!data.found) {
+ showToast('Book details not found', 'error');
+ closeModal('bookModal');
+ return;
+ }
+ const b = data.book;
+ document.getElementById('bm-title').textContent = b.title;
+ document.getElementById('bm-acc').textContent = b.account_number || '—';
+ document.getElementById('bm-barcode').innerHTML = `<code>${b.barcode}</code>`;
+ document.getElementById('bm-barcode-img').src = `/api/barcode/image/${encodeURIComponent(b.barcode)}`;
+ document.getElementById('bm-barcode-txt').textContent = b.barcode;
+ const printBtn = document.getElementById('bm-print-label-btn');
+ if (printBtn) printBtn.href = `/books/barcode_label/${b.id}`;
+ document.getElementById('bm-authors').textContent = b.authors || '—';
+ document.getElementById('bm-pub').textContent = b.publisher || '—';
+ document.getElementById('bm-edition').textContent = b.edition || '—';
 
-    const availBox = document.getElementById('bm-avail-box');
-    if (b.status === 'available') {
-      availBox.style.background = '#F0FDF4';
-      availBox.style.border = '1px solid #86EFAC';
-      availBox.innerHTML = `
-        <div style="font-weight:700; color:#166534; font-size:14px;"><i class="fa fa-circle-check"></i> Available on Shelf</div>
-        <div style="font-size:12px; color:#365314; margin-top:3px;">This textbook is currently in the department library and ready to be borrowed.</div>
-      `;
-    } else {
-      availBox.style.background = '#FFFBEB';
-      availBox.style.border = '1px solid #FDE68A';
-      availBox.innerHTML = `
-        <div style="font-weight:700; color:#92400E; font-size:14px;"><i class="fa fa-clock"></i> Currently Borrowed</div>
-        <div style="font-size:12px; color:#78350F; margin-top:3px;">This textbook is currently borrowed by a patron and is due back on ${b.expected_available_date || 'scheduled date'}.</div>
-      `;
-    }
+ const availBox = document.getElementById('bm-avail-box');
+ if (b.status === 'available') {
+ availBox.style.background = '#F0FDF4';
+ availBox.style.border = '1px solid #86EFAC';
+ availBox.innerHTML = `
+ <div style="font-weight:700; color:#166534; font-size:14px;"><i class="fa fa-circle-check"></i> Available on Shelf</div>
+ <div style="font-size:12px; color:#365314; margin-top:3px;">This textbook is currently in the department library and ready to be borrowed.</div>
+ `;
+ } else {
+ availBox.style.background = '#FFFBEB';
+ availBox.style.border = '1px solid #FDE68A';
+ availBox.innerHTML = `
+ <div style="font-weight:700; color:#92400E; font-size:14px;"><i class="fa fa-clock"></i> Currently Borrowed</div>
+ <div style="font-size:12px; color:#78350F; margin-top:3px;">This textbook is currently borrowed by a patron and is due back on ${b.expected_available_date || 'scheduled date'}.</div>
+ `;
+ }
 
-    const tbody = document.getElementById('bm-history-tbody');
-    tbody.innerHTML = '';
-    const hist = data.history || b.history || [];
-    if (!hist.length) {
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:16px; color:var(--muted);">No previous borrow records</td></tr>';
-    } else {
-      hist.forEach(h => {
-        const badge = h.status === 'returned'
-          ? '<span class="badge badge-success">Returned</span>'
-          : '<span class="badge badge-warning">Borrowed</span>';
-        tbody.innerHTML += `
-          <tr>
-            <td>${h.issue_date || '—'}</td>
-            <td>${h.due_date || '—'}</td>
-            <td>${h.return_date || '—'}</td>
-            <td>${badge}</td>
-          </tr>
-        `;
-      });
-    }
+ const tbody = document.getElementById('bm-history-tbody');
+ tbody.innerHTML = '';
+ const hist = data.history || b.history || [];
+ if (!hist.length) {
+ tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:16px; color:var(--muted);">No previous borrow records</td></tr>';
+ } else {
+ hist.forEach(h => {
+ const badge = h.status === 'returned'
+ ? '<span class="badge badge-success">Returned</span>'
+ : '<span class="badge badge-warning">Borrowed</span>';
+ tbody.innerHTML += `
+ <tr>
+ <td>${h.issue_date || '—'}</td>
+ <td>${h.due_date || '—'}</td>
+ <td>${h.return_date || '—'}</td>
+ <td>${badge}</td>
+ </tr>
+ `;
+ });
+ }
 
-    document.getElementById('bm-loading').style.display = 'none';
-    document.getElementById('bm-content').style.display = 'block';
-  } catch (err) {
-    showToast('Failed to load book details', 'error');
-    closeModal('bookModal');
-  }
+ document.getElementById('bm-loading').style.display = 'none';
+ document.getElementById('bm-content').style.display = 'block';
+ } catch (err) {
+ showToast('Failed to load book details', 'error');
+ closeModal('bookModal');
+ }
 }
 
 async function doImportStudents() {
-  const file = document.getElementById('studFile').files[0];
-  if (!file) { showToast('Select a file','error'); return; }
-  const fd = new FormData(); fd.append('file',file);
-  fd.append('year', document.getElementById('studYear').value);
-  fd.append('section', document.getElementById('studSection').value || 'A');
-  if (document.getElementById('studAutoEmail') && document.getElementById('studAutoEmail').checked) {
-    fd.append('auto_email', '1');
-  }
-  const res = await postForm('/patrons/import/students', fd);
-  if (res.success) {
-    let msg = `✅ Imported ${res.added} students (${res.skipped} skipped)`;
-    if (res.emails_sent) msg += ` • ${res.emails_sent} barcode emails sent!`;
-    showToast(msg, 'success');
-    closeModal('importStudModal');
-    setTimeout(()=>location.reload(), 1400);
-  } else {
-    showToast(res.message, 'error');
-  }
+ const file = document.getElementById('studFile').files[0];
+ if (!file) { showToast('Select a file','error'); return; }
+ const fd = new FormData(); fd.append('file',file);
+ fd.append('year', document.getElementById('studYear').value);
+ fd.append('section', document.getElementById('studSection').value || 'A');
+ if (document.getElementById('studAutoEmail') && document.getElementById('studAutoEmail').checked) {
+ fd.append('auto_email', '1');
+ }
+ const res = await postForm('/patrons/import/students', fd);
+ if (res.success) {
+ let msg = `Imported ${res.added} students (${res.skipped} skipped)`;
+ if (res.emails_sent) msg += ` • ${res.emails_sent} barcode emails sent!`;
+ showToast(msg, 'success');
+ closeModal('importStudModal');
+ setTimeout(()=>location.reload(), 1400);
+ } else {
+ showToast(res.message, 'error');
+ }
 }
 
 async function doImportStaff() {
-  const file = document.getElementById('staffFile').files[0];
-  if (!file) { showToast('Select a file','error'); return; }
-  const fd = new FormData(); fd.append('file',file);
-  if (document.getElementById('staffAutoEmail') && document.getElementById('staffAutoEmail').checked) {
-    fd.append('auto_email', '1');
-  }
-  const res = await postForm('/patrons/import/staff', fd);
-  if (res.success) {
-    let msg = `✅ Imported ${res.added} staff (${res.skipped} skipped)`;
-    if (res.emails_sent) msg += ` • ${res.emails_sent} barcode emails sent!`;
-    showToast(msg, 'success');
-    closeModal('importStaffModal');
-    setTimeout(()=>location.reload(), 1400);
-  } else {
-    showToast(res.message, 'error');
-  }
+ const file = document.getElementById('staffFile').files[0];
+ if (!file) { showToast('Select a file','error'); return; }
+ const fd = new FormData(); fd.append('file',file);
+ if (document.getElementById('staffAutoEmail') && document.getElementById('staffAutoEmail').checked) {
+ fd.append('auto_email', '1');
+ }
+ const res = await postForm('/patrons/import/staff', fd);
+ if (res.success) {
+ let msg = `Imported ${res.added} staff (${res.skipped} skipped)`;
+ if (res.emails_sent) msg += ` • ${res.emails_sent} barcode emails sent!`;
+ showToast(msg, 'success');
+ closeModal('importStaffModal');
+ setTimeout(()=>location.reload(), 1400);
+ } else {
+ showToast(res.message, 'error');
+ }
 }
 
 async function sendPatronBarcode(btn, id, name, email) {
-  if (!email || !email.trim()) {
-    showToast(`No email address recorded for ${name}. Please click the ✏️ Edit button to add their email first.`, 'error');
-    return;
-  }
+ if (!email || !email.trim()) {
+ showToast(`No email address recorded for ${name}. Please click the Edit button to add their email first.`, 'error');
+ return;
+ }
 
-  const origHtml = btn ? btn.innerHTML : '';
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fa fa-spinner fa-spin" style="color:var(--primary);"></i>';
-  }
-  showToast(`Dispatching digital barcode card to ${name} (${email})…`, 'info');
+ const origHtml = btn ? btn.innerHTML : '';
+ if (btn) {
+ btn.disabled = true;
+ btn.innerHTML = '<i class="fa fa-spinner fa-spin" style="color:var(--primary);"></i>';
+ }
+ showToast(`Dispatching digital barcode card to ${name} (${email})…`, 'info');
 
-  try {
-    const res = await fetch(`/api/send_patron_barcode/${id}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    }).then(r => r.json());
+ try {
+ const res = await fetch(`/api/send_patron_barcode/${id}`, {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' }
+ }).then(r => r.json());
 
-    if (res.success) {
-      if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fa fa-check" style="color:#166534;"></i>';
-        btn.title = 'Sent successfully!';
-      }
-      showToast(res.message, 'success');
-    } else {
-      if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = origHtml;
-      }
-      showToast(res.message, 'error');
-    }
-  } catch (err) {
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = origHtml;
-    }
-    showToast('Failed to contact server: ' + (err.message || err), 'error');
-  }
+ if (res.success) {
+ if (btn) {
+ btn.disabled = false;
+ btn.innerHTML = '<i class="fa fa-check" style="color:#166534;"></i>';
+ btn.title = 'Sent successfully!';
+ }
+ showToast(res.message, 'success');
+ } else {
+ if (btn) {
+ btn.disabled = false;
+ btn.innerHTML = origHtml;
+ }
+ showToast(res.message, 'error');
+ }
+ } catch (err) {
+ if (btn) {
+ btn.disabled = false;
+ btn.innerHTML = origHtml;
+ }
+ showToast('Failed to contact server: ' + (err.message || err), 'error');
+ }
 }
 
 async function doBatchEmailBarcodes() {
-  const ptype = document.getElementById('batchEmailType').value;
-  const year = document.getElementById('batchEmailYear').value;
-  const sec = document.getElementById('batchEmailSec').value;
+ const ptype = document.getElementById('batchEmailType').value;
+ const year = document.getElementById('batchEmailYear').value;
+ const sec = document.getElementById('batchEmailSec').value;
 
-  const btn = document.getElementById('btnStartBatchEmail');
-  const statusDiv = document.getElementById('batchEmailStatus');
-  btn.disabled = true;
-  btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Sending Emails...';
-  statusDiv.style.display = 'block';
-  statusDiv.innerHTML = '<div style="color:var(--info); font-weight:600; padding:10px 0;"><i class="fa fa-spinner fa-spin"></i> Dispatching barcode emails through your SMTP account... Please wait...</div>';
+ const btn = document.getElementById('btnStartBatchEmail');
+ const statusDiv = document.getElementById('batchEmailStatus');
+ btn.disabled = true;
+ btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Sending Emails...';
+ statusDiv.style.display = 'block';
+ statusDiv.innerHTML = '<div style="color:var(--info); font-weight:600; padding:10px 0;"><i class="fa fa-spinner fa-spin"></i> Dispatching barcode emails through your SMTP account... Please wait...</div>';
 
-  try {
-    const res = await fetch('/api/send_batch_barcode_emails', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ patron_type: ptype, year: year, section: sec })
-    }).then(r => r.json());
+ try {
+ const res = await fetch('/api/send_batch_barcode_emails', {
+ method: 'POST',
+ headers: {'Content-Type': 'application/json'},
+ body: JSON.stringify({ patron_type: ptype, year: year, section: sec })
+ }).then(r => r.json());
 
-    if (res.success) {
-      statusDiv.innerHTML = `
-        <div style="background:#F0FDF4; border:1px solid #BBF7D0; padding:14px; border-radius:10px; color:#166534; font-size:13px; line-height:1.6;">
-          <strong>✅ Email Dispatch Completed!</strong><br>
-          • <strong>${res.sent}</strong> email(s) successfully delivered.<br>
-          • <strong>${res.skipped_no_email}</strong> patron(s) skipped (no email address).<br>
-          • <strong>${res.failed}</strong> failed.<br>
-          <div style="font-size:11.5px; color:#435A48; margin-top:6px;">${res.message}</div>
-        </div>
-      `;
-      showToast(`Batch complete: ${res.sent} sent, ${res.skipped_no_email} skipped`, 'success');
-    } else {
-      statusDiv.innerHTML = `<div style="background:#FEF2F2; border:1px solid #FECACA; padding:12px 14px; border-radius:10px; color:#991B1B; font-size:13px;">❌ Error: ${res.message}</div>`;
-      showToast(res.message, 'error');
-    }
-  } catch (err) {
-    statusDiv.innerHTML = `<div style="background:#FEF2F2; border:1px solid #FECACA; padding:12px 14px; border-radius:10px; color:#991B1B; font-size:13px;">❌ Network or server error: ${err}</div>`;
-    showToast('Batch emailing failed', 'error');
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fa fa-paper-plane"></i> Send Barcodes Now';
-  }
+ if (res.success) {
+ statusDiv.innerHTML = `
+ <div style="background:#F0FDF4; border:1px solid #BBF7D0; padding:14px; border-radius:10px; color:#166534; font-size:13px; line-height:1.6;">
+ <strong>Email Dispatch Completed!</strong><br>
+ • <strong>${res.sent}</strong> email(s) successfully delivered.<br>
+ • <strong>${res.skipped_no_email}</strong> patron(s) skipped (no email address).<br>
+ • <strong>${res.failed}</strong> failed.<br>
+ <div style="font-size:11.5px; color:#435A48; margin-top:6px;">${res.message}</div>
+ </div>
+ `;
+ showToast(`Batch complete: ${res.sent} sent, ${res.skipped_no_email} skipped`, 'success');
+ } else {
+ statusDiv.innerHTML = `<div style="background:#FEF2F2; border:1px solid #FECACA; padding:12px 14px; border-radius:10px; color:#991B1B; font-size:13px;">Error: ${res.message}</div>`;
+ showToast(res.message, 'error');
+ }
+ } catch (err) {
+ statusDiv.innerHTML = `<div style="background:#FEF2F2; border:1px solid #FECACA; padding:12px 14px; border-radius:10px; color:#991B1B; font-size:13px;">Network or server error: ${err}</div>`;
+ showToast('Batch emailing failed', 'error');
+ } finally {
+ btn.disabled = false;
+ btn.innerHTML = '<i class="fa fa-paper-plane"></i> Send Barcodes Now';
+ }
 }
-</script>
-{% endblock %}
+</script>{% endblock %}

@@ -1172,10 +1172,10 @@ def test_email():
 
     ok, err = send_email(
         to_addr=test_to,
-        subject="[SRM EEE Library] Email System Test ✅",
+        subject="[SRM EEE Library] Email System Test",
         body_html=f"""
         <div style="font-family:sans-serif; max-width:500px; padding:20px; border:1px solid #E2E8F0; border-radius:12px;">
-          <h2 style="color:#166534; margin-top:0;">✅ SRM Library Email System Active!</h2>
+          <h2 style="color:#166534; margin-top:0;">SRM Library Email System Active!</h2>
           <p>This test email was successfully dispatched to <strong>{test_to}</strong>.</p>
           <p style="font-size:13px; color:#64748B;">Delivery method: <strong>{'Brevo HTTPS REST API (Port 443)' if brevo_key else 'Google SMTP (Port ' + str(smtp_port) + ')'}</strong>.</p>
         </div>
@@ -1189,7 +1189,7 @@ def test_email():
     )
     return jsonify({
         "success": ok,
-        "message": f"✅ Test email successfully delivered to {test_to}!" if ok else f"❌ Delivery failed: {err}"
+        "message": f"Test email successfully delivered to {test_to}!" if ok else f"Delivery failed: {err}"
     })
 
 
