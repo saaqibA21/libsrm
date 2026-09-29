@@ -187,8 +187,36 @@ def delete_book(book_id):
 
 
 def get_book_by_barcode(barcode):
+    """
+    Lookup a book by barcode or accession / account number.
+    Handles case-insensitivity, spaces, and 'BK' prefix variations.
+    """
+    if not barcode:
+        return None
+    ident = str(barcode).strip()
+    if not ident:
+        return None
+
     conn = get_connection()
-    row = conn.execute("SELECT * FROM books WHERE barcode=?", (barcode,)).fetchone()
+    clean = ident.replace(" ", "").replace("-", "")
+
+    row = conn.execute("""
+        SELECT * FROM books
+        WHERE UPPER(barcode) = UPPER(?)
+           OR UPPER(account_number) = UPPER(?)
+           OR UPPER(barcode) = UPPER(?)
+           OR UPPER(account_number) = UPPER(?)
+    """, (ident, ident, clean, clean)).fetchone()
+
+    if not row:
+        stripped_bk = clean[2:] if clean.upper().startswith("BK") else clean
+        row = conn.execute("""
+            SELECT * FROM books
+            WHERE UPPER(barcode) = UPPER(?)
+               OR UPPER(barcode) = UPPER(?)
+               OR UPPER(account_number) = UPPER(?)
+        """, (f"BK{clean}", stripped_bk, stripped_bk)).fetchone()
+
     conn.close()
     return dict(row) if row else None
 
@@ -290,8 +318,51 @@ def delete_patron(patron_id):
 
 
 def get_patron_by_barcode(barcode):
+    """
+    Lookup a patron by barcode, register number, staff ID, or mobile number.
+    Handles case-insensitivity, spaces, and 'ST'/'TC' prefix variations.
+    """
+    if not barcode:
+        return None
+    ident = str(barcode).strip()
+    if not ident:
+        return None
+
     conn = get_connection()
-    row = conn.execute("SELECT * FROM patrons WHERE barcode=?", (barcode,)).fetchone()
+    clean = ident.replace(" ", "").replace("-", "")
+
+    # 1. Direct or case-insensitive match on barcode or register_number
+    row = conn.execute("""
+        SELECT * FROM patrons
+        WHERE UPPER(barcode) = UPPER(?)
+           OR UPPER(register_number) = UPPER(?)
+           OR UPPER(barcode) = UPPER(?)
+           OR UPPER(register_number) = UPPER(?)
+    """, (ident, ident, clean, clean)).fetchone()
+
+    # 2. Try prefix variations (e.g. user entered reg no without ST/TC, or with ST/TC)
+    if not row:
+        stripped_prefix = clean[2:] if clean.upper().startswith(("ST", "TC")) else clean
+        row = conn.execute("""
+            SELECT * FROM patrons
+            WHERE UPPER(barcode) = UPPER(?)
+               OR UPPER(barcode) = UPPER(?)
+               OR UPPER(register_number) = UPPER(?)
+               OR UPPER(register_number) = UPPER(?)
+        """, (
+            f"ST{clean}",
+            f"TC{clean}",
+            stripped_prefix,
+            clean
+        )).fetchone()
+
+    # 3. Fallback: match on mobile number or email
+    if not row:
+        row = conn.execute("""
+            SELECT * FROM patrons
+            WHERE mobile = ? OR email = ? OR UPPER(email) = UPPER(?)
+        """, (clean, ident, ident)).fetchone()
+
     conn.close()
     return dict(row) if row else None
 
@@ -892,17 +963,11 @@ def get_book_with_full_details(book_id):
 
 def get_patron_loans_by_identifier(identifier):
     """Lookup active loans for a student or teacher using Register Number or Barcode"""
-    conn = get_connection()
-    ident = str(identifier).strip()
-    patron = conn.execute("""
-        SELECT * FROM patrons 
-        WHERE register_number = ? OR barcode = ? OR UPPER(register_number) = UPPER(?) OR UPPER(barcode) = UPPER(?)
-    """, (ident, ident, ident, ident)).fetchone()
-    if not patron:
-        conn.close()
+    p_dict = get_patron_by_barcode(identifier)
+    if not p_dict:
         return None, []
 
-    p_dict = dict(patron)
+    conn = get_connection()
     loans = conn.execute("""
         SELECT t.*, b.title as book_title, b.barcode as book_barcode,
                b.authors as book_authors, b.account_number as book_account_number
