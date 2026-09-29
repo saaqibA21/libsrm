@@ -5,7 +5,7 @@ SRM EEE Library Management System — Complete Public & Librarian Web Applicatio
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from flask import Flask, render_template, request, jsonify, redirect, url_for, send_file, session, Response
+from flask import Flask, render_template, request, jsonify, redirect, url_for, send_file, session, Response, send_from_directory
 from datetime import datetime, timedelta
 import io
 import socket
@@ -33,6 +33,11 @@ app = Flask(__name__)
 app.secret_key = "srm-eee-library-secure-key-2026"
 
 initialize_db()
+
+
+@app.route("/favicon.ico")
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, "static"), "favicon.ico", mimetype="image/vnd.microsoft.icon")
 
 
 def get_lan_ip():
