@@ -45,14 +45,24 @@ def push_database_to_github(commit_message=None) -> tuple[bool, str]:
     if not os.path.exists(db_file_path):
         return False, f"Database file not found at {db_file_path}"
 
+    now_ist = get_ist_now().strftime("%d-%b-%Y %I:%M %p IST")
+    today_str = get_ist_now().strftime("%Y-%m-%d")
+
+    # IMPORTANT: Save the backup date & time to the database BEFORE snapshotting!
+    # Otherwise, when deployed on platforms like Render, the deployed container receives
+    # a snapshot without today's date and immediately triggers another backup in an infinite loop.
+    set_setting("github_last_backup_status", "Uploading...")
+    set_setting("github_last_backup_time", now_ist)
+    set_setting("github_last_backup_date", today_str)
+
     try:
         with open(db_file_path, "rb") as f:
             file_bytes = f.read()
     except Exception as e:
+        set_setting("github_last_backup_status", f"Failed: {e}")
         return False, f"Error reading database file: {e}"
 
     b64_content = base64.b64encode(file_bytes).decode("utf-8")
-    now_ist = get_ist_now().strftime("%d-%b-%Y %I:%M %p IST")
     if not commit_message:
         commit_message = f"Automated Daily Library Backup — {now_ist}"
 
@@ -93,7 +103,6 @@ def push_database_to_github(commit_message=None) -> tuple[bool, str]:
         if r_put.status_code in (200, 201):
             res_data = r_put.json()
             commit_sha = res_data.get("commit", {}).get("sha", "")[:7]
-            today_str = get_ist_now().strftime("%Y-%m-%d")
 
             set_setting("github_last_backup_status", "Success")
             set_setting("github_last_backup_time", now_ist)
@@ -120,9 +129,13 @@ def check_and_run_daily_backup():
     if now.hour >= 18:  # 6:00 PM or later IST
         today_str = now.strftime("%Y-%m-%d")
         last_date = get_setting("github_last_backup_date", "")
-        if last_date != today_str:
-            print(f"[Auto-Backup] Local time is {now.strftime('%I:%M %p IST')}. Triggering scheduled 6:00 PM daily backup...")
-            ok, msg = push_database_to_github(f"Automated Daily Library Backup — {now.strftime('%d-%b-%Y')} (06:00 PM IST)")
-            print(f"[Auto-Backup] Result: {ok} -> {msg}")
-            return ok, msg
+        if last_date == today_str:
+            return None, "Already backed up today"
+
+        # Record date immediately to prevent concurrent worker race conditions
+        set_setting("github_last_backup_date", today_str)
+        print(f"[Auto-Backup] Local time is {now.strftime('%I:%M %p IST')}. Triggering scheduled 6:00 PM daily backup...")
+        ok, msg = push_database_to_github(f"Automated Daily Library Backup — {now.strftime('%d-%b-%Y')} (06:00 PM IST)")
+        print(f"[Auto-Backup] Result: {ok} -> {msg}")
+        return ok, msg
     return None, "Not yet 6:00 PM IST or already backed up today"
