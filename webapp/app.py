@@ -65,6 +65,7 @@ def inject_global_vars():
         "is_staff": is_staff,
         "lib_name": lib_name,
         "now_year": datetime.now().year,
+        "settings": get_all_settings(),
     }
 
 
@@ -1151,11 +1152,15 @@ def send_batch_barcode_emails():
 @app.route("/settings", methods=["GET", "POST"])
 def settings_page():
     if not require_staff():
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.is_json:
+            return jsonify({"success": False, "message": "Session expired. Please log in again."}), 401
         return redirect(url_for("staff_login", next=request.path))
     if request.method == "POST":
         for key, val in request.form.items():
             set_setting(key, val)
-        return jsonify({"success": True, "message": "Settings saved successfully!"})
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.is_json or request.accept_mimetypes.best == "application/json":
+            return jsonify({"success": True, "message": "Settings saved successfully!"})
+        return redirect(url_for("settings_page"))
     s = get_all_settings()
     return render_template("settings.html", settings=s)
 

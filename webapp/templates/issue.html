@@ -454,11 +454,15 @@ function initDates() {
  recalculateDueDate();
 }
 
+const STUDENT_LOAN_DAYS = parseInt("{{ settings.loan_period_student or 15 }}") || 15;
+const TEACHER_LOAN_DAYS = parseInt("{{ settings.loan_period_teacher or 30 }}") || 30;
+
 function recalculateDueDate() {
  const iss = document.getElementById('issueDate') ? document.getElementById('issueDate').value : '';
  if (!iss) return;
  const d = new Date(iss);
- const days = (patronData && patronData.patron_type === 'teacher') ? 30 : 15;
+ const isTeacher = patronData && (patronData.patron_type === 'teacher' || patronData.patron_type === 'faculty' || patronData.patron_type === 'staff');
+ const days = isTeacher ? TEACHER_LOAN_DAYS : STUDENT_LOAN_DAYS;
  d.setDate(d.getDate() + days);
  const dueInput = document.getElementById('dueDate');
  if (dueInput) dueInput.value = d.toISOString().split('T')[0];

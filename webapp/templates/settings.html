@@ -12,7 +12,7 @@
 
  <!-- Library Settings -->
  <div class="tab-pane active" id="tab-library">
- <form id="libraryForm">
+ <form id="libraryForm" onsubmit="saveLibrarySettings(event)">
  <div class="card" style="max-width:600px">
  <div class="card-title">Library Information</div>
  <div class="form-group"><label>Library Name</label>
@@ -30,7 +30,7 @@
  <div class="form-group"><label>Fine per Day (₹)</label>
  <input class="form-control" type="number" name="fine_per_day" value="{{ settings.fine_per_day }}" step="0.5" min="0"></div>
  <div style="margin-top:20px">
- <button type="button" class="btn btn-success" onclick="saveLibrarySettings()"><i class="fa fa-save"></i> Save Settings</button>
+ <button type="submit" id="btnSaveLibrary" class="btn btn-success"><i class="fa fa-save"></i> Save Settings</button>
  </div>
  </div>
  </form>
@@ -38,7 +38,7 @@
 
  <!-- Email Settings -->
  <div class="tab-pane" id="tab-email">
- <form id="emailForm">
+ <form id="emailForm" onsubmit="saveEmailSettings(event)">
  <div class="card" style="max-width:600px">
  <div class="card-title">Email Dispatch Configuration</div>
 
@@ -157,16 +157,39 @@ function toggleBrevoKey() {
  }
 }
 
-async function saveLibrarySettings() {
- const fd = new FormData(document.getElementById('libraryForm'));
- const res = await fetch('/settings', {method:'POST', body:fd}).then(r=>r.json());
- showToast(res.message, res.success ? 'success' : 'error');
+async function saveLibrarySettings(e) {
+ if (e && e.preventDefault) e.preventDefault();
+ const btn = document.getElementById('btnSaveLibrary');
+ const origHtml = btn ? btn.innerHTML : '';
+ if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Saving…'; }
+ try {
+  const fd = new FormData(document.getElementById('libraryForm'));
+  const res = await fetch('/settings', {
+   method: 'POST',
+   headers: {'X-Requested-With': 'XMLHttpRequest'},
+   body: fd
+  }).then(r => r.json());
+  showToast(res.message, res.success ? 'success' : 'error');
+ } catch (err) {
+  showToast('Error saving settings: ' + (err.message || err), 'error');
+ } finally {
+  if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
+ }
 }
 
-async function saveEmailSettings() {
+async function saveEmailSettings(e) {
+ if (e && e.preventDefault) e.preventDefault();
  const fd = new FormData(document.getElementById('emailForm'));
- const res = await fetch('/settings', {method:'POST', body:fd}).then(r=>r.json());
- showToast(res.message, res.success ? 'success' : 'error');
+ try {
+  const res = await fetch('/settings', {
+   method: 'POST',
+   headers: {'X-Requested-With': 'XMLHttpRequest'},
+   body: fd
+  }).then(r => r.json());
+  showToast(res.message, res.success ? 'success' : 'error');
+ } catch (err) {
+  showToast('Error saving email settings: ' + (err.message || err), 'error');
+ }
 }
 
 async function testEmail() {

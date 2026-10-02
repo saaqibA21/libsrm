@@ -478,8 +478,12 @@ def issue_book(book_id, patron_id, patron_type="student", issue_date=None, due_d
         if existing:
             return False, "Patron already has this book"
 
-        loan_key = "loan_period_teacher" if patron_type == "teacher" else "loan_period_student"
-        loan_days = int(conn.execute("SELECT value FROM settings WHERE key=?", (loan_key,)).fetchone()["value"])
+        loan_key = "loan_period_teacher" if patron_type in ("teacher", "faculty", "staff") else "loan_period_student"
+        val_row = conn.execute("SELECT value FROM settings WHERE key=?", (loan_key,)).fetchone()
+        try:
+            loan_days = int(val_row["value"]) if val_row and val_row["value"] else (30 if loan_key == "loan_period_teacher" else 15)
+        except (ValueError, TypeError):
+            loan_days = 30 if loan_key == "loan_period_teacher" else 15
 
         now_dt = datetime.now()
         if not issue_date:
