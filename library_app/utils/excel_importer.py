@@ -7,6 +7,7 @@ import zipfile
 import xml.etree.ElementTree as ET
 import openpyxl
 from pathlib import Path
+from library_app.database import normalize_edition
 
 
 def _clean(val):
@@ -54,7 +55,7 @@ def import_books_from_excel(filepath: str) -> tuple[list[dict], list[str]]:
 
             acc_num = _clean(row_dict.get("Account Number", "") or row_dict.get("ACCOUNT NUMBER", ""))
             publisher = _clean(row_dict.get("Publisher", "") or row_dict.get("PUBLISHER", ""))
-            edition = _clean(row_dict.get("Edition", "") or row_dict.get("EDITION", ""))
+            edition = normalize_edition(_clean(row_dict.get("Edition", "") or row_dict.get("EDITION", "")))
 
             # Collect authors
             author_cols = [k for k in header if "author" in k.lower()]

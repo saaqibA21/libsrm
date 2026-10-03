@@ -23,7 +23,7 @@ from library_app.database import (
     get_overdue_transactions, get_transaction_history, get_patron_history,
     get_dashboard_stats, get_most_borrowed_books, get_most_active_patrons,
     mark_fine_paid, search_book_borrow_stats, search_patron_borrow_stats,
-    search_transactions_by_date
+    search_transactions_by_date, normalize_edition
 )
 from library_app.utils.excel_importer import (
     import_books_from_excel, import_students_from_excel, import_staff_from_excel
@@ -33,6 +33,11 @@ app = Flask(__name__)
 app.secret_key = "srm-eee-library-secure-key-2026"
 
 initialize_db()
+
+
+@app.template_filter("format_edition")
+def format_edition_filter(val):
+    return normalize_edition(val)
 
 
 @app.route("/favicon.ico")

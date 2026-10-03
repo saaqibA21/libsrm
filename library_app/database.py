@@ -5,6 +5,7 @@ SQLite-based storage for books, patrons, transactions, settings
 
 import sqlite3
 import os
+import re
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -175,9 +176,92 @@ def get_all_settings():
     return res
 
 
+# ─── Edition Normalization ─────────────────────────────────────────────────────
+
+WORDS_TO_NUM = {
+    'first': 1, '1st': 1, '1': 1, 'one': 1,
+    'second': 2, '2nd': 2, '2': 2, 'secong': 2, 'two': 2,
+    'third': 3, '3rd': 3, '3': 3, 'three': 3,
+    'fourth': 4, '4th': 4, '4': 4, 'four': 4,
+    'fifth': 5, '5th': 5, '5': 5, 'five': 5, '5e': 5,
+    'sixth': 6, '6th': 6, '6': 6, 'six': 6,
+    'seventh': 7, '7th': 7, '7': 7, 'seven': 7,
+    'eighth': 8, '8th': 8, '8': 8, 'eight': 8,
+    'ninth': 9, '9th': 9, '9': 9, 'nineth': 9, 'nine': 9,
+    'tenth': 10, '10th': 10, '10': 10, 'ten': 10,
+    'eleventh': 11, '11th': 11, '11': 11,
+    'twelfth': 12, '12th': 12, '12': 12, 'twelveth': 12, 'twelth': 12,
+    'thirteenth': 13, '13th': 13, '13': 13, 'thirtenth': 13,
+    'fourteenth': 14, '14th': 14, '14': 14,
+    'fifteenth': 15, '15th': 15, '15': 15,
+    'sixteenth': 16, '16th': 16, '16': 16,
+    'seventeenth': 17, '17th': 17, '17': 17,
+    'eighteenth': 18, '18th': 18, '18': 18,
+    'nineteenth': 19, '19th': 19, '19': 19,
+    'twentieth': 20, '20th': 20, '20': 20,
+    'twenty first': 21, '21st': 21, '21': 21,
+    'twenty second': 22, 'twenty-second': 22, '22nd': 22, '22': 22,
+    'twenty third': 23, '23rd': 23, '23': 23,
+    'twenty fourth': 24, '24th': 24, '24': 24,
+    'twenty fifth': 25, '25th': 25, '25': 25,
+    'twenty sixth': 26, '26th': 26, '26': 26,
+    'twenty seven': 27, '27th': 27, '27': 27,
+}
+
+
+def ordinal(n):
+    if 11 <= (n % 100) <= 13:
+        suffix = 'th'
+    else:
+        suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')
+    return f"{n}{suffix}"
+
+
+def normalize_edition(raw):
+    """
+    Standardize edition names into a single clean format:
+    e.g. 'THIRD' / '3' -> '3rd Edition', 'SECOND' / '2' -> '2nd Edition',
+    'NIL' -> '', 'Revised' -> 'Revised Edition'.
+    """
+    if not raw:
+        return ""
+    s = str(raw).strip()
+    if s.upper() in ("NIL", "NONE", "NA", "N/A", "-", "NULL", "EMPTY"):
+        return ""
+    clean = s.lower().replace("-", " ").strip()
+    is_reprint = "reprint" in clean
+    core = clean.replace("edition", "").replace("reprint", "").replace("printing", "").strip()
+    if core in WORDS_TO_NUM:
+        n = WORDS_TO_NUM[core]
+        ord_str = ordinal(n)
+        return f"{ord_str} Reprint" if is_reprint else f"{ord_str} Edition"
+    m = re.match(r"^(\d+)(?:st|nd|rd|th)?(?:\s*(?:ed|edition|reprint))?$", clean, re.I)
+    if m:
+        n = int(m.group(1))
+        ord_str = ordinal(n)
+        return f"{ord_str} Reprint" if is_reprint else f"{ord_str} Edition"
+    if "revised" in clean:
+        return "Revised Edition"
+    if "international" in clean:
+        return "International Edition"
+    if "enhanced" in clean:
+        return "Enhanced Edition"
+    return s.title()
+
+
+def _format_book_dict(d):
+    """Ensure book dict has normalized edition and clean fields."""
+    if not d:
+        return d
+    if "edition" in d:
+        d["edition"] = normalize_edition(d.get("edition"))
+    return d
+
+
 # ─── Books ─────────────────────────────────────────────────────────────────────
 
 def add_book(barcode, title, publisher="", authors="", edition="", account_number=""):
+    edition = normalize_edition(edition)
     conn = get_connection()
     if not barcode:
         clean_acc = (account_number or "").strip()
@@ -199,6 +283,7 @@ def add_book(barcode, title, publisher="", authors="", edition="", account_numbe
 
 
 def update_book(book_id, title, publisher, authors, edition, account_number):
+    edition = normalize_edition(edition)
     conn = get_connection()
     conn.execute("""
         UPDATE books SET title=?, publisher=?, authors=?, edition=?, account_number=?
@@ -247,14 +332,14 @@ def get_book_by_barcode(barcode):
         """, (f"BK{clean}", stripped_bk, stripped_bk)).fetchone()
 
     conn.close()
-    return dict(row) if row else None
+    return _format_book_dict(dict(row)) if row else None
 
 
 def get_book_by_id(book_id):
     conn = get_connection()
     row = conn.execute("SELECT * FROM books WHERE id=?", (book_id,)).fetchone()
     conn.close()
-    return dict(row) if row else None
+    return _format_book_dict(dict(row)) if row else None
 
 
 def search_books(query="", status_filter=None):
@@ -271,7 +356,7 @@ def search_books(query="", status_filter=None):
     sql += " ORDER BY title"
     rows = conn.execute(sql, params).fetchall()
     conn.close()
-    return [dict(r) for r in rows]
+    return [_format_book_dict(dict(r)) for r in rows]
 
 
 def get_all_books():
@@ -285,7 +370,7 @@ def get_all_books():
             title
     """).fetchall()
     conn.close()
-    return [dict(r) for r in rows]
+    return [_format_book_dict(dict(r)) for r in rows]
 
 
 def count_books():
@@ -936,7 +1021,7 @@ def search_books_with_availability(query="", status_filter=None, limit=60, offse
             d["is_overdue"] = False
             d["availability_badge"] = "Available on Shelf"
             d["availability_class"] = "badge-success"
-        results.append(d)
+        results.append(_format_book_dict(d))
     return results
 
 
@@ -975,7 +1060,7 @@ def get_book_with_full_details(book_id):
         conn.close()
         return None
 
-    d = dict(book)
+    d = _format_book_dict(dict(book))
     exp = d.get("expected_available_date")
     now = datetime.now()
     if exp and d.get("status") == "issued":
