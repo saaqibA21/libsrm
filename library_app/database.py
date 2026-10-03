@@ -725,13 +725,16 @@ def get_transaction_history(limit=200):
 def get_patron_history(patron_id):
     conn = get_connection()
     rows = conn.execute("""
-        SELECT t.*, b.title as book_title, b.barcode as book_barcode
+        SELECT t.*, b.title as book_title, b.barcode as book_barcode, b.account_number as book_account_number
         FROM transactions t
         JOIN books b ON t.book_id = b.id
         WHERE t.patron_id=?
         ORDER BY t.id DESC
     """, (patron_id,)).fetchall()
     conn.close()
+    return [dict(r) for r in rows]
+
+
 def search_transactions_by_date(from_date=None, to_date=None, date_type="issue_date",
                                 query="", status="all", limit=500):
     """

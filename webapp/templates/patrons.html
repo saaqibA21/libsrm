@@ -164,7 +164,7 @@
  <div class="modal" style="max-width:700px">
  <div class="modal-header"><h3 id="historyTitle">Borrowing History</h3><button class="modal-close" onclick="closeModal('historyModal')">✕</button></div>
  <div class="table-wrap" style="max-height:400px;overflow-y:auto">
- <table><thead><tr><th>Book (Click to View Barcode)</th><th>Issue Date & Time</th><th>Due Date</th><th>Return Date & Time</th><th>Fine</th></tr></thead>
+ <table><thead><tr><th>Book (Click to View Barcode)</th><th>Status</th><th>Issue Date & Time</th><th>Due Date</th><th>Return Date & Time</th><th>Fine</th></tr></thead>
  <tbody id="historyTbody"></tbody></table>
  </div>
  </div>
@@ -330,23 +330,32 @@ async function deletePatron(id, name) {
 }
 
 async function viewHistory(id, name) {
- document.getElementById('historyTitle').textContent = `History: ${name}`;
+ document.getElementById('historyTitle').textContent = `Borrowing History: ${name}`;
  const data = await fetch(`/patrons/history/${id}`).then(r=>r.json());
  const tbody = document.getElementById('historyTbody');
  tbody.innerHTML = '';
- if (!data.history.length) { tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted)">No borrowing history</td></tr>'; }
- data.history.forEach(h => {
- const color = h.status==='issued' ? 'var(--info)' : 'var(--text)';
- tbody.innerHTML += `<tr style="color:${color}">
- <td>
- <a href="javascript:void(0)" onclick="showBookModal(${h.book_id})" style="color:var(--primary); font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:6px; cursor:pointer;" title="Click to view book barcode image & details">
- <i class="fa fa-barcode" style="font-size:12px;"></i> ${h.book_title}
- ${h.book_barcode ? `<span class="badge badge-outline" style="font-size:10px; font-weight:normal; margin-left:4px;">${h.book_barcode}</span>` : ''}
- </a>
- </td>
- <td>${h.issue_date}</td><td>${h.due_date}</td>
- <td>${h.return_date||'—'}</td><td>₹${(h.fine_amount||0).toFixed(2)}</td></tr>`;
- });
+ if (!data.history || !data.history.length) {
+  tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">No borrowing history found</td></tr>';
+ } else {
+  data.history.forEach(h => {
+   const isIssued = h.status === 'issued';
+   const badge = isIssued
+    ? '<span class="badge badge-warning" style="font-size:10.5px; padding:3px 8px;"><i class="fa fa-clock"></i> Active Borrow</span>'
+    : '<span class="badge badge-success" style="font-size:10.5px; padding:3px 8px;"><i class="fa fa-check"></i> Returned</span>';
+   tbody.innerHTML += `<tr>
+   <td>
+   <a href="javascript:void(0)" onclick="showBookModal(${h.book_id})" style="color:var(--primary); font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:6px; cursor:pointer;" title="Click to view book barcode image & details">
+   <i class="fa fa-barcode" style="font-size:12px;"></i> ${h.book_title}
+   ${h.book_barcode ? `<span class="badge badge-outline" style="font-size:10px; font-weight:normal; margin-left:4px;">${h.book_barcode}</span>` : ''}
+   </a>
+   </td>
+   <td>${badge}</td>
+   <td>${h.issue_date}</td>
+   <td>${h.due_date}</td>
+   <td>${h.return_date || '<span class="text-muted">—</span>'}</td>
+   <td>₹${(h.fine_amount||0).toFixed(2)}</td></tr>`;
+  });
+ }
  openModal('historyModal');
 }
 
