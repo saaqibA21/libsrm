@@ -1265,6 +1265,31 @@ def save_github_settings():
     return jsonify({"success": True, "message": "GitHub backup settings saved successfully!"})
 
 
+# ─── Promotional Library Poster (Printable A4) ──────────────────────────────────
+
+@app.route("/poster")
+def library_poster():
+    """Interactive print-ready A4 poster with live QR code matching website theme."""
+    custom_url = request.args.get("url", "").strip()
+    default_url = custom_url or os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("APP_URL") or request.host_url.rstrip("/")
+    return render_template("poster.html", default_url=default_url)
+
+
+@app.route("/api/poster/download")
+def download_poster_pdf():
+    """Generates and downloads a vector-crisp A4 promotional poster PDF."""
+    from library_app.utils.poster_generator import build_poster_pdf
+    custom_url = request.args.get("url", "").strip()
+    target_url = custom_url or os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("APP_URL") or request.host_url.rstrip("/")
+    pdf_bytes = build_poster_pdf(target_url)
+    return send_file(
+        io.BytesIO(pdf_bytes),
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name="srm_eee_library_poster.pdf"
+    )
+
+
 if __name__ == "__main__":
     # Bind to 0.0.0.0 so other laptops, phones, and tablets on the network can access it
     print("=" * 60)

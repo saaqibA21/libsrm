@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Official Library Poster — SRM EEE Department Library</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- QRCode.js for client-side instant re-rendering -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <style>
+    :root {
+      --primary: #1C3022;
+      --primary-dark: #122116;
+      --accent: #48634E;
+      --accent-light: #EBF2E9;
+      --accent-text: #26432D;
+      --bg: #F4F6F1;
+      --card: #FFFFFF;
+      --text: #17241A;
+      --muted: #57685A;
+      --border: #DCE5D8;
+      --gold: #D97706;
+      --gold-bg: #FEF3C7;
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    body {
+      background: #E2E8F0;
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 60px;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Controls Header Bar (Screen Only) ── */
+    .controls-bar {
+      width: 100%;
+      max-width: 840px;
+      background: #FFFFFF;
+      border: 1px solid #CBD5E1;
+      border-radius: 16px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 14px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.06);
+    }
+
+    .controls-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 18px;
+      border-radius: 10px;
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.18s;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #FFFFFF;
+    }
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    .btn-outline {
+      background: #FFFFFF;
+      color: var(--primary);
+      border: 1.5px solid var(--primary);
+    }
+    .btn-outline:hover {
+      background: var(--accent-light);
+    }
+
+    .btn-back {
+      background: #F1F5F9;
+      color: #334155;
+    }
+    .btn-back:hover {
+      background: #E2E8F0;
+    }
+
+    .url-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      min-width: 280px;
+    }
+    .url-input-wrap label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #475569;
+      white-space: nowrap;
+    }
+    .url-input {
+      flex: 1;
+      padding: 8px 12px;
+      font-size: 13px;
+      border: 1.5px solid #CBD5E1;
+      border-radius: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      color: #0F172A;
+    }
+    .url-input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    /* ── The A4 Poster Sheet ── */
+    .poster-sheet {
+      width: 794px; /* Standard A4 at 96 DPI: 210mm */
+      min-height: 1123px; /* Standard A4 at 96 DPI: 297mm */
+      background: #FFFFFF;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.18);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid #CBD5E1;
+      padding: 0;
+    }
+
+    /* ── Top University Header ── */
+    .poster-header {
+      padding: 24px 34px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #EDF2EA;
+      background: #FFFFFF;
+    }
+    .poster-header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .poster-logo {
+      width: 58px;
+      height: 58px;
+      object-fit: contain;
+    }
+    .univ-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--primary);
+      line-height: 1.1;
+      letter-spacing: -0.01em;
+    }
+    .univ-subtitle {
+      font-size: 10px;
+      font-weight: 800;
+      color: #334155;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 2px;
+    }
+    .univ-deemed {
+      font-size: 8px;
+      color: #64748B;
+      margin-top: 1px;
+    }
+    .poster-header-divider {
+      width: 1.5px;
+      height: 48px;
+      background: #E2E8F0;
+      margin: 0 18px;
+    }
+    .poster-dept {
+      text-align: right;
+    }
+    .dept-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .dept-sub {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    /* ── Hero Dark Forest Green Banner ── */
+    .poster-hero {
+      background: var(--primary);
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(72,99,78,0.3) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(72,99,78,0.25) 0%, transparent 40%);
+      color: #FFFFFF;
+      padding: 30px 32px 38px;
+      text-align: center;
+      position: relative;
+    }
+    .hero-pretitle {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.22);
+      padding: 5px 14px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #E2E8F0;
+      margin-bottom: 12px;
+    }
+    .hero-main-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 34px;
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      color: #FFFFFF;
+      text-transform: uppercase;
+    }
+    .hero-sub-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 24px;
+      font-weight: 800;
+      color: #86EFAC;
+      letter-spacing: 1.5px;
+      margin-top: 4px;
+      text-transform: uppercase;
+    }
+    .hero-url-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      background: #FFFFFF;
+      color: var(--primary);
+      padding: 7px 18px;
+      border-radius: 999px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13.5px;
+      font-weight: 700;
+      margin-top: 14px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+    }
+    .hero-url-pill i {
+      color: #166534;
+      font-size: 12px;
+    }
+
+    /* ── Middle QR Section ── */
+    .poster-qr-section {
+      padding: 0 34px;
+      margin-top: -24px;
+      position: relative;
+      z-index: 10;
+      display: flex;
+      justify-content: center;
+    }
+    .qr-card-container {
+      position: relative;
+    }
+    .qr-card {
+      background: #FFFFFF;
+      border: 2px solid #CBD5E1;
+      border-radius: 20px;
+      padding: 20px 24px 16px;
+      text-align: center;
+      box-shadow: 0 12px 32px rgba(28,48,34,0.12);
+      width: 250px;
+    }
+    .qr-frame {
+      position: relative;
+      padding: 10px;
+      display: inline-block;
+    }
+    #qrcode {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    #qrcode img, #qrcode canvas {
+      border-radius: 8px;
+    }
+
+    /* Scan Corner Brackets */
+    .scan-bracket {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-color: var(--primary);
+      border-width: 3.5px;
+    }
+    .b-tl { top: 0; left: 0; border-top-style: solid; border-left-style: solid; }
+    .b-tr { top: 0; right: 0; border-top-style: solid; border-right-style: solid; }
+    .b-bl { bottom: 0; left: 0; border-bottom-style: solid; border-left-style: solid; }
+    .b-br { bottom: 0; right: 0; border-bottom-style: solid; border-right-style: solid; }
+
+    .qr-caption {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--primary);
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Floating Circular Badge */
+    .qr-setup-badge {
+      position: absolute;
+      top: 50%;
+      right: -36px;
+      transform: translateY(-50%);
+      width: 74px;
+      height: 74px;
+      background: var(--primary);
+      border: 3.5px solid #FFFFFF;
+      border-radius: 50%;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      text-align: center;
+      line-height: 1.1;
+    }
+    .qr-setup-badge .badge-num {
+      font-size: 20px;
+      font-weight: 900;
+      color: #86EFAC;
+    }
+    .qr-setup-badge .badge-txt {
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    /* ── Student Barcode Callout Banner ── */
+    .barcode-callout-banner {
+      margin: 18px 34px 16px;
+      background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%);
+      border: 2px solid #86EFAC;
+      border-radius: 16px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      position: relative;
+      box-shadow: 0 4px 14px rgba(22,101,52,0.08);
+    }
+    .barcode-icon-box {
+      width: 52px;
+      height: 52px;
+      background: var(--primary);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #86EFAC;
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+    .barcode-text h3 {
+      font-size: 14.5px;
+      font-weight: 800;
+      color: #14532D;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      margin-bottom: 3px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .barcode-text p {
+      font-size: 11.5px;
+      color: #166534;
+      line-height: 1.45;
+      font-weight: 500;
+    }
+    .barcode-tag {
+      background: #14532D;
+      color: #FFFFFF;
+      font-size: 9.5px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── 5 Step Instructions ── */
+    .steps-section {
+      padding: 0 34px;
+      flex: 1;
+    }
+    .step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 11px 0;
+      border-bottom: 1px dashed #E2E8F0;
+    }
+    .step-item:last-child {
+      border-bottom: none;
+    }
+    .step-num-bubble {
+      width: 32px;
+      height: 32px;
+      background: var(--primary);
+      color: #FFFFFF;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 800;
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(28,48,34,0.18);
+    }
+    .step-content {
+      flex: 1;
+    }
+    .step-title {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      margin-bottom: 1px;
+    }
+    .step-desc {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.4;
+      font-weight: 500;
+    }
+
+    /* ── Help Strip ── */
+    .help-strip {
+      margin: 10px 34px 18px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11.5px;
+    }
+    .help-strip-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .help-q-icon {
+      width: 22px;
+      height: 22px;
+      background: var(--primary);
+      color: #FFFFFF;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .help-strip-left strong {
+      color: var(--primary);
+      font-weight: 800;
+    }
+    .help-strip-right {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    /* ── Bottom Dark Forest Footer ── */
+    .poster-footer {
+      background: var(--primary);
+      color: #FFFFFF;
+      padding: 16px 34px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 3px solid #86EFAC;
+    }
+    .footer-left h4 {
+      font-size: 13.5px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .footer-left p {
+      font-size: 10.5px;
+      color: #86EFAC;
+      font-weight: 600;
+      margin-top: 1px;
+    }
+    .footer-left .tagline {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-style: italic;
+      font-size: 10px;
+      color: #CBD5E1;
+      margin-top: 2px;
+    }
+    .footer-divider {
+      width: 1px;
+      height: 38px;
+      background: rgba(255,255,255,0.2);
+      margin: 0 20px;
+    }
+    .footer-right {
+      text-align: right;
+    }
+    .footer-right .hours-title {
+      font-size: 11px;
+      font-weight: 800;
+      color: #FFFFFF;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+      margin-bottom: 2px;
+    }
+    .footer-right .hours-val {
+      font-size: 10px;
+      color: #E2E8F0;
+      line-height: 1.4;
+    }
+    .footer-right .hours-closed {
+      font-size: 9px;
+      color: #94A3B8;
+    }
+
+    /* ── Print Setup (Ctrl+P / window.print()) ── */
+    @page {
+      size: A4 portrait;
+      margin: 0;
+    }
+
+    @media print {
+      body {
+        background: transparent !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        display: block !important;
+      }
+      .controls-bar {
+        display: none !important;
+      }
+      .poster-sheet {
+        width: 100vw !important;
+        height: 100vh !important;
+        max-width: 100% !important;
+        max-height: 100% !important;
+        box-shadow: none !important;
+        border: none !important;
+        border-radius: 0 !important;
+        page-break-after: avoid !important;
+        page-break-inside: avoid !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Controls Header Bar (Hidden during printing) -->
+  <div class="controls-bar">
+    <div class="controls-left">
+      <a href="/dashboard" class="btn btn-back"><i class="fa fa-arrow-left"></i> Staff Desk</a>
+      <button type="button" class="btn btn-primary" onclick="window.print()">
+        <i class="fa fa-print"></i> Print Poster (A4)
+      </button>
+      <a href="/api/poster/download" id="btnDownloadPdf" class="btn btn-outline">
+        <i class="fa fa-file-pdf"></i> Download High-Res PDF
+      </a>
+    </div>
+
+    <div class="url-input-wrap">
+      <label><i class="fa fa-link"></i> Website URL for QR:</label>
+      <input type="text" id="targetUrlInput" class="url-input" value="{{ default_url }}" oninput="updateQrCode()">
+    </div>
+  </div>
+
+  <!-- The Printable A4 Poster Sheet -->
+  <div class="poster-sheet" id="posterSheet">
+
+    <!-- 1. Institutional Header -->
+    <header class="poster-header">
+      <div class="poster-header-left">
+        <img src="{{ url_for('static', filename='images/srm_logo.png') }}" alt="SRM Seal" class="poster-logo">
+        <div>
+          <div class="univ-title">SRM</div>
+          <div class="univ-subtitle">Institute of Science & Technology</div>
+          <div class="univ-deemed">(Deemed to be University u/s 3 of UGC Act, 1956)</div>
+        </div>
+      </div>
+      <div class="poster-header-divider"></div>
+      <div class="poster-dept">
+        <div class="dept-title">EEE Department</div>
+        <div class="dept-sub">Department Library</div>
+      </div>
+    </header>
+
+    <!-- 2. Dark Forest Green Hero Banner -->
+    <div class="poster-hero">
+      <div class="hero-pretitle">
+        <i class="fa fa-book-bookmark"></i> Official Department Portal
+      </div>
+      <h1 class="hero-main-title">Access Our Digital Library —</h1>
+      <h2 class="hero-sub-title">Scan & Get Started</h2>
+      
+      <div class="hero-url-pill">
+        <i class="fa fa-globe"></i>
+        <span id="displayUrlText">{{ default_url.replace('https://','').replace('http://','').rstrip('/') }}</span>
+      </div>
+    </div>
+
+    <!-- 3. Overlapping QR Code Card -->
+    <div class="poster-qr-section">
+      <div class="qr-card-container">
+        <div class="qr-card">
+          <div class="qr-frame">
+            <div class="scan-bracket b-tl"></div>
+            <div class="scan-bracket b-tr"></div>
+            <div class="scan-bracket b-bl"></div>
+            <div class="scan-bracket b-br"></div>
+            <div id="qrcode"></div>
+          </div>
+          <div class="qr-caption">
+            <i class="fa fa-camera"></i> Scan with your phone camera
+          </div>
+        </div>
+
+        <div class="qr-setup-badge">
+          <span class="badge-num"><i class="fa fa-bolt" style="font-size:16px;"></i></span>
+          <span class="badge-txt">Instant<br>Access</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Prominent Digital Barcode Notice for Students -->
+    <div class="barcode-callout-banner">
+      <div class="barcode-icon-box">
+        <i class="fa fa-barcode"></i>
+      </div>
+      <div class="barcode-text">
+        <h3>
+          <i class="fa fa-envelope-circle-check"></i> Digital Barcode Card Sent to Student Emails
+          <span class="barcode-tag">Important</span>
+        </h3>
+        <p>
+          Your official <strong>Digital Library Barcode Card</strong> has been delivered to your registered SRM email. 
+          Simply <strong>save or screenshot the barcode on your phone</strong> and present it at the library desk for <strong>instant 5-second book checkout</strong>!
+        </p>
+      </div>
+    </div>
+
+    <!-- 5. Step-by-Step Instructions -->
+    <div class="steps-section">
+
+      <div class="step-item">
+        <div class="step-num-bubble">1</div>
+        <div class="step-content">
+          <div class="step-title">Scan QR Code or Open Website</div>
+          <div class="step-desc">Open the digital library portal on your mobile, tablet, or laptop. No mobile app download required.</div>
+        </div>
+      </div>
+
+      <div class="step-item">
+        <div class="step-num-bubble">2</div>
+        <div class="step-content">
+          <div class="step-title">Browse 2,100+ Books & GATE Materials</div>
+          <div class="step-desc">Instant search across textbooks, author names, course codes, syllabus materials, and department reference copies.</div>
+        </div>
+      </div>
+
+      <div class="step-item">
+        <div class="step-num-bubble">3</div>
+        <div class="step-content">
+          <div class="step-title">Check Live Shelf Availability 24/7</div>
+          <div class="step-desc">See real-time shelf status, copies available, and exact expected return dates before walking into the library.</div>
+        </div>
+      </div>
+
+      <div class="step-item">
+        <div class="step-num-bubble">4</div>
+        <div class="step-content">
+          <div class="step-title">Track Your Active Loans & Due Dates</div>
+          <div class="step-desc">Tap <strong>"Check My Books"</strong> and enter your Register Number to see currently borrowed books, due dates, and fine status.</div>
+        </div>
+      </div>
+
+      <div class="step-item">
+        <div class="step-num-bubble">5</div>
+        <div class="step-content">
+          <div class="step-title">Quick Issue at Librarian Desk</div>
+          <div class="step-desc">Show your emailed barcode or student register number at the counter for immediate barcode-scanned book checkout.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 6. Help Info Strip -->
+    <div class="help-strip">
+      <div class="help-strip-left">
+        <div class="help-q-icon">?</div>
+        <div><strong>Need Help or Book Reservation?</strong> Ask the librarian at the desk or check rules under <code>/info</code>.</div>
+      </div>
+      <div class="help-strip-right" id="footerUrlDisplay">
+        {{ default_url.replace('https://','').replace('http://','').rstrip('/') }}
+      </div>
+    </div>
+
+    <!-- 7. Institutional Footer Bar -->
+    <footer class="poster-footer">
+      <div class="footer-left">
+        <h4>EEE Department Library</h4>
+        <p>SRM Institute of Science and Technology</p>
+        <div class="tagline">Knowledge Drives Innovation</div>
+      </div>
+      <div class="footer-divider"></div>
+      <div class="footer-right">
+        <div class="hours-title"><i class="fa fa-clock"></i> Library Working Hours</div>
+        <div class="hours-val">Monday – Friday: 8:30 AM – 5:00 PM</div>
+        <div class="hours-val">Saturday: 9:00 AM – 1:00 PM</div>
+        <div class="hours-closed">Closed on Sundays & University Holidays</div>
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    let qrInstance = null;
+
+    function updateQrCode() {
+      const input = document.getElementById('targetUrlInput');
+      let url = input ? input.value.trim() : '';
+      if (!url) {
+        url = window.location.origin;
+      }
+
+      // Update text displays
+      const cleanUrl = url.replace('https://','').replace('http://','').replace(/\/$/, '');
+      document.getElementById('displayUrlText').textContent = cleanUrl;
+      document.getElementById('footerUrlDisplay').textContent = cleanUrl;
+
+      // Update download PDF link with current url query param
+      const btnPdf = document.getElementById('btnDownloadPdf');
+      if (btnPdf) {
+        btnPdf.href = `/api/poster/download?url=${encodeURIComponent(url)}`;
+      }
+
+      // Re-generate QR Code
+      const qrContainer = document.getElementById('qrcode');
+      qrContainer.innerHTML = '';
+      qrInstance = new QRCode(qrContainer, {
+        text: url,
+        width: 140,
+        height: 140,
+        colorDark: "#1C3022",
+        colorLight: "#FFFFFF",
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    }
+
+    // Initialize on load
+    window.addEventListener('DOMContentLoaded', () => {
+      updateQrCode();
+    });
+  </script>
+</body>
+</html>

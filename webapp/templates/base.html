@@ -918,6 +918,9 @@ tbody tr:last-child {
  <a href="/info" class="nav-item {% if request.path == '/info' %}active{% endif %}">
  <i class="fa fa-circle-info"></i><span>Rules & Timings</span>
  </a>
+ <a href="/poster" class="nav-item {% if request.path == '/poster' %}active{% endif %}" target="_blank">
+ <i class="fa fa-qrcode"></i><span>Library Poster</span>
+ </a>
 
  {% if is_staff %}
  <div class="nav-heading" style="margin-top:10px;">Librarian Desk</div>
@@ -938,6 +941,9 @@ tbody tr:last-child {
  </a>
  <a href="/reports" class="nav-item {% if request.path == '/reports' %}active{% endif %}">
  <i class="fa fa-chart-pie"></i><span>Reports & Overdue</span>
+ </a>
+ <a href="/poster" class="nav-item {% if request.path == '/poster' %}active{% endif %}" target="_blank">
+ <i class="fa fa-print"></i><span>QR Poster (Print A4)</span>
  </a>
  <a href="/settings" class="nav-item {% if request.path == '/settings' %}active{% endif %}">
  <i class="fa fa-sliders"></i><span>Settings</span>
