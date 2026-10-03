@@ -1,62 +1,141 @@
 {% extends "base.html" %}
-{% block title %}Rules & Timings — SRM EEE Library{% endblock %}
-{% block page_title %}Rules & Information{% endblock %}
+{% block title %}Rules, Timings & In-charges — SRM EEE Library{% endblock %}
+{% block page_title %}Rules & In-Charges{% endblock %}
 {% block content %}
 
-<div style="max-width: 860px; margin: 0 auto;">
- <!-- Header -->
- <div style="background: linear-gradient(135deg, #E6EFE4 0%, #D8E5D5 100%); border: 1px solid #D1E0CE; border-radius: 24px; padding: 26px 32px; margin-bottom: 24px; display:flex; align-items:center; gap:20px;">
- <img src="{{ url_for('static', filename='images/srm_logo.png') }}" alt="SRM Seal" style="width:68px; height:68px; object-fit:contain; border-radius:50%; flex-shrink:0; box-shadow:0 3px 10px rgba(0,0,0,0.12);">
- <div>
- <h1 class="serif-heading" style="font-size: 26px; color: #16291C; margin-bottom: 6px;">
- SRM EEE Department <em>Library Guidelines</em>
- </h1>
- <p style="font-size: 13px; color: #435A48; line-height: 1.5; margin:0;">
- Information on circulation policies, borrowing periods, overdue fines, and how to access the digital catalog from any mobile or laptop on the college network.
- </p>
- </div>
- </div>
+<div style="max-width: 880px; margin: 0 auto;">
+  <!-- Header -->
+  <div style="background: linear-gradient(135deg, #E6EFE4 0%, #D8E5D5 100%); border: 1px solid #D1E0CE; border-radius: 24px; padding: 26px 32px; margin-bottom: 24px; display:flex; align-items:center; gap:20px; box-shadow: var(--shadow-sm);">
+    <img src="{{ url_for('static', filename='images/srm_logo.png') }}" alt="SRM Seal" style="width:68px; height:68px; object-fit:contain; border-radius:50%; flex-shrink:0; box-shadow:0 3px 10px rgba(0,0,0,0.12);">
+    <div>
+      <h1 class="serif-heading" style="font-size: 26px; color: #16291C; margin-bottom: 6px;">
+        SRM EEE Department <em>Library Guidelines & In-charges</em>
+      </h1>
+      <p style="font-size: 13px; color: #435A48; line-height: 1.5; margin:0;">
+        Information on library administration, faculty in-charges, circulation policies, borrowing periods, overdue fines, and digital catalog access.
+      </p>
+    </div>
+  </div>
 
- <div class="two-col" style="margin-bottom: 24px;">
- <div class="card" style="border-radius: 18px;">
- <div class="card-title"><i class="fa fa-clock" style="color:var(--accent);"></i> Working Hours</div>
- <div class="info-card">
- <div class="info-row"><span class="lbl">Monday – Friday</span><span class="val">8:30 AM – 5:00 PM</span></div>
- <div class="info-row"><span class="lbl">Saturday</span><span class="val">9:00 AM – 1:00 PM</span></div>
- <div class="info-row"><span class="lbl">Sunday & Holidays</span><span class="val" style="color:var(--muted);">Closed</span></div>
- <div class="info-row"><span class="lbl">Location</span><span class="val">Department of EEE, SRMIST</span></div>
- </div>
- </div>
+  <!-- Library In-Charges Section -->
+  <div class="card" style="border-radius: 20px; margin-bottom: 24px;">
+    <div class="card-title" style="margin-bottom: 18px; display:flex; align-items:center; gap:8px;">
+      <i class="fa fa-user-tie" style="color:var(--accent);"></i>
+      <span>Department Library In-Charges</span>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 18px; margin-bottom: 20px;">
+      <!-- Dr. K. Saravanan -->
+      <div style="background: var(--card2); border: 1px solid var(--border); border-radius: 16px; padding: 20px; display: flex; gap: 18px; align-items: center; transition: all 0.2s ease;">
+        <img src="{{ url_for('static', filename='images/dr_saravanan_headshot.jpg') }}" alt="Dr. K. Saravanan" style="width: 90px; height: 110px; object-fit: cover; border-radius: 12px; border: 2px solid #FFFFFF; box-shadow: 0 4px 14px rgba(0,0,0,0.1); flex-shrink: 0;">
+        <div style="min-width: 0;">
+          <span style="display: inline-block; background: #E6EFE4; color: #166534; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 8px; border-radius: 6px; margin-bottom: 6px;">
+            Faculty In-Charge
+          </span>
+          <h3 class="serif-heading" style="font-size: 17px; color: var(--text); margin-bottom: 3px; line-height: 1.25;">
+            Dr. K. Saravanan
+          </h3>
+          <div style="font-size: 13px; font-weight: 600; color: var(--accent); margin-bottom: 3px;">
+            Associate Professor
+          </div>
+          <div style="font-size: 12px; color: var(--muted); line-height: 1.4;">
+            EEE Department, SRMIST
+          </div>
+          <div style="margin-top: 10px;">
+            <a href="mailto:Saravank3@srmist.edu.in" style="display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--primary); text-decoration: none; font-weight: 600; word-break: break-all;">
+              <i class="fa fa-envelope" style="color: var(--accent);"></i> Saravank3@srmist.edu.in
+            </a>
+          </div>
+        </div>
+      </div>
 
- <div class="card" style="border-radius: 18px;">
- <div class="card-title"><i class="fa fa-scale-balanced" style="color:var(--accent);"></i> Lending Policy</div>
- <div class="info-card">
- <div class="info-row"><span class="lbl">Undergraduate (B.Tech)</span><span class="val">{{ settings.loan_period_student }} Days (Max 3 Books)</span></div>
- <div class="info-row"><span class="lbl">Faculty & Staff</span><span class="val">{{ settings.loan_period_teacher }} Days (Max 5 Books)</span></div>
- <div class="info-row"><span class="lbl">Overdue Fine</span><span class="val" style="color:var(--danger); font-weight:700;">₹{{ settings.fine_per_day }} per day</span></div>
- <div class="info-row"><span class="lbl">Renewal</span><span class="val">Permitted once if no active reservation</span></div>
- </div>
- </div>
- </div>
+      <!-- Ms. Gomathy Lakshmi K -->
+      <div style="background: var(--card2); border: 1px solid var(--border); border-radius: 16px; padding: 20px; display: flex; gap: 18px; align-items: center; transition: all 0.2s ease;">
+        <img src="{{ url_for('static', filename='images/gomathy_lakshmi_headshot.jpg') }}" alt="Ms. Gomathy Lakshmi K" style="width: 90px; height: 110px; object-fit: cover; border-radius: 12px; border: 2px solid #FFFFFF; box-shadow: 0 4px 14px rgba(0,0,0,0.1); flex-shrink: 0;">
+        <div style="min-width: 0;">
+          <span style="display: inline-block; background: #E6EFE4; color: #166534; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 8px; border-radius: 6px; margin-bottom: 6px;">
+            Teaching Assistant
+          </span>
+          <h3 class="serif-heading" style="font-size: 17px; color: var(--text); margin-bottom: 3px; line-height: 1.25;">
+            Ms. Gomathy Lakshmi K
+          </h3>
+          <div style="font-size: 13px; font-weight: 600; color: var(--accent); margin-bottom: 3px;">
+            Teaching Assistant
+          </div>
+          <div style="font-size: 12px; color: var(--muted); line-height: 1.4;">
+            EEE Department, SRMIST
+          </div>
+          <div style="margin-top: 10px; font-size: 11.5px; color: var(--muted-light); display: inline-flex; align-items: center; gap: 5px;">
+            <i class="fa fa-building-columns"></i> Kattankulathur Campus
+          </div>
+        </div>
+      </div>
+    </div>
 
- <div class="card" style="border-radius: 18px; margin-bottom: 24px;">
- <div class="card-title"><i class="fa fa-globe" style="color:var(--accent);"></i> Accessing the Digital Catalog</div>
- <p style="font-size: 13.5px; color: var(--muted); line-height: 1.6; margin-bottom: 14px;">
- Students and faculty can browse the department catalog, check live availability, and track return due dates 24/7 from any device:
- </p>
+    <!-- Feedback / Compliment / Suggestion Box -->
+    <div style="background: linear-gradient(135deg, #F0FDF4 0%, #E6F4EA 100%); border: 1px solid #86EFAC; border-radius: 14px; padding: 18px 22px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+      <div style="max-width: 540px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+          <span style="width: 28px; height: 28px; border-radius: 50%; background: #166534; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0;">
+            <i class="fa fa-comment-dots"></i>
+          </span>
+          <span style="font-size: 14px; font-weight: 700; color: #166534;">Feedback / Compliments / Suggestions</span>
+        </div>
+        <p style="font-size: 12.5px; color: #1F452A; line-height: 1.5; margin: 0;">
+          Your feedback, compliments, and suggestions can be sent directly to our library in-charge: <strong>Saravank3@srmist.edu.in</strong>
+        </p>
+      </div>
+      <div>
+        <a href="mailto:Saravank3@srmist.edu.in?subject=SRM%20EEE%20Library%20Feedback%20/%20Suggestion" class="btn btn-primary" style="padding: 10px 18px; font-size: 12.5px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+          <i class="fa fa-paper-plane"></i> Send Feedback
+        </a>
+      </div>
+    </div>
+  </div>
 
- <div style="background: var(--card2); border: 1px solid var(--border); border-radius: 14px; padding: 18px 22px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
- <div>
- <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--muted);">Digital Library Web Portal</div>
- <div style="font-size: 17px; font-weight: 700; color: var(--primary); font-family: 'Consolas', monospace; margin-top: 2px;">
- {{ request.host_url.rstrip('/') }}
- </div>
- </div>
- <span class="badge badge-success" style="font-size: 12px; padding: 6px 14px;"><i class="fa fa-circle-check"></i> Live 24/7</span>
- </div>
+  <!-- Timings & Policies -->
+  <div class="two-col" style="margin-bottom: 24px;">
+    <div class="card" style="border-radius: 18px;">
+      <div class="card-title"><i class="fa fa-clock" style="color:var(--accent);"></i> Working Hours</div>
+      <div class="info-card">
+        <div class="info-row"><span class="lbl">Monday – Friday</span><span class="val">8:30 AM – 5:00 PM</span></div>
+        <div class="info-row"><span class="lbl">Saturday</span><span class="val">9:00 AM – 1:00 PM</span></div>
+        <div class="info-row"><span class="lbl">Sunday & Holidays</span><span class="val" style="color:var(--muted);">Closed</span></div>
+        <div class="info-row"><span class="lbl">Location</span><span class="val">Department of EEE, SRMIST</span></div>
+      </div>
+    </div>
 
- <p style="font-size: 12px; color: var(--muted); margin-top: 14px; line-height: 1.5;">
- Open this URL on your phone, tablet, or laptop to search by textbook title, author, or accession number, or check your borrowed books.
- </p>
- </div>
-</div>{% endblock %}
+    <div class="card" style="border-radius: 18px;">
+      <div class="card-title"><i class="fa fa-scale-balanced" style="color:var(--accent);"></i> Lending Policy</div>
+      <div class="info-card">
+        <div class="info-row"><span class="lbl">Undergraduate (B.Tech)</span><span class="val">{{ settings.loan_period_student }} Days (Max 3 Books)</span></div>
+        <div class="info-row"><span class="lbl">Faculty & Staff</span><span class="val">{{ settings.loan_period_teacher }} Days (Max 5 Books)</span></div>
+        <div class="info-row"><span class="lbl">Overdue Fine</span><span class="val" style="color:var(--danger); font-weight:700;">₹{{ settings.fine_per_day }} per day</span></div>
+        <div class="info-row"><span class="lbl">Renewal</span><span class="val">Permitted once if no active reservation</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Accessing the Digital Catalog -->
+  <div class="card" style="border-radius: 18px; margin-bottom: 24px;">
+    <div class="card-title"><i class="fa fa-globe" style="color:var(--accent);"></i> Accessing the Digital Catalog</div>
+    <p style="font-size: 13.5px; color: var(--muted); line-height: 1.6; margin-bottom: 14px;">
+      Students and faculty can browse the department catalog, check live availability, and track return due dates 24/7 from any device:
+    </p>
+
+    <div style="background: var(--card2); border: 1px solid var(--border); border-radius: 14px; padding: 18px 22px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
+      <div>
+        <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--muted);">Digital Library Web Portal</div>
+        <div style="font-size: 17px; font-weight: 700; color: var(--primary); font-family: 'Consolas', monospace; margin-top: 2px;">
+          {{ request.host_url.rstrip('/') }}
+        </div>
+      </div>
+      <span class="badge badge-success" style="font-size: 12px; padding: 6px 14px;"><i class="fa fa-circle-check"></i> Live 24/7</span>
+    </div>
+
+    <p style="font-size: 12px; color: var(--muted); margin-top: 14px; line-height: 1.5;">
+      Open this URL on your phone, tablet, or laptop to search by textbook title, author, or accession number, or check your borrowed books.
+    </p>
+  </div>
+</div>
+{% endblock %}
