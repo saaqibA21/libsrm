@@ -904,7 +904,7 @@ def get_most_active_patrons(limit=10):
 
 
 def search_book_borrow_stats(query="", limit=50):
-    """Search how many times each book has been borrowed and its circulation status."""
+    """Search how many times each book has been borrowed, who borrowed it, and its circulation status."""
     conn = get_connection()
     q = f"%{query}%"
     sql = """
@@ -914,7 +914,10 @@ def search_book_borrow_stats(query="", limit=50):
                (SELECT p.name FROM transactions t2 JOIN patrons p ON t2.patron_id = p.id 
                 WHERE t2.book_id = b.id AND t2.status = 'issued' LIMIT 1) as current_borrower,
                (SELECT t2.due_date FROM transactions t2 
-                WHERE t2.book_id = b.id AND t2.status = 'issued' LIMIT 1) as current_due_date
+                WHERE t2.book_id = b.id AND t2.status = 'issued' LIMIT 1) as current_due_date,
+               (SELECT GROUP_CONCAT(DISTINCT p.name || CASE WHEN p.register_number IS NOT NULL AND p.register_number != '' THEN ' (' || p.register_number || ')' ELSE '' END)
+                FROM transactions t2 JOIN patrons p ON t2.patron_id = p.id 
+                WHERE t2.book_id = b.id) as borrowers_list
         FROM books b
         LEFT JOIN transactions t ON b.id = t.book_id
         WHERE (b.title LIKE ? OR b.authors LIKE ? OR b.barcode LIKE ? OR b.account_number LIKE ?)
@@ -923,6 +926,22 @@ def search_book_borrow_stats(query="", limit=50):
         LIMIT ?
     """
     rows = conn.execute(sql, (q, q, q, q, limit)).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def get_book_borrowers(book_id):
+    """Retrieve full borrowing history and borrowers list for a book."""
+    conn = get_connection()
+    rows = conn.execute("""
+        SELECT t.id, t.issue_date, t.issue_time, t.due_date, t.return_date, t.return_time, t.status, t.fine_amount,
+               p.name as borrower_name, p.register_number as borrower_reg, p.patron_type, p.barcode as patron_barcode,
+               p.year as borrower_year, p.section as borrower_section
+        FROM transactions t
+        LEFT JOIN patrons p ON t.patron_id = p.id
+        WHERE t.book_id = ?
+        ORDER BY t.id DESC
+    """, (book_id,)).fetchall()
     conn.close()
     return [dict(r) for r in rows]
 

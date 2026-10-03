@@ -23,7 +23,7 @@ from library_app.database import (
     get_overdue_transactions, get_transaction_history, get_patron_history,
     get_dashboard_stats, get_most_borrowed_books, get_most_active_patrons,
     mark_fine_paid, search_book_borrow_stats, search_patron_borrow_stats,
-    search_transactions_by_date, normalize_edition
+    search_transactions_by_date, normalize_edition, get_book_borrowers
 )
 from library_app.utils.excel_importer import (
     import_books_from_excel, import_students_from_excel, import_staff_from_excel
@@ -886,6 +886,17 @@ def api_reports_search_books():
     q = request.args.get("q", "").strip()
     data = search_book_borrow_stats(q, limit=100)
     return jsonify({"success": True, "results": data})
+
+
+@app.route("/api/reports/book_borrowers/<int:book_id>")
+def api_reports_book_borrowers(book_id):
+    if not require_staff():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+    book = get_book_by_id(book_id)
+    if not book:
+        return jsonify({"success": False, "message": "Book not found"}), 404
+    borrowers = get_book_borrowers(book_id)
+    return jsonify({"success": True, "book": book, "borrowers": borrowers})
 
 
 @app.route("/api/reports/search_patrons")
