@@ -350,8 +350,18 @@ def build_patron_barcode_email(patron: dict, library_name: str = "SRM EEE Depart
 
         <!-- Body / ID Card -->
         <div style="padding:28px 24px; text-align:center;">
+          <!-- Welcome Announcement -->
+          <div style="background:#ECFDF5; border:1px solid #A7F3D0; border-radius:12px; padding:14px 16px; margin-bottom:20px; text-align:left;">
+            <p style="margin:0 0 6px; font-size:14px; font-weight:700; color:#065F46;">
+              ✨ We are delighted to introduce the SRM EEE Department Library Portal!
+            </p>
+            <p style="margin:0; font-size:13px; color:#047857; line-height:1.55;">
+              Welcome to the digital era of our department library. You can now explore all available books, check live availability, and track issue records anytime online at <a href="https://eeelibrary.org" target="_blank" style="color:#065F46; font-weight:700; text-decoration:underline;">eeelibrary.org</a>.
+            </p>
+          </div>
+
           <p style="font-size:14.5px; color:#435A48; margin-top:0; margin-bottom:16px;">
-            Hello <strong>{name}</strong>, here is your official digital library card. You can present this barcode on your phone screen at the desk to borrow or return books:
+            Hello <strong>{name}</strong>, here is your official digital library barcode card. Use this at the library circulation desk to instantly borrow or return books:
           </p>
 
           <!-- Digital Card Box -->
@@ -376,18 +386,26 @@ def build_patron_barcode_email(patron: dict, library_name: str = "SRM EEE Depart
             </div>
 
             <div style="margin-top:14px; font-size:11.5px; color:#166534; font-weight:600;">
-              Tip: Turn phone brightness to 100% when presenting to the desk scanner
+              💡 Tip: Turn phone brightness up when scanning at the desk
             </div>
           </div>
 
-          <!-- Instructions -->
-          <div style="text-align:left; background:#EBF2E9; border-radius:12px; padding:16px 18px; margin-top:18px; font-size:12.5px; color:#26432D; line-height:1.6;">
-            <strong>Fast Scanning Instructions:</strong>
+          <!-- Website Catalog Showcase -->
+          <div style="text-align:left; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:12px; padding:14px 18px; margin-top:18px; font-size:12.5px; color:#1E3A8A; line-height:1.55;">
+            <strong>🌐 Browse Books Online — <a href="https://eeelibrary.org" target="_blank" style="color:#1D4ED8; font-weight:700; text-decoration:underline;">eeelibrary.org</a></strong>
+            <p style="margin:4px 0 0; color:#1E40AF; font-size:12px;">
+              Before visiting the library, search for textbook titles, authors, or subjects directly on <a href="https://eeelibrary.org" target="_blank" style="color:#1D4ED8; font-weight:700;">eeelibrary.org</a> to verify real-time shelf availability.
+            </p>
+          </div>
+
+          <!-- How to Use the Barcode -->
+          <div style="text-align:left; background:#EBF2E9; border-radius:12px; padding:16px 18px; margin-top:14px; font-size:12.5px; color:#26432D; line-height:1.6;">
+            <strong>📋 How to Use Your Digital Barcode:</strong>
             <ul style="margin:6px 0 0; padding-left:20px;">
-              <li>Open this email or save this digital card image to your phone gallery.</li>
-              <li>When borrowing or returning books, show your <strong>barcode</strong> to the librarian scanner.</li>
-              <li>Hold your screen approx. 4 to 6 inches in front of the scanner lens.</li>
-              <li>You can also browse the catalog and check borrowed books at <a href="https://eeelibrary.org" style="color:#26432D; font-weight:bold;">eeelibrary.org</a>.</li>
+              <li><strong>Save to Phone:</strong> Save this email, take a screenshot, or save the barcode image to your gallery for quick access.</li>
+              <li><strong>Borrowing Books:</strong> Pick your book from the library shelves and present this barcode on your phone screen to the librarian scanner along with the book.</li>
+              <li><strong>Returning Books:</strong> Present your barcode at the desk for an instant contact-free return confirmation.</li>
+              <li><strong>Scanning Distance:</strong> Hold your phone screen approx. 4 to 6 inches in front of the scanner lens.</li>
             </ul>
           </div>
         </div>
@@ -595,8 +613,13 @@ def send_no_due_certificate_email(patron: dict, cert_pdf_bytes: bytes, cert_id: 
             </table>
           </div>
 
-          <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px; padding:14px 18px; margin-bottom:22px; font-size:13px; color:#475569; line-height:1.5;">
-            📎 <strong>Official PDF Attached:</strong> Your signed and seal-verified No Due Certificate has been attached to this email as a PDF document. You can download and submit it for graduation, exam clearance, or transfer requirements.
+          <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px; padding:14px 18px; margin-bottom:16px; font-size:13px; color:#475569; line-height:1.5;">
+            📎 <strong>Official PDF Attached:</strong> Your digital No Due Certificate is attached to this email as a PDF document. You can download and print it.
+          </div>
+
+          <!-- Official Seal Notice -->
+          <div style="background:#FEF3C7; border:1.5px solid #F59E0B; border-radius:12px; padding:14px 18px; margin-bottom:22px; font-size:13px; color:#92400E; line-height:1.5;">
+            🏛️ <strong>Physical Seal Required:</strong> Please print this attached No Due Certificate and visit the <strong>SRM EEE Department Library</strong> to obtain the official physical library stamp/seal for final administrative, exam, or graduation clearance.
           </div>
 
           <div style="border-top:1px solid #E5E7EB; padding-top:18px; margin-top:20px;">
