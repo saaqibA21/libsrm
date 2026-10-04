@@ -207,11 +207,11 @@
  </td>
  <td style="text-align:center;">
  {% if b.times_borrowed > 0 %}
- <button type="button" class="badge badge-success" style="font-size:12px; cursor:pointer; border:none; padding:4px 8px;" onclick="showBookBorrowers({{ b.id }}, '{{ b.title|replace("'", "\\'") }}')" title="Click to view all borrowers">
- {{ b.times_borrowed }} × <i class="fa fa-chevron-right" style="font-size:9px; margin-left:2px;"></i>
+ <button type="button" class="badge badge-success" style="font-size:12.5px; font-weight:700; cursor:pointer; border:none; padding:3px 10px; border-radius:9999px;" onclick="showBookBorrowers({{ b.id }}, '{{ b.title|replace("'", "\\'") }}')" title="Click to view all borrowers">
+ {{ b.times_borrowed }}
  </button>
  {% else %}
- <span class="badge badge-gray" style="font-size:12px;">0 ×</span>
+ <span class="badge badge-gray" style="font-size:12px; font-weight:600; padding:3px 10px; border-radius:9999px;">0</span>
  {% endif %}
  </td>
  <td>
@@ -643,8 +643,8 @@ async function doBookSearch() {
  }
 
  const timesBadge = b.times_borrowed > 0
- ? `<button type="button" class="badge badge-success" style="font-size:12px; cursor:pointer; border:none; padding:4px 8px;" onclick="showBookBorrowers(${b.id}, '${escapeQuotes(b.title)}')" title="Click to view all borrowers">${b.times_borrowed} × <i class="fa fa-chevron-right" style="font-size:9px; margin-left:2px;"></i></button>`
- : `<span class="badge badge-gray" style="font-size:12px;">0 ×</span>`;
+ ? `<button type="button" class="badge badge-success" style="font-size:12.5px; font-weight:700; cursor:pointer; border:none; padding:3px 10px; border-radius:9999px;" onclick="showBookBorrowers(${b.id}, '${escapeQuotes(b.title)}')" title="Click to view all borrowers">${b.times_borrowed}</button>`
+ : `<span class="badge badge-gray" style="font-size:12px; font-weight:600; padding:3px 10px; border-radius:9999px;">0</span>`;
 
  tbody.innerHTML += `
  <tr>
