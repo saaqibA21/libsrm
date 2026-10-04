@@ -45,11 +45,38 @@
     <!-- Filter & Configuration Controls -->
     <div id="bulkControlsSection" style="background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 20px;">
       
-      <!-- Quota Advisor Info Banner -->
-      <div style="display: flex; gap: 10px; align-items: flex-start; background: rgba(37,99,235,0.06); border: 1px solid rgba(37,99,235,0.2); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; font-size: 12px; line-height: 1.5; color: #1E3A8A;">
-        <i class="fa fa-shield-halved" style="font-size: 16px; color: #2563EB; margin-top: 2px;"></i>
-        <div>
-          <strong>Daily Quota Safety Active:</strong> Free tier providers limit daily emails (Brevo: 300/day, Resend: 100/day, Gmail SMTP: 500/day). The system tracks every sent certificate in the database. You can dispatch today's batch (e.g. 200 patrons), and tomorrow send the next batch with <strong>zero duplicates</strong>!
+      <!-- Auto-Pilot Daily Campaign Section -->
+      <div id="bulkAutoPilotCard" style="background: linear-gradient(135deg, rgba(22,101,52,0.06) 0%, rgba(28,48,34,0.09) 100%); border: 1.5px solid #16a34a; border-radius: 12px; padding: 16px 18px; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 260px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <span class="badge badge-success" style="font-size: 11px; padding: 3px 8px;">
+                <i class="fa fa-robot"></i> ONE-CLICK AUTO-PILOT (BREVO 300/DAY)
+              </span>
+              <span id="autoPilotBadgeState" class="badge badge-gray" style="font-size: 10px;">Idle</span>
+            </div>
+            <h4 style="margin: 0 0 4px 0; font-size: 15px; color: var(--text); font-weight: 700;">
+              Send Daily Batches Automatically (Zero Clicks Needed Tomorrow)
+            </h4>
+            <p style="margin: 0; font-size: 12px; color: var(--muted); line-height: 1.5;">
+              Click once: Dispatches today's quota (up to 280 emails via Brevo) right now. The server automatically wakes up every day at <strong>6:00 AM IST</strong> (right after Brevo's 5:30 AM reset) and emails the rest until 100% complete!
+            </p>
+          </div>
+          <div id="autoPilotActionButtons" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <button type="button" class="btn btn-success btn-sm" id="btnStartAutoPilot" onclick="startAutoPilotCampaign()" style="font-weight: 700; box-shadow: 0 2px 8px rgba(22,101,52,0.3);">
+              <i class="fa fa-play"></i> Start Auto-Pilot (Click Once, Runs Daily)
+            </button>
+            <button type="button" class="btn btn-warning btn-sm" id="btnStopAutoPilot" onclick="stopAutoPilotCampaign()" style="display: none;">
+              <i class="fa fa-pause"></i> Pause Auto-Pilot
+            </button>
+            <button type="button" class="btn btn-outline btn-sm" id="btnRunBatchNow" onclick="runCampaignBatchNow()" style="display: none;" title="Send today's batch right now">
+              <i class="fa fa-bolt"></i> Send Today's Batch Now
+            </button>
+          </div>
+        </div>
+        <div id="autoPilotStatusDetail" style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed rgba(22,101,52,0.25); font-size: 12px; color: var(--text); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <span id="autoPilotStatusText"><i class="fa fa-info-circle" style="color:var(--primary);"></i> Auto-Pilot is idle. Click "Start Auto-Pilot" to dispatch today's batch and schedule the rest.</span>
+          <span id="autoPilotEtaText" style="font-weight: 700; color: #166534;"></span>
         </div>
       </div>
 
@@ -65,10 +92,11 @@
         <div class="form-group" style="margin-bottom: 0;">
           <label style="font-size: 12px; font-weight: 700;">Daily Batch Limit (Quota)</label>
           <select id="bulkDailyLimitSelect" class="form-control" onchange="loadBulkSummary()">
-            <option value="200" selected>Send 200 Patrons Today (Safe for Brevo/Resend)</option>
-            <option value="100">Send 100 Patrons (Resend Free Daily Limit)</option>
-            <option value="250">Send 250 Patrons (Brevo Free Daily Limit)</option>
-            <option value="0">Send All Remaining Eligible Patrons</option>
+            <option value="280" selected>Send 280 Patrons Daily (Safe Brevo 300 Quota)</option>
+            <option value="300">Send 300 Patrons Daily (Brevo Maximum)</option>
+            <option value="200">Send 200 Patrons Daily (Conservative)</option>
+            <option value="100">Send 100 Patrons Daily (Resend Free Limit)</option>
+            <option value="0">Send All Remaining (No Quota Limit)</option>
           </select>
         </div>
         <div class="form-group" style="margin-bottom: 0;">
@@ -157,6 +185,31 @@
       <a href="/patrons" class="btn btn-outline btn-sm">
         <i class="fa fa-users"></i> Manage Patrons
       </a>
+    </div>
+  </div>
+
+  <!-- Live Auto-Pilot Status Banner (Shown when active) -->
+  <div id="mainAutoPilotBanner" class="card" style="display: none; margin-bottom: 24px; padding: 18px 22px; background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%); border: 1.5px solid #10B981; border-radius: 14px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <div style="width: 46px; height: 46px; border-radius: 12px; background: #059669; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+          <i class="fa fa-robot"></i>
+        </div>
+        <div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <strong style="font-size: 15px; color: #065F46;">Auto-Pilot Daily Campaign Active</strong>
+            <span class="badge badge-success" style="font-size: 10px; background: #047857;">AUTOMATED</span>
+          </div>
+          <div id="mainAutoPilotText" style="font-size: 12.5px; color: #047857; margin-top: 3px;">
+            Dispatches up to 280 emails daily at 6:00 AM IST after Brevo quota resets. Zero clicks needed!
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button type="button" class="btn btn-outline btn-sm" onclick="openBulkEmailModal()" style="border-color: #059669; color: #065F46; font-weight: 700;">
+          <i class="fa fa-sliders"></i> Campaign Details
+        </button>
+      </div>
     </div>
   </div>
 
@@ -781,6 +834,151 @@ async function loadBulkSummary() {
   } catch(e) {
     document.getElementById('bulkStatusMsg').textContent = 'Failed to load summary stats: ' + e;
   }
+
+  await loadCampaignStatus();
+}
+
+// ─── Auto-Pilot Daily Campaign Controls ───────────────────────────────────────
+let currentCampaign = null;
+
+async function loadCampaignStatus() {
+  try {
+    const res = await fetch('/api/no_due/campaign/status').then(r => r.json());
+    if (res.success && res.campaign) {
+      currentCampaign = res.campaign;
+      updateCampaignUI(res.campaign);
+    }
+  } catch (err) {
+    console.error('Error fetching campaign status:', err);
+  }
+}
+
+function updateCampaignUI(c) {
+  const mainBanner = document.getElementById('mainAutoPilotBanner');
+  const mainText = document.getElementById('mainAutoPilotText');
+  const badgeState = document.getElementById('autoPilotBadgeState');
+  const statusText = document.getElementById('autoPilotStatusText');
+  const etaText = document.getElementById('autoPilotEtaText');
+  const btnStart = document.getElementById('btnStartAutoPilot');
+  const btnStop = document.getElementById('btnStopAutoPilot');
+  const btnRunNow = document.getElementById('btnRunBatchNow');
+
+  if (c.active) {
+    if (mainBanner) mainBanner.style.display = 'block';
+    if (mainText) {
+      mainText.textContent = `${c.status_msg} • ${c.pending_in_queue} patrons in queue (~${c.days_remaining} days left).`;
+    }
+
+    if (badgeState) {
+      badgeState.textContent = 'Active (Auto-Running)';
+      badgeState.className = 'badge badge-success';
+    }
+    if (statusText) {
+      statusText.innerHTML = `<i class="fa fa-circle-check" style="color:#16A34A;"></i> <strong>Active:</strong> ${escapeHtml(c.status_msg)} <span style="color:var(--muted); font-size:11px;">(Next: ${escapeHtml(c.next_run_desc)})</span>`;
+    }
+    if (etaText) {
+      etaText.textContent = `${c.pending_in_queue} patrons remaining (~${c.days_remaining} days left)`;
+    }
+
+    if (btnStart) btnStart.style.display = 'none';
+    if (btnStop) btnStop.style.display = 'inline-flex';
+    if (btnRunNow) btnRunNow.style.display = 'inline-flex';
+  } else {
+    if (mainBanner) mainBanner.style.display = 'none';
+
+    if (badgeState) {
+      badgeState.textContent = 'Idle';
+      badgeState.className = 'badge badge-gray';
+    }
+    if (statusText) {
+      statusText.innerHTML = `<i class="fa fa-info-circle" style="color:var(--primary);"></i> Auto-Pilot is idle. Click "Start Auto-Pilot" to dispatch today's batch and automatically queue tomorrow's at 6:00 AM IST.`;
+    }
+    if (etaText) {
+      etaText.textContent = `${c.pending_in_queue} patrons ready`;
+    }
+
+    if (btnStart) btnStart.style.display = 'inline-flex';
+    if (btnStop) btnStop.style.display = 'none';
+    if (btnRunNow) btnRunNow.style.display = 'none';
+  }
+}
+
+async function startAutoPilotCampaign() {
+  const dailyLimit = parseInt(document.getElementById('bulkDailyLimitSelect').value, 10) || 280;
+  const certDate = document.getElementById('bulkCertDate').value.trim();
+  const patronType = document.getElementById('bulkPatronTypeSelect').value;
+
+  const confirmMsg = `🚀 Start Auto-Pilot Dispatch Campaign?\n\n• Dispatches today's quota (up to ${dailyLimit} emails via Brevo) right now.\n• Automatically schedules tomorrow's batch at 6:00 AM IST (after Brevo 5:30 AM reset).\n• Zero clicks needed tomorrow or on subsequent days!\n\nProceed?`;
+  if (!confirm(confirmMsg)) return;
+
+  const btn = document.getElementById('btnStartAutoPilot');
+  const origHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Activating & Sending Today\'s Batch...';
+
+  try {
+    const res = await postJSON('/api/no_due/campaign/start', {
+      daily_limit: dailyLimit,
+      cert_date: certDate,
+      patron_type: patronType,
+      dispatch_today_now: true
+    });
+
+    btn.disabled = false;
+    btn.innerHTML = origHtml;
+
+    if (res.success) {
+      const fb = res.first_batch || {};
+      showToast(`Auto-Pilot Active! Sent ${fb.sent_count || 0} certificates today. Next batch scheduled tomorrow at 6:00 AM IST.`, 'success');
+      await loadBulkSummary();
+      await loadCampaignStatus();
+    } else {
+      showToast(res.message || 'Failed to start campaign', 'error');
+    }
+  } catch (err) {
+    btn.disabled = false;
+    btn.innerHTML = origHtml;
+    showToast('Error activating Auto-Pilot: ' + err.message, 'error');
+  }
+}
+
+async function stopAutoPilotCampaign() {
+  if (!confirm('Pause the Auto-Pilot campaign? Automated morning runs will be paused.')) {
+    return;
+  }
+  try {
+    const res = await postJSON('/api/no_due/campaign/stop', {});
+    if (res.success) {
+      showToast('Auto-Pilot campaign paused.', 'info');
+      await loadCampaignStatus();
+    }
+  } catch (err) {
+    showToast('Error pausing campaign: ' + err.message, 'error');
+  }
+}
+
+async function runCampaignBatchNow() {
+  if (!confirm('Dispatch today\'s batch right now?')) return;
+  const btn = document.getElementById('btnRunBatchNow');
+  const orig = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Sending...';
+  try {
+    const res = await postJSON('/api/no_due/campaign/run_now', {});
+    btn.disabled = false;
+    btn.innerHTML = orig;
+    if (res.success) {
+      showToast(`Batch complete! Sent ${res.sent_count || 0} certificates today.`, 'success');
+      await loadBulkSummary();
+      await loadCampaignStatus();
+    } else {
+      showToast(res.message || 'Error running batch', 'error');
+    }
+  } catch (err) {
+    btn.disabled = false;
+    btn.innerHTML = orig;
+    showToast('Error: ' + err.message, 'error');
+  }
 }
 
 async function resetBulkStatusPrompt() {
@@ -947,10 +1145,11 @@ function closeBulkEmailModal() {
   document.getElementById('bulkEmailModal').style.display = 'none';
 }
 
-// Auto check if initial_q is provided
+// Auto check if initial_q is provided & fetch Auto-Pilot campaign status
 window.addEventListener('DOMContentLoaded', () => {
   const q = document.getElementById('patronQuery').value.trim();
   if (q) doCheck();
+  loadCampaignStatus();
 });
 </script>
 {% endblock %}

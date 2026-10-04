@@ -124,6 +124,13 @@ def start_keep_alive_daemon():
             except Exception as e:
                 print(f"[Daily-Report] Scheduler notice: {e}")
 
+            # Check and run daily 6:00 AM IST automated No Due certificates batch campaign
+            try:
+                from library_app.utils.no_due_campaign_service import check_and_run_daily_campaign
+                check_and_run_daily_campaign()
+            except Exception as e:
+                print(f"[NoDue-AutoPilot] Scheduler notice: {e}")
+
             time.sleep(600)  # Ping every 10 minutes (Render sleep threshold is 15 min)
 
     t = threading.Thread(target=_pinger, daemon=True, name="RenderKeepAlive")
@@ -1492,6 +1499,66 @@ def api_no_due_reset_bulk_status():
         return jsonify({"success": False, "message": "Unauthorized"}), 403
     reset_all_no_due_email_status()
     return jsonify({"success": True, "message": "All patron email clearance statuses have been reset."})
+
+
+@app.route("/api/no_due/campaign/status", methods=["GET"])
+def api_no_due_campaign_status():
+    if not require_staff():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+    from library_app.utils.no_due_campaign_service import get_campaign_status
+    status = get_campaign_status()
+    return jsonify({"success": True, "campaign": status})
+
+
+@app.route("/api/no_due/campaign/start", methods=["POST"])
+def api_no_due_campaign_start():
+    if not require_staff():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+
+    from library_app.utils.no_due_campaign_service import start_auto_campaign, dispatch_campaign_batch, get_campaign_status
+    data = request.json or {}
+    daily_limit = int(data.get("daily_limit") or 280)
+    cert_date = (data.get("cert_date") or "").strip() or datetime.now().strftime("%d-%m-%Y")
+    patron_type = (data.get("patron_type") or "all").strip().lower()
+    dispatch_today_now = bool(data.get("dispatch_today_now", True))
+
+    start_auto_campaign(daily_limit=daily_limit, cert_date=cert_date, patron_type=patron_type)
+
+    first_batch_res = None
+    if dispatch_today_now:
+        ok, sent_cnt, msg = dispatch_campaign_batch(limit=daily_limit)
+        first_batch_res = {"success": ok, "sent_count": sent_cnt, "message": msg}
+
+    updated_status = get_campaign_status()
+    return jsonify({
+        "success": True,
+        "campaign": updated_status,
+        "first_batch": first_batch_res,
+        "message": "Auto-Pilot Campaign activated! Dispatches daily batches until completed."
+    })
+
+
+@app.route("/api/no_due/campaign/stop", methods=["POST"])
+def api_no_due_campaign_stop():
+    if not require_staff():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+    from library_app.utils.no_due_campaign_service import stop_auto_campaign
+    status = stop_auto_campaign()
+    return jsonify({"success": True, "campaign": status, "message": "Auto-Pilot Campaign paused."})
+
+
+@app.route("/api/no_due/campaign/run_now", methods=["POST"])
+def api_no_due_campaign_run_now():
+    if not require_staff():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+    from library_app.utils.no_due_campaign_service import dispatch_campaign_batch, get_campaign_status
+    ok, sent_cnt, msg = dispatch_campaign_batch()
+    return jsonify({
+        "success": ok,
+        "sent_count": sent_cnt,
+        "message": msg,
+        "campaign": get_campaign_status()
+    })
 
 
 @app.route("/api/no_due/bulk_send_batch", methods=["POST"])
