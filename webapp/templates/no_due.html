@@ -1,5 +1,102 @@
 {% extends "base.html" %}
-{% block title %}No Due Certificate — SRM EEE Library{% endblock %}
+{% block title %}No Due Certificate — SRM EEE Library
+<!-- Bulk Email Certificates Modal -->
+<div class="modal-overlay" id="bulkEmailModal" style="display: none;">
+  <div class="modal" style="max-width: 840px; width: 95%; padding: 26px;">
+    <div class="modal-header" style="margin-bottom: 16px;">
+      <div>
+        <div class="badge badge-success" style="font-size: 10px; margin-bottom: 4px;">
+          <i class="fa fa-stamp"></i> Bulk Certificate Dispatch
+        </div>
+        <h3 style="margin: 0; font-size: 18.5px;">Email No Due Certificates to All Cleared Patrons</h3>
+      </div>
+      <button class="modal-close" onclick="closeBulkEmailModal()">✕</button>
+    </div>
+
+    <!-- Summary Statistics Grid -->
+    <div id="bulkSummaryCards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px;">
+      <div style="background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; text-align: center;">
+        <div style="font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: 700;">Cleared (No Due)</div>
+        <div id="b-stat-cleared" style="font-size: 24px; font-weight: 800; color: #166534; margin-top: 4px;">...</div>
+        <div style="font-size: 11px; color: var(--muted); margin-top: 2px;">Zero Outstanding Dues</div>
+      </div>
+      <div style="background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; text-align: center;">
+        <div style="font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: 700;">With Email</div>
+        <div id="b-stat-email" style="font-size: 24px; font-weight: 800; color: var(--primary); margin-top: 4px;">...</div>
+        <div style="font-size: 11px; color: var(--muted); margin-top: 2px;">Ready to Receive PDF</div>
+      </div>
+      <div style="background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; text-align: center;">
+        <div style="font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: 700;">Breakdown</div>
+        <div id="b-stat-breakdown" style="font-size: 13.5px; font-weight: 700; color: var(--text); margin-top: 8px;">...</div>
+        <div style="font-size: 11px; color: var(--muted); margin-top: 2px;">Students &amp; Faculty</div>
+      </div>
+      <div style="background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; text-align: center;">
+        <div style="font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: 700;">Has Dues (Excluded)</div>
+        <div id="b-stat-due" style="font-size: 24px; font-weight: 800; color: #991b1b; margin-top: 4px;">...</div>
+        <div style="font-size: 11px; color: var(--muted); margin-top: 2px;">Protected from Sending</div>
+      </div>
+    </div>
+
+    <!-- Filter & Configuration Controls -->
+    <div id="bulkControlsSection" style="background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 20px;">
+      <div class="form-row cols-2" style="margin-bottom: 0;">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label style="font-size: 12px; font-weight: 700;">Recipient Group</label>
+          <select id="bulkPatronTypeSelect" class="form-control" onchange="loadBulkSummary()">
+            <option value="all">All Cleared (Students &amp; Teachers)</option>
+            <option value="student">Students Only (Zero Due)</option>
+            <option value="teacher">Teachers / Faculty Only (Zero Due)</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label style="font-size: 12px; font-weight: 700;">Certificate Issue Date</label>
+          <input type="text" id="bulkCertDate" class="form-control" placeholder="DD-MM-YYYY">
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Progress & Dispatch Box (Hidden until started) -->
+    <div id="bulkProgressBox" style="display: none; margin-bottom: 20px;">
+      <!-- Progress Bar -->
+      <div style="margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px;">
+          <strong id="bulkProgressLabel">Sending certificates...</strong>
+          <span id="bulkProgressPercent" style="font-weight: 700; color: var(--primary);">0%</span>
+        </div>
+        <div style="width: 100%; height: 12px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+          <div id="bulkProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #16a34a, #22c55e); transition: width 0.3s ease; border-radius: 999px;"></div>
+        </div>
+      </div>
+
+      <!-- Stats Bar -->
+      <div style="display: flex; gap: 12px; margin-bottom: 12px; font-size: 12px;">
+        <span class="badge badge-success"><i class="fa fa-check"></i> <span id="b-stat-sent">0</span> Sent</span>
+        <span class="badge badge-danger"><i class="fa fa-times"></i> <span id="b-stat-failed">0</span> Failed / Skipped</span>
+        <span class="badge badge-info"><i class="fa fa-clock"></i> <span id="b-stat-remain">0</span> Remaining</span>
+      </div>
+
+      <!-- Live Activity Log -->
+      <div style="border: 1px solid var(--border); border-radius: 10px; max-height: 200px; overflow-y: auto; background: var(--bg); padding: 10px 14px; font-family: monospace; font-size: 11.5px; line-height: 1.6;" id="bulkLogBox">
+      </div>
+    </div>
+
+    <!-- Modal Footer Actions -->
+    <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+      <div id="bulkStatusMsg" style="font-size: 13px; color: var(--muted);"></div>
+      <div style="display: flex; gap: 8px;">
+        <button type="button" class="btn btn-outline" id="btnCancelBulk" onclick="closeBulkEmailModal()">Cancel</button>
+        <button type="button" class="btn btn-warning" id="btnPauseBulk" onclick="togglePauseBulk()" style="display: none;">
+          <i class="fa fa-pause"></i> Pause
+        </button>
+        <button type="button" class="btn btn-success" id="btnStartBulk" onclick="startBulkSend()">
+          <i class="fa fa-paper-plane"></i> Start Sending All Certificates
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
 
 {% block content %}
 <div style="max-width: 1040px; margin: 0 auto;">
@@ -17,13 +114,40 @@
         Check student &amp; faculty borrowing records, verify zero outstanding dues, and generate official signed No Due Certificates.
       </p>
     </div>
-    <div style="display: flex; gap: 8px;">
+    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+      <button type="button" class="btn btn-success btn-sm" onclick="openBulkEmailModal()" style="display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(22, 101, 52, 0.25); font-weight: 700;">
+        <i class="fa fa-paper-plane"></i> Email Certificates to All Cleared (No Due)
+      </button>
       <a href="/return" class="btn btn-outline btn-sm">
         <i class="fa fa-arrow-down-left-and-up-right-to-center"></i> Return Desk
       </a>
       <a href="/patrons" class="btn btn-outline btn-sm">
         <i class="fa fa-users"></i> Manage Patrons
       </a>
+    </div>
+  </div>
+
+  <!-- Bulk Email Quick Action Banner -->
+  <div class="card" style="margin-bottom: 24px; padding: 18px 22px; background: linear-gradient(135deg, rgba(22, 101, 52, 0.05) 0%, rgba(28, 48, 34, 0.08) 100%); border: 1.5px solid rgba(22, 101, 52, 0.25); border-radius: 14px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <div style="width: 48px; height: 48px; border-radius: 12px; background: #166534; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 22px; box-shadow: 0 4px 10px rgba(22, 101, 52, 0.3);">
+          <i class="fa fa-envelope-open-text"></i>
+        </div>
+        <div>
+          <div style="font-weight: 700; font-size: 15.5px; color: var(--text);">
+            Bulk Email No Due Certificates
+          </div>
+          <div style="font-size: 12.5px; color: var(--muted); margin-top: 2px;">
+            Automatically generate and email signed No Due Certificates to all students and teachers with zero pending dues.
+          </div>
+        </div>
+      </div>
+      <div>
+        <button type="button" class="btn btn-success" onclick="openBulkEmailModal()" style="padding: 10px 18px; font-size: 13.5px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(22, 101, 52, 0.25);">
+          <i class="fa fa-paper-plane"></i> Email All Cleared Patrons
+        </button>
+      </div>
     </div>
   </div>
 
@@ -560,6 +684,184 @@ async function sendCertEmail(patronId) {
     btn.innerHTML = origHtml;
     showToast('Error sending email: ' + err.message, 'error');
   }
+}
+
+
+// ─── Bulk Emailing Certificates to All Cleared Patrons ───────────────────────────
+let bulkPatronsList = [];
+let bulkIsRunning = false;
+let bulkIsPaused = false;
+let bulkIndex = 0;
+let bulkSentCount = 0;
+let bulkFailCount = 0;
+const BATCH_SIZE = 5;
+
+async function openBulkEmailModal() {
+  const modal = document.getElementById('bulkEmailModal');
+  modal.style.display = 'flex';
+
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2, '0');
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const yyyy = now.getFullYear();
+  document.getElementById('bulkCertDate').value = `${dd}-${mm}-${yyyy}`;
+
+  document.getElementById('bulkControlsSection').style.display = 'block';
+  document.getElementById('bulkProgressBox').style.display = 'none';
+  document.getElementById('btnStartBulk').style.display = 'inline-flex';
+  document.getElementById('btnPauseBulk').style.display = 'none';
+  document.getElementById('btnCancelBulk').textContent = 'Cancel';
+  document.getElementById('btnCancelBulk').className = 'btn btn-outline';
+
+  await loadBulkSummary();
+}
+
+async function loadBulkSummary() {
+  const patronType = document.getElementById('bulkPatronTypeSelect').value;
+  document.getElementById('b-stat-cleared').textContent = '...';
+  document.getElementById('b-stat-email').textContent = '...';
+  document.getElementById('b-stat-breakdown').textContent = '...';
+  document.getElementById('b-stat-due').textContent = '...';
+  document.getElementById('bulkStatusMsg').textContent = 'Loading clearance statistics...';
+
+  try {
+    const res = await fetch(`/api/no_due/bulk_summary?patron_type=${encodeURIComponent(patronType)}`).then(r => r.json());
+    if (res.success) {
+      const s = res.summary;
+      document.getElementById('b-stat-cleared').textContent = s.cleared_total;
+      document.getElementById('b-stat-email').textContent = res.eligible_count;
+      document.getElementById('b-stat-breakdown').textContent = `${s.students_cleared} Students • ${s.teachers_cleared} Faculty`;
+      document.getElementById('b-stat-due').textContent = s.has_due_count;
+
+      bulkPatronsList = res.patrons || [];
+      document.getElementById('bulkStatusMsg').textContent = `Ready to email ${bulkPatronsList.length} verified patrons with zero dues.`;
+      document.getElementById('btnStartBulk').disabled = bulkPatronsList.length === 0;
+    } else {
+      document.getElementById('bulkStatusMsg').textContent = res.message || 'Failed to load summary stats.';
+    }
+  } catch(e) {
+    document.getElementById('bulkStatusMsg').textContent = 'Failed to load summary stats: ' + e;
+  }
+}
+
+async function startBulkSend() {
+  if (bulkPatronsList.length === 0) {
+    showToast('No eligible patrons with email addresses found.', 'warning');
+    return;
+  }
+
+  const confirmMsg = `This will generate official signed No Due Certificates and email them to ${bulkPatronsList.length} students and teachers with zero dues.\n\nProceed?`;
+  if (!confirm(confirmMsg)) return;
+
+  bulkIsRunning = true;
+  bulkIsPaused = false;
+  bulkIndex = 0;
+  bulkSentCount = 0;
+  bulkFailCount = 0;
+
+  document.getElementById('bulkControlsSection').style.display = 'none';
+  document.getElementById('bulkProgressBox').style.display = 'block';
+  document.getElementById('btnStartBulk').style.display = 'none';
+  document.getElementById('btnPauseBulk').style.display = 'inline-flex';
+  document.getElementById('btnCancelBulk').textContent = 'Stop Sending';
+
+  document.getElementById('bulkLogBox').innerHTML = '';
+  updateBulkProgressUI();
+
+  processNextBulkBatch();
+}
+
+async function processNextBulkBatch() {
+  if (!bulkIsRunning) return;
+
+  if (bulkIsPaused) {
+    document.getElementById('bulkProgressLabel').textContent = 'Paused. Click Resume to continue.';
+    return;
+  }
+
+  if (bulkIndex >= bulkPatronsList.length) {
+    bulkIsRunning = false;
+    document.getElementById('bulkProgressLabel').textContent = '✓ All certificates sent!';
+    document.getElementById('btnPauseBulk').style.display = 'none';
+    document.getElementById('btnCancelBulk').textContent = 'Done';
+    document.getElementById('btnCancelBulk').className = 'btn btn-primary';
+    showToast(`Bulk email complete! Successfully sent ${bulkSentCount} certificates.`, 'success');
+    return;
+  }
+
+  const batch = bulkPatronsList.slice(bulkIndex, bulkIndex + BATCH_SIZE);
+  const ids = batch.map(p => p.id);
+  const certDate = document.getElementById('bulkCertDate').value.trim();
+
+  document.getElementById('bulkProgressLabel').textContent = `Sending batch (${bulkIndex + 1} to ${Math.min(bulkIndex + BATCH_SIZE, bulkPatronsList.length)} of ${bulkPatronsList.length})...`;
+
+  try {
+    const res = await postJSON('/api/no_due/bulk_send_batch', {
+      patron_ids: ids,
+      date: certDate
+    });
+
+    const logBox = document.getElementById('bulkLogBox');
+    if (res.success && res.results) {
+      res.results.forEach(r => {
+        if (r.success) {
+          bulkSentCount++;
+          logBox.innerHTML += `<div style="color:#16a34a; padding:2px 0;">✓ [SENT] ${escapeHtml(r.name)} (${escapeHtml(r.reg || '')}) ➔ ${escapeHtml(r.email || '')}</div>`;
+        } else {
+          bulkFailCount++;
+          logBox.innerHTML += `<div style="color:#dc2626; padding:2px 0;">✗ [FAILED] ${escapeHtml(r.name || 'ID ' + r.id)}: ${escapeHtml(r.message || '')}</div>`;
+        }
+        logBox.scrollTop = logBox.scrollHeight;
+      });
+    } else {
+      bulkFailCount += batch.length;
+      logBox.innerHTML += `<div style="color:#dc2626; padding:2px 0;">✗ Batch error: ${escapeHtml(res.message || 'Server error')}</div>`;
+    }
+  } catch (err) {
+    bulkFailCount += batch.length;
+    document.getElementById('bulkLogBox').innerHTML += `<div style="color:#dc2626; padding:2px 0;">✗ Network error: ${escapeHtml(String(err))}</div>`;
+  }
+
+  bulkIndex += batch.length;
+  updateBulkProgressUI();
+
+  if (bulkIsRunning && !bulkIsPaused) {
+    setTimeout(processNextBulkBatch, 300);
+  }
+}
+
+function updateBulkProgressUI() {
+  const total = bulkPatronsList.length;
+  const pct = total > 0 ? Math.round((bulkIndex / total) * 100) : 0;
+
+  document.getElementById('bulkProgressBar').style.width = `${pct}%`;
+  document.getElementById('bulkProgressPercent').textContent = `${pct}%`;
+  document.getElementById('b-stat-sent').textContent = bulkSentCount;
+  document.getElementById('b-stat-failed').textContent = bulkFailCount;
+  document.getElementById('b-stat-remain').textContent = Math.max(0, total - bulkIndex);
+}
+
+function togglePauseBulk() {
+  bulkIsPaused = !bulkIsPaused;
+  const btn = document.getElementById('btnPauseBulk');
+  if (bulkIsPaused) {
+    btn.innerHTML = '<i class="fa fa-play"></i> Resume';
+    btn.className = 'btn btn-success';
+  } else {
+    btn.innerHTML = '<i class="fa fa-pause"></i> Pause';
+    btn.className = 'btn btn-warning';
+    processNextBulkBatch();
+  }
+}
+
+function closeBulkEmailModal() {
+  if (bulkIsRunning && bulkIndex < bulkPatronsList.length) {
+    if (!confirm('Sending is currently in progress. Are you sure you want to stop?')) {
+      return;
+    }
+    bulkIsRunning = false;
+  }
+  document.getElementById('bulkEmailModal').style.display = 'none';
 }
 
 // Auto check if initial_q is provided

@@ -1259,3 +1259,68 @@ def check_patron_no_due_status(identifier):
     }
 
 
+def get_all_cleared_patrons(patron_type=None):
+    """
+    Retrieve all patrons (students and teachers) who have zero pending dues
+    (no active issued books and no unpaid fines from returned transactions).
+    Optionally filter by patron_type: 'student', 'teacher', or None for all.
+    """
+    conn = get_connection()
+    sql = """
+        SELECT p.id, p.name, p.register_number, p.patron_type, p.email, p.parent_email,
+               p.year, p.section, p.barcode
+        FROM patrons p
+        WHERE NOT EXISTS (
+            SELECT 1 FROM transactions t WHERE t.patron_id = p.id AND t.status = 'issued'
+        )
+        AND NOT EXISTS (
+            SELECT 1 FROM transactions t WHERE t.patron_id = p.id AND t.status = 'returned' AND t.fine_paid = 0 AND t.fine_amount > 0
+        )
+    """
+    params = []
+    if patron_type == "student":
+        sql += " AND p.patron_type = 'student'"
+    elif patron_type in ("teacher", "faculty", "staff"):
+        sql += " AND p.patron_type IN ('teacher', 'faculty', 'staff')"
+
+    sql += " ORDER BY p.patron_type DESC, p.name ASC"
+    rows = conn.execute(sql, params).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def get_no_due_bulk_summary():
+    """Summary of cleared vs due patrons for bulk No Due certificate emailing."""
+    conn = get_connection()
+    total_patrons = conn.execute("SELECT COUNT(*) FROM patrons").fetchone()[0]
+
+    cleared_sql = """
+        SELECT p.id, p.patron_type, p.email, p.parent_email
+        FROM patrons p
+        WHERE NOT EXISTS (
+            SELECT 1 FROM transactions t WHERE t.patron_id = p.id AND t.status = 'issued'
+        )
+        AND NOT EXISTS (
+            SELECT 1 FROM transactions t WHERE t.patron_id = p.id AND t.status = 'returned' AND t.fine_paid = 0 AND t.fine_amount > 0
+        )
+    """
+    cleared_rows = conn.execute(cleared_sql).fetchall()
+    conn.close()
+
+    cleared_total = len(cleared_rows)
+    cleared_with_email = sum(1 for r in cleared_rows if (r["email"] or r["parent_email"]))
+    students_cleared = sum(1 for r in cleared_rows if r["patron_type"] == "student")
+    teachers_cleared = sum(1 for r in cleared_rows if r["patron_type"] in ("teacher", "faculty", "staff"))
+    has_due_count = total_patrons - cleared_total
+
+    return {
+        "total_patrons": total_patrons,
+        "cleared_total": cleared_total,
+        "cleared_with_email": cleared_with_email,
+        "students_cleared": students_cleared,
+        "teachers_cleared": teachers_cleared,
+        "has_due_count": has_due_count
+    }
+
+
+

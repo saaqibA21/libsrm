@@ -24,7 +24,7 @@ from library_app.database import (
     get_dashboard_stats, get_most_borrowed_books, get_most_active_patrons,
     mark_fine_paid, search_book_borrow_stats, search_patron_borrow_stats,
     search_transactions_by_date, normalize_edition, get_book_borrowers,
-    check_patron_no_due_status
+    check_patron_no_due_status, get_all_cleared_patrons, get_no_due_bulk_summary
 )
 from library_app.utils.excel_importer import (
     import_books_from_excel, import_students_from_excel, import_staff_from_excel
@@ -1412,6 +1412,125 @@ def api_no_due_send_email():
         })
     else:
         return jsonify({"success": False, "message": f"Email delivery failed: {err}"}), 500
+
+
+@app.route("/api/no_due/bulk_summary", methods=["GET"])
+def api_no_due_bulk_summary():
+    if not require_staff():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+
+    patron_type = request.args.get("patron_type", "all").strip().lower()
+    filter_type = None if patron_type in ("all", "", "both") else patron_type
+
+    summary = get_no_due_bulk_summary()
+    cleared_list = get_all_cleared_patrons(filter_type)
+
+    eligible_patrons = [
+        {
+            "id": p["id"],
+            "name": p["name"],
+            "register_number": p["register_number"] or p["barcode"],
+            "patron_type": p["patron_type"],
+            "email": p["email"] or p["parent_email"],
+            "year": p.get("year"),
+            "section": p.get("section")
+        }
+        for p in cleared_list
+        if (p.get("email") or p.get("parent_email"))
+    ]
+
+    return jsonify({
+        "success": True,
+        "summary": summary,
+        "eligible_count": len(eligible_patrons),
+        "patrons": eligible_patrons
+    })
+
+
+@app.route("/api/no_due/bulk_send_batch", methods=["POST"])
+def api_no_due_bulk_send_batch():
+    if not require_staff():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+
+    from library_app.utils.no_due_pdf import generate_no_due_certificate_pdf
+    from library_app.utils.email_utils import send_no_due_certificate_email
+
+    data = request.json or {}
+    patron_ids = data.get("patron_ids") or []
+    cert_date = (data.get("date") or "").strip() or datetime.now().strftime("%d-%m-%Y")
+
+    if not patron_ids:
+        return jsonify({"success": False, "message": "No patron IDs provided"}), 400
+
+    results = []
+    for pid in patron_ids:
+        try:
+            patron = get_patron_by_id(pid)
+            if not patron:
+                results.append({"id": pid, "success": False, "message": "Patron not found"})
+                continue
+
+            due_check = check_patron_no_due_status(patron.get("register_number") or patron.get("barcode"))
+            if due_check.get("has_due"):
+                results.append({
+                    "id": pid,
+                    "name": patron.get("name"),
+                    "reg": patron.get("register_number") or patron.get("barcode"),
+                    "success": False,
+                    "message": "Skipped: Has active dues or fines"
+                })
+                continue
+
+            recipient = patron.get("email") or patron.get("parent_email")
+            if not recipient:
+                results.append({
+                    "id": pid,
+                    "name": patron.get("name"),
+                    "reg": patron.get("register_number") or patron.get("barcode"),
+                    "success": False,
+                    "message": "Skipped: No email on record"
+                })
+                continue
+
+            cert_id = due_check.get("certificate_id")
+            pdf_bytes = generate_no_due_certificate_pdf(patron, cert_date=cert_date, cert_id=cert_id)
+            ok, err = send_no_due_certificate_email(patron, pdf_bytes, cert_id, to_email=recipient)
+
+            if ok:
+                results.append({
+                    "id": pid,
+                    "name": patron.get("name"),
+                    "reg": patron.get("register_number") or patron.get("barcode"),
+                    "email": recipient,
+                    "success": True,
+                    "message": f"Sent to {recipient}"
+                })
+            else:
+                results.append({
+                    "id": pid,
+                    "name": patron.get("name"),
+                    "reg": patron.get("register_number") or patron.get("barcode"),
+                    "email": recipient,
+                    "success": False,
+                    "message": f"Failed: {err}"
+                })
+        except Exception as e:
+            results.append({
+                "id": pid,
+                "success": False,
+                "message": f"Error: {e}"
+            })
+
+    sent_count = sum(1 for r in results if r.get("success"))
+    fail_count = len(results) - sent_count
+
+    return jsonify({
+        "success": True,
+        "processed": len(results),
+        "sent_count": sent_count,
+        "fail_count": fail_count,
+        "results": results
+    })
 
 
 if __name__ == "__main__":
