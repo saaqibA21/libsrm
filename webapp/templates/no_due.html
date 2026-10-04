@@ -1,0 +1,571 @@
+{% extends "base.html" %}
+{% block title %}No Due Certificate — SRM EEE Library{% endblock %}
+
+{% block content %}
+<div style="max-width: 1040px; margin: 0 auto;">
+
+  <!-- Header Banner -->
+  <div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px;">
+    <div>
+      <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: rgba(28, 48, 34, 0.08); border-radius: 9999px; font-size: 11px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px;">
+        <i class="fa fa-stamp"></i> Official Library Clearance
+      </div>
+      <h1 style="font-family:'Playfair Display', Georgia, serif; font-size: 26px; font-weight: 700; color: var(--text); margin: 0 0 4px 0;">
+        No Due Certificate Portal
+      </h1>
+      <p style="font-size: 13.5px; color: var(--muted); margin: 0;">
+        Check student &amp; faculty borrowing records, verify zero outstanding dues, and generate official signed No Due Certificates.
+      </p>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <a href="/return" class="btn btn-outline btn-sm">
+        <i class="fa fa-arrow-down-left-and-up-right-to-center"></i> Return Desk
+      </a>
+      <a href="/patrons" class="btn btn-outline btn-sm">
+        <i class="fa fa-users"></i> Manage Patrons
+      </a>
+    </div>
+  </div>
+
+  <!-- Search & Barcode Scan Card -->
+  <div class="card" style="margin-bottom: 24px; padding: 22px 26px;">
+    <label style="display: block; font-weight: 700; font-size: 13px; color: var(--text); margin-bottom: 8px;">
+      <i class="fa fa-barcode" style="color: var(--accent); margin-right: 4px;"></i> Scan Barcode or Enter Register Number / Member ID
+    </label>
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+      <div class="search-box" style="flex: 1; min-width: 280px; padding: 0 16px; border: 2px solid var(--border);">
+        <i class="fa fa-search" style="font-size: 15px; color: var(--accent);"></i>
+        <input type="text" id="patronQuery" value="{{ initial_q or '' }}" 
+               placeholder="Scan ID barcode or type RA2311005010001, RA26..., student name..." 
+               style="font-size: 15px; font-weight: 600; letter-spacing: 0.3px; padding: 13px 0;"
+               autofocus autocomplete="off"
+               onkeydown="if(event.key==='Enter') doCheck();">
+        <button type="button" onclick="clearSearch()" style="background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; padding:4px;" title="Clear">✕</button>
+      </div>
+      <button type="button" class="btn btn-primary btn-lg" onclick="doCheck()" id="btnCheck">
+        <i class="fa fa-magnifying-glass"></i> Verify Clearance
+      </button>
+    </div>
+    <div style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+      <span style="font-size: 11.5px; color: var(--muted);">
+        <i class="fa fa-keyboard"></i> Press <strong>Enter</strong> or click Verify. Works seamlessly with handheld USB/Bluetooth barcode scanners.
+      </span>
+      <div style="display: flex; gap: 6px; align-items: center; font-size: 11.5px; color: var(--muted);">
+        <span>Quick Samples:</span>
+        <button type="button" class="btn btn-outline btn-xs" onclick="quickSearch('RA2311005010001')">RA2311005010001</button>
+        <button type="button" class="btn btn-outline btn-xs" onclick="quickSearch('RA2611005010064')">RA2611005010064</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div id="loadingIndicator" style="display: none; text-align: center; padding: 40px 20px;">
+    <i class="fa fa-circle-notch fa-spin" style="font-size: 32px; color: var(--accent); margin-bottom: 12px;"></i>
+    <p style="font-size: 14px; color: var(--muted); margin: 0; font-weight: 500;">
+      Checking circulation records, active transactions, and fine records...
+    </p>
+  </div>
+
+  <!-- Results Container -->
+  <div id="resultContainer" style="display: none;"></div>
+
+  <!-- Empty Initial State -->
+  <div id="initialHelpState" class="card" style="text-align: center; padding: 48px 24px; border: 2px dashed var(--border);">
+    <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(72, 99, 78, 0.1); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto; color: var(--accent); font-size: 26px;">
+      <i class="fa fa-stamp"></i>
+    </div>
+    <h3 style="font-family:'Playfair Display', Georgia, serif; font-size: 18px; margin: 0 0 6px 0; color: var(--text);">
+      Verify Student or Staff Clearance
+    </h3>
+    <p style="font-size: 13.5px; color: var(--muted); max-width: 480px; margin: 0 auto;">
+      Scan a patron barcode or enter their Register Number above. The system will check the database for any active books or fines before enabling the signed No Due Certificate.
+    </p>
+  </div>
+
+</div>
+
+<!-- Interactive Certificate Preview Modal -->
+<div class="modal-overlay" id="certModal">
+  <div class="modal" style="max-width: 900px; width: 95%; padding: 24px;">
+    <div class="modal-header" style="margin-bottom: 16px;">
+      <div>
+        <div class="badge badge-success" style="font-size: 10px; margin-bottom: 4px;">Official Certificate Preview</div>
+        <h3 style="margin: 0; font-size: 18px;">SRM EEE Library — No Due Certificate</h3>
+      </div>
+      <button class="modal-close" onclick="closeModal('certModal')">✕</button>
+    </div>
+
+    <!-- Certificate Visual Preview Container (Print-ready layout) -->
+    <div id="certPreviewCard" style="background: #FFFFFF; border: 2px solid #1A365D; border-radius: 12px; padding: 28px 32px; box-shadow: 0 4px 18px rgba(0,0,0,0.06); position: relative; font-family: 'Segoe UI', Arial, sans-serif;">
+      
+      <!-- SRM Header Banner -->
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+        <img src="{{ url_for('static', filename='images/srm_header_banner.png') }}" 
+             alt="SRM Institute of Science & Technology" 
+             style="height: 58px; max-width: 250px; object-fit: contain;">
+        <div style="text-align: right; font-size: 11px; color: #4B5563; line-height: 1.4;">
+          <div style="font-weight: 700; color: #1A365D; font-size: 11.5px;">OFFICIAL LIBRARY CLEARANCE</div>
+          <div>Ref: <strong id="modalCertId">—</strong></div>
+          <div>Date: <span id="modalCertDate">—</span></div>
+        </div>
+      </div>
+
+      <!-- Institutional Double Horizontal Line -->
+      <div style="border-top: 1px solid #000; border-bottom: 2.5px solid #000; height: 3px; margin-bottom: 24px;"></div>
+
+      <!-- Main Heading -->
+      <div style="text-align: center; margin-bottom: 28px;">
+        <h2 style="font-size: 21px; font-weight: 800; text-decoration: underline; margin: 0; color: #111827; letter-spacing: 0.2px;">
+          EEE Department Library - No Due Certificate
+        </h2>
+      </div>
+
+      <!-- Body Content -->
+      <div style="font-size: 15px; line-height: 2.3; color: #111827; margin-bottom: 24px;">
+        <div>
+          This is to certify that Mr./Ms. <strong id="modalCertName" style="color: #1A365D; text-decoration: underline; font-size: 16px; margin: 0 4px;">—</strong>
+        </div>
+        <div>
+          Library Member ID <strong id="modalCertReg" style="color: #1A365D; text-decoration: underline; margin: 0 4px;">—</strong>
+          &nbsp;&nbsp;
+          <span id="modalCertRole">Student</span> of <strong id="modalCertDept" style="color: #1A365D; text-decoration: underline; margin: 0 4px;">—</strong> Department
+        </div>
+        <div>
+          has returned all the books and non-books borrowed from the Library. He/she owes no due to the Library.
+        </div>
+      </div>
+
+      <!-- Date & Verification Section -->
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 36px; padding-top: 16px;">
+        <div>
+          <div style="font-size: 14px; margin-bottom: 14px;">
+            Date: <strong id="modalCertDate2">—</strong>
+          </div>
+          <div style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; background: #ECFDF5; border: 1.5px solid #10B981; border-radius: 8px;">
+            <i class="fa fa-circle-check" style="color: #059669; font-size: 14px;"></i>
+            <span style="font-size: 11px; font-weight: 700; color: #065F46;">NO DUE CLEARED • ALL BOOKS RETURNED</span>
+          </div>
+        </div>
+
+        <!-- In-Charge Signature -->
+        <div style="text-align: right;">
+          <div style="margin-bottom: 4px; display: flex; justify-content: flex-end;">
+            <img src="{{ url_for('static', filename='images/incharge_signature.png') }}" 
+                 alt="Library In-Charge Signature" 
+                 style="height: 62px; object-fit: contain;">
+          </div>
+          <div style="font-size: 13.5px; font-weight: 700; color: #111827;">Dr. K. Saravanan</div>
+          <div style="font-size: 11px; color: #4B5563;">Associate Professor &amp; Library In-Charge</div>
+          <div style="font-size: 10.5px; color: #6B7280;">Department of Electrical &amp; Electronics Engineering</div>
+          <div style="font-size: 10px; color: #9CA3AF; margin-top: 2px;">Ms. Gomathy Lakshmi K, Teaching Assistant (Library In-Charge)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Actions -->
+    <div class="modal-footer" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+      <button type="button" class="btn btn-outline btn-sm" onclick="closeModal('certModal')">
+        Close
+      </button>
+      <div style="display: flex; gap: 10px;">
+        <button type="button" class="btn btn-outline btn-sm" onclick="printCertFromModal()">
+          <i class="fa fa-print"></i> Print Certificate
+        </button>
+        <a id="modalDownloadPdfBtn" href="#" class="btn btn-primary btn-sm">
+          <i class="fa fa-file-pdf"></i> Download Official PDF
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentPatron = null;
+let currentCertData = null;
+
+function clearSearch() {
+  document.getElementById('patronQuery').value = '';
+  document.getElementById('patronQuery').focus();
+  document.getElementById('resultContainer').style.display = 'none';
+  document.getElementById('initialHelpState').style.display = 'block';
+}
+
+function quickSearch(reg) {
+  document.getElementById('patronQuery').value = reg;
+  doCheck();
+}
+
+let debounceTimer = null;
+function debounceCheck() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    const val = document.getElementById('patronQuery').value.trim();
+    if (val.length >= 6) doCheck();
+  }, 400);
+}
+
+async function doCheck() {
+  const query = document.getElementById('patronQuery').value.trim();
+  if (!query) {
+    showToast('Please scan barcode or enter Register Number', 'info');
+    return;
+  }
+
+  const btn = document.getElementById('btnCheck');
+  const loading = document.getElementById('loadingIndicator');
+  const results = document.getElementById('resultContainer');
+  const initialHelp = document.getElementById('initialHelpState');
+
+  btn.disabled = true;
+  loading.style.display = 'block';
+  results.style.display = 'none';
+  initialHelp.style.display = 'none';
+
+  try {
+    const res = await postJSON('/api/no_due/check', { identifier: query });
+    loading.style.display = 'none';
+    btn.disabled = false;
+
+    if (!res.found) {
+      results.innerHTML = `
+        <div class="card" style="border-left: 5px solid var(--warning); padding: 24px;">
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+            <i class="fa fa-circle-exclamation" style="font-size: 24px; color: var(--warning);"></i>
+            <h3 style="margin: 0; font-size: 17px; font-weight: 700; color: var(--text);">Patron Not Found</h3>
+          </div>
+          <p style="margin: 0 0 12px 0; font-size: 13.5px; color: var(--muted);">
+            No student or staff record matches: <code>${escapeHtml(query)}</code>. Please check the spelling or add them to the system under Patrons.
+          </p>
+          <a href="/patrons" class="btn btn-outline btn-sm"><i class="fa fa-user-plus"></i> Add New Patron</a>
+        </div>
+      `;
+      results.style.display = 'block';
+      return;
+    }
+
+    currentPatron = res.patron;
+    currentCertData = res;
+    renderResults(res);
+  } catch (err) {
+    loading.style.display = 'none';
+    btn.disabled = false;
+    showToast('Error checking status: ' + err.message, 'error');
+  }
+}
+
+function escapeHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function renderResults(data) {
+  const p = data.patron;
+  const hasDue = data.has_due;
+  const container = document.getElementById('resultContainer');
+
+  const ptype = (p.patron_type || 'student').toLowerCase();
+  const isStaff = ptype === 'teacher' || ptype === 'faculty' || ptype === 'staff';
+  const roleBadge = isStaff 
+    ? '<span class="badge badge-purple">FACULTY / STAFF</span>' 
+    : '<span class="badge badge-info">STUDENT</span>';
+
+  let deptClass = '';
+  if (isStaff) {
+    deptClass = p.designation || 'Department of Electrical & Electronics Engineering';
+  } else {
+    deptClass = `EEE Department ${p.year ? '• Year ' + p.year : ''} ${p.section ? '• Section ' + p.section : ''}`;
+  }
+
+  const defaultEmail = (p.email || p.parent_email || '').trim();
+
+  let html = `
+    <!-- Patron Profile Card -->
+    <div class="card" style="margin-bottom: 20px; padding: 22px 26px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px;">
+        <div style="display: flex; gap: 16px; align-items: center;">
+          <div style="width: 54px; height: 54px; border-radius: 50%; background: ${hasDue ? '#FEF2F2' : '#F0FDF4'}; border: 2px solid ${hasDue ? '#FCA5A5' : '#86EFAC'}; display: flex; align-items: center; justify-content: center; font-size: 24px; color: ${hasDue ? '#DC2626' : '#16A34A'};">
+            <i class="fa ${hasDue ? 'fa-triangle-exclamation' : 'fa-circle-check'}"></i>
+          </div>
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <h2 style="margin: 0; font-size: 19px; font-weight: 700; color: var(--text);">${escapeHtml(p.name)}</h2>
+              ${roleBadge}
+            </div>
+            <div style="font-size: 13px; color: var(--muted); margin-top: 4px;">
+              <strong>ID / Reg:</strong> <code style="font-size: 12px; color: var(--info);">${escapeHtml(p.register_number || p.barcode)}</code> &nbsp;|&nbsp;
+              <strong>Barcode:</strong> <code>${escapeHtml(p.barcode)}</code>
+            </div>
+            <div style="font-size: 12.5px; color: var(--muted); margin-top: 3px;">
+              <i class="fa fa-graduation-cap" style="opacity:0.75;"></i> ${escapeHtml(deptClass)}
+            </div>
+          </div>
+        </div>
+
+        <div style="text-align: right; font-size: 12px; color: var(--muted);">
+          <div><strong>Official Email:</strong> ${escapeHtml(p.email || '—')}</div>
+          ${p.mobile ? `<div><strong>Phone:</strong> ${escapeHtml(p.mobile)}</div>` : ''}
+          ${p.parent_email && p.parent_email !== p.email ? `<div><strong>Alt Email:</strong> ${escapeHtml(p.parent_email)}</div>` : ''}
+          <div style="margin-top: 4px;"><span class="badge badge-gray">Lifetime Borrows: ${data.lifetime_borrows}</span></div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  if (hasDue) {
+    // ─── DUES PENDING ───
+    let activeRows = '';
+    data.active_loans.forEach((b, idx) => {
+      const overdueBadge = b.is_overdue
+        ? `<span class="badge badge-danger">${b.status_label}</span>`
+        : `<span class="badge badge-warning">${b.status_label}</span>`;
+
+      const fineHtml = b.calculated_fine > 0
+        ? `<strong style="color:var(--danger)">₹${b.calculated_fine.toFixed(2)}</strong>`
+        : `<span class="text-muted">₹0.00</span>`;
+
+      activeRows += `
+        <tr>
+          <td>${idx + 1}</td>
+          <td style="font-weight:600;">${escapeHtml(b.book_title)}</td>
+          <td><code>${escapeHtml(b.book_barcode)}</code></td>
+          <td class="text-sm">${b.issue_date}</td>
+          <td class="text-sm">${b.due_date}</td>
+          <td>${overdueBadge}</td>
+          <td style="font-weight:600;">${fineHtml}</td>
+        </tr>
+      `;
+    });
+
+    html += `
+      <!-- Due Alert Banner -->
+      <div class="card" style="border: 2px solid #EF4444; background: #FEF2F2; padding: 22px 26px; margin-bottom: 20px;">
+        <div style="display: flex; gap: 14px; align-items: flex-start;">
+          <i class="fa fa-circle-xmark" style="font-size: 26px; color: #DC2626; margin-top: 2px;"></i>
+          <div style="flex: 1;">
+            <h3 style="margin: 0 0 6px 0; color: #991B1B; font-size: 17px; font-weight: 700;">
+              NO DUE CLEARANCE CANNOT BE ISSUED
+            </h3>
+            <p style="margin: 0 0 12px 0; font-size: 13.5px; color: #7F1D1D;">
+              This member currently has <strong>${data.active_loans_count} unreturned book(s)</strong> and <strong>₹${data.total_pending_fines.toFixed(2)} pending dues/fines</strong>. All materials must be returned before clearance can be authorized.
+            </p>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <a href="/return?q=${encodeURIComponent(p.register_number || p.barcode)}" class="btn btn-danger btn-sm">
+                <i class="fa fa-arrow-down-left-and-up-right-to-center"></i> Go to Return Desk to Check In Books
+              </a>
+              <button class="btn btn-outline btn-sm" disabled style="opacity: 0.6; cursor: not-allowed;">
+                <i class="fa fa-lock"></i> Certificate Generation Blocked
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Loans Table -->
+      <div class="card" style="margin-bottom: 24px; padding: 20px;">
+        <h4 style="margin: 0 0 12px 0; font-size: 14.5px; font-weight: 700; color: var(--text);">
+          <i class="fa fa-book" style="color: var(--danger);"></i> Currently Issued Books (${data.active_loans_count})
+        </h4>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Book Title</th>
+                <th>Barcode</th>
+                <th>Issue Date</th>
+                <th>Due Date</th>
+                <th>Status</th>
+                <th>Fine</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${activeRows}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  } else {
+    // ─── NO DUES — ELIGIBLE ───
+    html += `
+      <!-- Cleared Status Banner -->
+      <div class="card" style="border: 2px solid #10B981; background: #ECFDF5; padding: 24px 26px; margin-bottom: 20px;">
+        <div style="display: flex; gap: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+          <div style="display: flex; gap: 14px; align-items: center;">
+            <div style="width: 44px; height: 44px; border-radius: 50%; background: #10B981; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 22px;">
+              <i class="fa fa-check"></i>
+            </div>
+            <div>
+              <h3 style="margin: 0 0 3px 0; color: #065F46; font-size: 18px; font-weight: 800;">
+                CLEARED — ELIGIBLE FOR NO DUE CERTIFICATE
+              </h3>
+              <p style="margin: 0; font-size: 13.5px; color: #047857;">
+                All library books and materials have been returned. Outstanding dues: <strong>₹0.00 (Nil)</strong>.
+              </p>
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button type="button" class="btn btn-outline btn-sm" onclick="openCertPreviewModal()" style="border-color:#059669; color:#065F46; font-weight:700;">
+              <i class="fa fa-eye"></i> Preview Certificate
+            </button>
+            <a href="/api/no_due/pdf/${p.id}?download=1" class="btn btn-success btn-sm" target="_blank" style="background:#059669; border-color:#059669;">
+              <i class="fa fa-file-pdf"></i> Download Official PDF
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Certificate Action Hub -->
+      <div class="stats-grid" style="grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 24px;">
+        
+        <!-- Box 1: View & Print -->
+        <div class="card" style="padding: 22px;">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+            <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(28,48,34,0.1); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 16px;">
+              <i class="fa fa-file-lines"></i>
+            </div>
+            <div>
+              <h4 style="margin: 0; font-size: 15px; font-weight: 700;">Official Certificate File</h4>
+              <p style="margin: 0; font-size: 12px; color: var(--muted);">Certificate No: <strong>${data.certificate_id}</strong></p>
+            </div>
+          </div>
+          <p style="font-size: 12.5px; color: var(--muted); margin-bottom: 16px; line-height: 1.5;">
+            Includes verified SRM header crest, double border, authorized signature of Dr. K. Saravanan &amp; Ms. Gomathy Lakshmi K, and verification QR code.
+          </p>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn btn-primary btn-sm" style="flex:1;" onclick="openCertPreviewModal()">
+              <i class="fa fa-eye"></i> View On-Screen
+            </button>
+            <a href="/api/no_due/pdf/${p.id}?download=1" class="btn btn-outline btn-sm" style="flex:1;">
+              <i class="fa fa-download"></i> Save PDF
+            </a>
+          </div>
+        </div>
+
+        <!-- Box 2: Email Clearance to Student -->
+        <div class="card" style="padding: 22px;">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+            <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(30,58,138,0.1); color: #1E3A8A; display: flex; align-items: center; justify-content: center; font-size: 16px;">
+              <i class="fa fa-envelope-circle-check"></i>
+            </div>
+            <div>
+              <h4 style="margin: 0; font-size: 15px; font-weight: 700;">Email Certificate to Patron</h4>
+              <p style="margin: 0; font-size: 12px; color: var(--muted);">Sends formatted clearance &amp; attached PDF</p>
+            </div>
+          </div>
+          <div style="margin-bottom: 14px;">
+            <label style="display:block; font-size:11.5px; font-weight:700; color:var(--text); margin-bottom:4px;">
+              Recipient Email Address:
+            </label>
+            <input type="email" id="targetEmailInput" value="${escapeHtml(defaultEmail)}" 
+                   placeholder="Enter student or faculty email address..."
+                   style="width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:8px; font-size:13px; font-weight:500;">
+          </div>
+          <button type="button" class="btn btn-primary btn-sm" id="btnSendEmail" onclick="sendCertEmail(${p.id})" style="width:100%;">
+            <i class="fa fa-paper-plane"></i> Send No Due Certificate Email
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  container.innerHTML = html;
+  container.style.display = 'block';
+}
+
+function openCertPreviewModal() {
+  if (!currentPatron || !currentCertData) return;
+  const p = currentPatron;
+  const d = currentCertData;
+
+  const isStaff = (p.patron_type || '').toLowerCase() === 'teacher' || (p.patron_type || '').toLowerCase() === 'faculty';
+  let deptText = '';
+  if (isStaff) {
+    deptText = p.designation || 'Electrical and Electronics Engineering';
+  } else {
+    deptText = `EEE ${p.year ? '(Year ' + p.year + (p.section ? ' - Section ' + p.section : '') + ')' : ''}`;
+  }
+
+  document.getElementById('modalCertId').textContent = d.certificate_id;
+  document.getElementById('modalCertDate').textContent = d.issue_date;
+  document.getElementById('modalCertDate2').textContent = d.issue_date;
+  document.getElementById('modalCertName').textContent = p.name.toUpperCase();
+  document.getElementById('modalCertReg').textContent = (p.register_number || p.barcode).toUpperCase();
+  document.getElementById('modalCertRole').textContent = isStaff ? 'Staff' : 'Student';
+  document.getElementById('modalCertDept').textContent = deptText;
+
+  document.getElementById('modalDownloadPdfBtn').href = `/api/no_due/pdf/${p.id}?download=1`;
+
+  openModal('certModal');
+}
+
+function printCertFromModal() {
+  const card = document.getElementById('certPreviewCard');
+  const printWindow = window.open('', '_blank', 'width=900,height=650');
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>No Due Certificate - ${escapeHtml(currentPatron.name)}</title>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+      <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 20px; background: #fff; }
+        @page { size: landscape; margin: 15mm; }
+      </style>
+    </head>
+    <body>
+      ${card.outerHTML}
+      <script>
+        window.onload = function() { window.print(); }
+      <\/script>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
+}
+
+async function sendCertEmail(patronId) {
+  const emailInput = document.getElementById('targetEmailInput');
+  const email = emailInput ? emailInput.value.trim() : '';
+
+  if (!email || !email.includes('@')) {
+    showToast('Please enter a valid recipient email address', 'error');
+    if (emailInput) emailInput.focus();
+    return;
+  }
+
+  const btn = document.getElementById('btnSendEmail');
+  const origHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Generating & Sending PDF...';
+
+  try {
+    const res = await postJSON('/api/no_due/send_email', {
+      patron_id: patronId,
+      recipient_email: email
+    });
+
+    btn.disabled = false;
+    btn.innerHTML = origHtml;
+
+    if (res.success) {
+      showToast(res.message, 'success');
+    } else {
+      showToast(res.message || 'Failed to send email', 'error');
+    }
+  } catch (err) {
+    btn.disabled = false;
+    btn.innerHTML = origHtml;
+    showToast('Error sending email: ' + err.message, 'error');
+  }
+}
+
+// Auto check if initial_q is provided
+window.addEventListener('DOMContentLoaded', () => {
+  const q = document.getElementById('patronQuery').value.trim();
+  if (q) doCheck();
+});
+</script>
+{% endblock %}

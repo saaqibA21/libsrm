@@ -23,7 +23,8 @@ from library_app.database import (
     get_overdue_transactions, get_transaction_history, get_patron_history,
     get_dashboard_stats, get_most_borrowed_books, get_most_active_patrons,
     mark_fine_paid, search_book_borrow_stats, search_patron_borrow_stats,
-    search_transactions_by_date, normalize_edition, get_book_borrowers
+    search_transactions_by_date, normalize_edition, get_book_borrowers,
+    check_patron_no_due_status
 )
 from library_app.utils.excel_importer import (
     import_books_from_excel, import_students_from_excel, import_staff_from_excel
@@ -1304,6 +1305,108 @@ def download_poster_pdf():
         as_attachment=True,
         download_name="srm_eee_library_poster.pdf"
     )
+
+
+# ─── No Due Clearance & Certificate Management ───────────────────────────────────
+
+@app.route("/no-due")
+def no_due_page():
+    if not require_staff():
+        return redirect(url_for("staff_login", next=request.path))
+    q = request.args.get("q", "").strip()
+    return render_template("no_due.html", initial_q=q)
+
+
+@app.route("/api/no_due/check", methods=["GET", "POST"])
+def api_no_due_check():
+    if not require_staff():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+    identifier = ""
+    if request.is_json and request.json:
+        identifier = request.json.get("identifier", "").strip()
+    if not identifier:
+        identifier = request.args.get("identifier", "").strip() or request.args.get("q", "").strip()
+    if not identifier:
+        return jsonify({"success": False, "message": "Please enter or scan a Register Number or Barcode"}), 400
+
+    result = check_patron_no_due_status(identifier)
+    return jsonify(result)
+
+
+@app.route("/api/no_due/pdf/<int:patron_id>")
+def api_no_due_pdf(patron_id):
+    if not require_staff():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+    from library_app.utils.no_due_pdf import generate_no_due_certificate_pdf
+    patron = get_patron_by_id(patron_id)
+    if not patron:
+        return jsonify({"success": False, "message": "Patron not found"}), 404
+
+    # Verify no dues
+    due_check = check_patron_no_due_status(patron.get("register_number") or patron.get("barcode"))
+    if due_check.get("has_due"):
+        return jsonify({
+            "success": False,
+            "message": "Cannot generate No Due Certificate! Patron has active unreturned books or pending fines."
+        }), 400
+
+    cert_date = request.args.get("date", "").strip() or datetime.now().strftime("%d-%m-%Y")
+    cert_id = due_check.get("certificate_id")
+
+    pdf_bytes = generate_no_due_certificate_pdf(patron, cert_date=cert_date, cert_id=cert_id)
+    as_attachment = request.args.get("download") == "1"
+    filename = f"SRM_No_Due_{patron.get('register_number', 'Clearance')}.pdf"
+
+    return send_file(
+        io.BytesIO(pdf_bytes),
+        mimetype="application/pdf",
+        as_attachment=as_attachment,
+        download_name=filename
+    )
+
+
+@app.route("/api/no_due/send_email", methods=["POST"])
+def api_no_due_send_email():
+    if not require_staff():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+    from library_app.utils.no_due_pdf import generate_no_due_certificate_pdf
+    from library_app.utils.email_utils import send_no_due_certificate_email
+
+    d = request.json or {}
+    patron_id = d.get("patron_id")
+    target_email = (d.get("recipient_email") or "").strip()
+
+    if not patron_id:
+        return jsonify({"success": False, "message": "Patron ID missing"}), 400
+
+    patron = get_patron_by_id(patron_id)
+    if not patron:
+        return jsonify({"success": False, "message": "Patron not found"}), 404
+
+    due_check = check_patron_no_due_status(patron.get("register_number") or patron.get("barcode"))
+    if due_check.get("has_due"):
+        return jsonify({
+            "success": False,
+            "message": "Cannot send No Due Certificate! Patron has active books or unpaid fines."
+        }), 400
+
+    recipient = target_email or patron.get("email") or patron.get("parent_email")
+    if not recipient:
+        return jsonify({"success": False, "message": "No email address found for this student. Please enter an email address."}), 400
+
+    cert_date = d.get("date", "").strip() or datetime.now().strftime("%d-%m-%Y")
+    cert_id = due_check.get("certificate_id")
+
+    pdf_bytes = generate_no_due_certificate_pdf(patron, cert_date=cert_date, cert_id=cert_id)
+
+    ok, err = send_no_due_certificate_email(patron, pdf_bytes, cert_id, to_email=recipient)
+    if ok:
+        return jsonify({
+            "success": True,
+            "message": f"Official No Due Certificate successfully emailed to {recipient}!"
+        })
+    else:
+        return jsonify({"success": False, "message": f"Email delivery failed: {err}"}), 500
 
 
 if __name__ == "__main__":

@@ -1169,3 +1169,93 @@ def get_patron_loans_by_identifier(identifier):
 
     return p_dict, loan_list
 
+
+def check_patron_no_due_status(identifier):
+    """
+    Checks if a patron (student or faculty) has any pending dues (unreturned books or unpaid fines).
+    Returns complete breakdown suitable for No-Due Certificate verification.
+    """
+    p_dict = get_patron_by_barcode(identifier)
+    if not p_dict:
+        return {"found": False, "message": f"No student or staff found matching '{identifier}'"}
+
+    conn = get_connection()
+    today = datetime.now().date()
+    fine_val = conn.execute("SELECT value FROM settings WHERE key='fine_per_day'").fetchone()
+    fine_rate = float(fine_val["value"]) if fine_val else 2.0
+
+    # 1. Active issued books
+    active_rows = conn.execute("""
+        SELECT t.*, b.title as book_title, b.barcode as book_barcode,
+               b.authors as book_authors, b.account_number as book_acc
+        FROM transactions t
+        JOIN books b ON t.book_id = b.id
+        WHERE t.patron_id = ? AND t.status = 'issued'
+        ORDER BY t.due_date ASC
+    """, (p_dict["id"],)).fetchall()
+
+    active_loans = []
+    total_active_fines = 0.0
+    for r in active_rows:
+        ld = dict(r)
+        due_dt = datetime.strptime(ld["due_date"], "%Y-%m-%d").date()
+        diff = (due_dt - today).days
+        ld["days_left"] = diff
+        ld["is_overdue"] = diff < 0
+        if diff < 0:
+            overdue_days = abs(diff)
+            calc_fine = overdue_days * fine_rate
+            ld["calculated_fine"] = calc_fine
+            total_active_fines += calc_fine
+            ld["status_label"] = f"Overdue by {overdue_days} days"
+            ld["status_class"] = "badge-danger"
+        elif diff == 0:
+            ld["calculated_fine"] = 0.0
+            ld["status_label"] = "Due today"
+            ld["status_class"] = "badge-warning"
+        else:
+            ld["calculated_fine"] = 0.0
+            ld["status_label"] = f"{diff} days remaining"
+            ld["status_class"] = "badge-info"
+        active_loans.append(ld)
+
+    # 2. Unpaid fines from past returned transactions
+    unpaid_rows = conn.execute("""
+        SELECT t.*, b.title as book_title, b.barcode as book_barcode
+        FROM transactions t
+        JOIN books b ON t.book_id = b.id
+        WHERE t.patron_id = ? AND t.status = 'returned' AND t.fine_paid = 0 AND t.fine_amount > 0
+        ORDER BY t.return_date DESC
+    """, (p_dict["id"],)).fetchall()
+
+    unpaid_fines_list = [dict(r) for r in unpaid_rows]
+    total_unpaid_returned_fines = sum(float(r.get("fine_amount") or 0) for r in unpaid_fines_list)
+
+    total_pending_fines = total_active_fines + total_unpaid_returned_fines
+    has_due = (len(active_loans) > 0 or total_pending_fines > 0)
+
+    # Lifetime borrows count
+    lifetime_count = conn.execute(
+        "SELECT COUNT(*) FROM transactions WHERE patron_id = ?", (p_dict["id"],)
+    ).fetchone()[0]
+
+    conn.close()
+
+    cert_id = f"SRM/EEE-LIB/NDC/{datetime.now().year}/{p_dict['id']:04d}"
+
+    return {
+        "found": True,
+        "patron": p_dict,
+        "has_due": has_due,
+        "can_generate": not has_due,
+        "active_loans": active_loans,
+        "active_loans_count": len(active_loans),
+        "unpaid_fines_list": unpaid_fines_list,
+        "total_pending_fines": round(total_pending_fines, 2),
+        "lifetime_borrows": lifetime_count,
+        "certificate_id": cert_id,
+        "issue_date": datetime.now().strftime("%d-%m-%Y"),
+        "issue_date_long": datetime.now().strftime("%d %B %Y")
+    }
+
+

@@ -67,7 +67,8 @@ def send_email_brevo(api_key: str, to_addr: str, subject: str, body_html: str,
                      sender_name: str = "SRM EEE Department Library",
                      reply_to: str = None,
                      to_name: str = None,
-                     inline_images: dict = None) -> tuple[bool, str]:
+                     inline_images: dict = None,
+                     attachments: list = None) -> tuple[bool, str]:
     """Send an email via Brevo's v3 HTTP REST API over Port 443 (HTTPS).
     Works on Render Free tier without outbound SMTP port blocking!
     """
@@ -119,14 +120,21 @@ def send_email_brevo(api_key: str, to_addr: str, subject: str, body_html: str,
             "email": reply_to.strip()
         }
 
+    att_payload = []
     if inline_images:
-        attachments = []
         for cid, (img_bytes, subtype) in inline_images.items():
-            attachments.append({
+            att_payload.append({
                 "content": base64.b64encode(img_bytes).decode("ascii"),
                 "name": f"{cid}.{subtype}"
             })
-        payload["attachment"] = attachments
+    if attachments:
+        for att in attachments:
+            att_payload.append({
+                "content": base64.b64encode(att["content"]).decode("ascii"),
+                "name": att["filename"]
+            })
+    if att_payload:
+        payload["attachment"] = att_payload
 
     req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST")
     try:
@@ -151,7 +159,8 @@ def send_email(to_addr: str, subject: str, body_html: str,
                smtp_user: str = "", smtp_password: str = "",
                from_addr: str = None,
                inline_images: dict = None,
-               brevo_api_key: str = None) -> tuple[bool, str]:
+               brevo_api_key: str = None,
+               attachments: list = None) -> tuple[bool, str]:
     """Send an email using Brevo HTTP API (if configured) or fallback to direct SMTP."""
     if not brevo_api_key:
         try:
@@ -183,7 +192,8 @@ def send_email(to_addr: str, subject: str, body_html: str,
             sender_email=sender_email,
             sender_name=lib_name,
             reply_to=reply_to,
-            inline_images=inline_images
+            inline_images=inline_images,
+            attachments=attachments
         )
 
     if not to_addr or not smtp_user or not smtp_password:
@@ -191,7 +201,32 @@ def send_email(to_addr: str, subject: str, body_html: str,
 
     from_addr = from_addr or smtp_user
 
-    if inline_images:
+    if attachments:
+        from email.mime.application import MIMEApplication
+        msg = MIMEMultipart("mixed")
+        msg["Subject"] = subject
+        msg["From"] = f"SRM EEE Library <{from_addr}>"
+        msg["To"] = to_addr
+
+        if inline_images:
+            related_part = MIMEMultipart("related")
+            alt_part = MIMEMultipart("alternative")
+            alt_part.attach(MIMEText(body_html, "html"))
+            related_part.attach(alt_part)
+            for cid, (img_bytes, subtype) in inline_images.items():
+                img_part = MIMEImage(img_bytes, _subtype=subtype)
+                img_part.add_header("Content-ID", f"<{cid}>")
+                img_part.add_header("Content-Disposition", "inline", filename=f"{cid}.{subtype}")
+                related_part.attach(img_part)
+            msg.attach(related_part)
+        else:
+            msg.attach(MIMEText(body_html, "html"))
+
+        for att in attachments:
+            part = MIMEApplication(att["content"], Name=att["filename"])
+            part["Content-Disposition"] = f'attachment; filename="{att["filename"]}"'
+            msg.attach(part)
+    elif inline_images:
         msg = MIMEMultipart("related")
         msg["Subject"] = subject
         msg["From"] = f"SRM EEE Library <{from_addr}>"
@@ -490,3 +525,111 @@ def build_overdue_email(patron_name: str, books: list[dict],
     </div>
     </body></html>
     """
+
+
+def send_no_due_certificate_email(patron: dict, cert_pdf_bytes: bytes, cert_id: str, to_email: str = None) -> tuple[bool, str]:
+    """
+    Sends the official No Due Clearance Certificate to the patron via email with PDF attached.
+    """
+    target_email = (to_email or patron.get("email") or patron.get("parent_email") or "").strip()
+    if not target_email:
+        return False, "Recipient email address is missing."
+
+    name = patron.get("name", "Student / Faculty")
+    reg = patron.get("register_number") or patron.get("barcode") or "—"
+    date_str = datetime.now().strftime("%d %B %Y")
+
+    subject = f"Official No Due Certificate — SRM EEE Department Library [{reg}]"
+
+    body_html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="margin:0; padding:20px; background-color:#F4F6F1; font-family:'Segoe UI',Helvetica,Arial,sans-serif; color:#17241A;">
+      <div style="max-width:560px; margin:0 auto; background:#FFFFFF; border:1px solid #DDE5D8; border-radius:20px; overflow:hidden; box-shadow:0 8px 24px rgba(0,0,0,0.06);">
+        
+        <!-- Header -->
+        <div style="background:#1C3022; color:#FFFFFF; padding:26px 30px; text-align:center;">
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:1px; color:#A7BFA0; font-weight:600; margin-bottom:4px;">
+            SRM Institute of Science and Technology • EEE Department
+          </div>
+          <h1 style="margin:0; font-size:22px; font-weight:700; letter-spacing:-0.5px;">
+            Official Library Clearance
+          </h1>
+          <p style="margin:6px 0 0; font-size:13px; color:#DDE5D8;">No Due Certificate Issued</p>
+        </div>
+
+        <!-- Content -->
+        <div style="padding:28px 30px;">
+          <p style="font-size:15px; margin:0 0 16px; line-height:1.6;">
+            Dear <strong>{name}</strong>,
+          </p>
+          <p style="font-size:14px; margin:0 0 18px; line-height:1.6; color:#374151;">
+            We are pleased to inform you that your library account with the <strong>SRM EEE Department Library</strong> has been verified. 
+            All borrowed books, journals, and materials have been returned with <strong>zero pending dues</strong>.
+          </p>
+
+          <!-- Clearance Box -->
+          <div style="background:#F0FDF4; border:1.5px solid #86EFAC; border-radius:14px; padding:18px 20px; margin-bottom:22px;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+              <span style="display:inline-block; width:10px; height:10px; background:#16A34A; border-radius:50%;"></span>
+              <strong style="color:#166534; font-size:14.5px;">Clearance Status: Cleared / No Due</strong>
+            </div>
+            <table style="width:100%; font-size:12.5px; border-collapse:collapse; color:#1F2937;">
+              <tr>
+                <td style="padding:4px 0; color:#6B7280; width:40%;">Register Number / ID:</td>
+                <td style="padding:4px 0; font-weight:600;">{reg}</td>
+              </tr>
+              <tr>
+                <td style="padding:4px 0; color:#6B7280;">Certificate Ref:</td>
+                <td style="padding:4px 0; font-weight:600;">{cert_id}</td>
+              </tr>
+              <tr>
+                <td style="padding:4px 0; color:#6B7280;">Date of Clearance:</td>
+                <td style="padding:4px 0; font-weight:600;">{date_str}</td>
+              </tr>
+              <tr>
+                <td style="padding:4px 0; color:#6B7280;">Outstanding Dues:</td>
+                <td style="padding:4px 0; font-weight:700; color:#166534;">₹0.00 (Nil)</td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px; padding:14px 18px; margin-bottom:22px; font-size:13px; color:#475569; line-height:1.5;">
+            📎 <strong>Official PDF Attached:</strong> Your signed and seal-verified No Due Certificate has been attached to this email as a PDF document. You can download and submit it for graduation, exam clearance, or transfer requirements.
+          </div>
+
+          <div style="border-top:1px solid #E5E7EB; padding-top:18px; margin-top:20px;">
+            <p style="margin:0 0 4px; font-size:12px; font-weight:700; color:#111827;">Library In-Charges:</p>
+            <p style="margin:0; font-size:12px; color:#4B5563; line-height:1.5;">
+              <strong>Dr. K. Saravanan</strong>, Associate Professor &amp; Library In-Charge<br>
+              <strong>Ms. Gomathy Lakshmi K</strong>, Teaching Assistant &amp; Library In-Charge<br>
+              Department of Electrical &amp; Electronics Engineering<br>
+              SRM Institute of Science and Technology
+            </p>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="background:#F4F6F1; padding:14px 20px; text-align:center; font-size:11px; color:#6B7280; border-top:1px solid #DDE5D8;">
+          SRM EEE Department Library • Official Clearance Portal • <a href="https://eeelibrary.org" style="color:#1C3022; font-weight:600; text-decoration:none;">eeelibrary.org</a>
+        </div>
+      </div>
+    </body>
+    </html>
+    """
+
+    filename = f"No_Due_Certificate_{reg}.pdf"
+    attachments = [{
+        "filename": filename,
+        "content": cert_pdf_bytes,
+        "mime_type": "application/pdf"
+    }]
+
+    return send_email(
+        to_addr=target_email,
+        subject=subject,
+        body_html=body_html,
+        attachments=attachments
+    )
+
