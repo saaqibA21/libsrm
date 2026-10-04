@@ -598,14 +598,23 @@ tbody tr:last-child {
 .modal-overlay {
  display: none;
  position: fixed;
+ top: 0;
+ left: 0;
+ right: 0;
+ bottom: 0;
  inset: 0;
+ width: 100vw;
+ height: 100vh;
  background: rgba(23, 36, 26, 0.45);
  backdrop-filter: blur(6px);
+ -webkit-backdrop-filter: blur(6px);
  z-index: 1000;
  align-items: center;
  justify-content: center;
+ padding: 20px;
+ box-sizing: border-box;
 }
-.modal-overlay.show { display: flex; }
+.modal-overlay.show { display: flex !important; }
 .modal {
  background: #FFFFFF;
  border: 1px solid var(--border);
@@ -616,6 +625,8 @@ tbody tr:last-child {
  max-height: 88vh;
  overflow-y: auto;
  box-shadow: var(--shadow-lg);
+ margin: auto !important;
+ position: relative;
 }
 .modal-header {
  display: flex;
