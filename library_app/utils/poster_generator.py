@@ -315,12 +315,8 @@ def build_poster_pdf(target_url: str = "https://srm-eee-library.onrender.com", o
 
     c.setFont("Helvetica", 7)
     c.setFillColor(colors.HexColor("#E2E8F0"))
-    c.drawString(306, 44, "Morning: 9:30 AM – 12:30 PM  |  Lunch: 12:30 – 1:30 PM")
-    c.drawString(306, 34, "Afternoon: 1:30 PM – 4:30 PM  (Mon – Fri)")
-
-    c.setFont("Helvetica", 6.5)
-    c.setFillColor(colors.HexColor("#94A3B8"))
-    c.drawString(306, 25, "Closed on Sundays & University Holidays")
+    c.drawString(306, 42, "Morning: 9:30 AM – 12:30 PM  |  Lunch: 12:30 – 1:30 PM")
+    c.drawString(306, 30, "Afternoon: 1:30 PM – 4:30 PM")
 
     # Finish & Output
     c.showPage()
