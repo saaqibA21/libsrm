@@ -87,8 +87,13 @@
  <input type="date" id="issueDate" class="form-control" onchange="recalculateDueDate()">
  </div>
  <div class="form-group" style="margin-bottom:0;">
- <label style="font-size:12px;font-weight:600;">Issue Time</label>
- <input type="time" id="issueTime" class="form-control">
+ <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+ <label style="font-size:12px;font-weight:600;margin-bottom:0;">Issue Time</label>
+ <span id="issueLiveBadge" style="font-size:10px; font-weight:700; color:#16a34a; background:rgba(22,163,74,0.12); padding:2px 7px; border-radius:4px; display:inline-flex; align-items:center; gap:4px; cursor:pointer;" onclick="toggleIssueTimeLive()" title="Real-time live clock active. Click to unlock manual editing or sync back.">
+ <span id="issueLiveDot" style="width:6px; height:6px; border-radius:50%; background:#16a34a; display:inline-block; box-shadow:0 0 6px #16a34a;"></span> <span id="issueLiveText">REAL-TIME</span>
+ </span>
+ </div>
+ <input type="time" id="issueTime" step="1" class="form-control" title="Real-time live clock (updates every second, editable for manual backdating)">
  </div>
  <div class="form-group" style="margin-bottom:0;">
  <label style="font-size:12px;font-weight:600;">Due Date</label>
@@ -326,6 +331,17 @@ async function doIssue() {
  btn.disabled = true;
  btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Processing Issue…';
 
+ // If in real-time mode, sync to exact second of issue
+ if (!isManualIssueTime) {
+ const now = new Date();
+ const timeInput = document.getElementById('issueTime');
+ if (timeInput) timeInput.value = getLocalTimeString(now, true);
+ }
+ if (!isManualIssueDate) {
+ const dateInput = document.getElementById('issueDate');
+ if (dateInput) dateInput.value = getLocalDateString(new Date());
+ }
+
  const bookIds = queuedBooks.map(b => b.id);
  const payload = {
  patron_id: patronData.id,
@@ -440,18 +456,99 @@ function setStatus(id, msg, type) {
  el.className = `scan-status ${type}`;
 }
 
-function initDates() {
+let isManualIssueTime = false;
+let isManualIssueDate = false;
+let liveClockInterval = null;
+
+function getLocalDateString(date = new Date()) {
+ const y = date.getFullYear();
+ const m = String(date.getMonth() + 1).padStart(2, '0');
+ const d = String(date.getDate()).padStart(2, '0');
+ return `${y}-${m}-${d}`;
+}
+
+function getLocalTimeString(date = new Date(), withSeconds = true) {
+ const hh = String(date.getHours()).padStart(2, '0');
+ const mm = String(date.getMinutes()).padStart(2, '0');
+ if (withSeconds) {
+ const ss = String(date.getSeconds()).padStart(2, '0');
+ return `${hh}:${mm}:${ss}`;
+ }
+ return `${hh}:${mm}`;
+}
+
+function updateIssueTimeBadge() {
+ const badge = document.getElementById('issueLiveBadge');
+ const dot = document.getElementById('issueLiveDot');
+ const text = document.getElementById('issueLiveText');
+ if (!badge || !dot || !text) return;
+
+ if (isManualIssueTime) {
+ badge.style.color = '#d97706';
+ badge.style.background = 'rgba(217,119,6,0.12)';
+ dot.style.background = '#d97706';
+ dot.style.boxShadow = 'none';
+ text.textContent = 'MANUAL (Click for Live)';
+ badge.title = 'Manual time mode. Click here to resume live real-time clock.';
+ } else {
+ badge.style.color = '#16a34a';
+ badge.style.background = 'rgba(22,163,74,0.12)';
+ dot.style.background = '#16a34a';
+ dot.style.boxShadow = '0 0 6px #16a34a';
+ text.textContent = 'REAL-TIME';
+ badge.title = 'Real-time live clock ticking. Click to unlock manual editing.';
+ }
+}
+
+function toggleIssueTimeLive() {
+ if (isManualIssueTime) {
+ isManualIssueTime = false;
+ updateIssueTimeBadge();
+ updateLiveClock();
+ showToast('Resumed live real-time clock', 'info');
+ } else {
+ isManualIssueTime = true;
+ updateIssueTimeBadge();
+ const timeInput = document.getElementById('issueTime');
+ if (timeInput) timeInput.focus();
+ showToast('Manual time editing enabled', 'info');
+ }
+}
+
+function updateLiveClock() {
  const now = new Date();
- const today = now.toISOString().split('T')[0];
+ if (!isManualIssueDate) {
+ const today = getLocalDateString(now);
+ const dateInput = document.getElementById('issueDate');
+ if (dateInput && dateInput.value !== today) {
+ dateInput.value = today;
+ recalculateDueDate();
+ }
+ }
+
+ if (!isManualIssueTime) {
+ const timeInput = document.getElementById('issueTime');
+ if (timeInput) {
+ timeInput.value = getLocalTimeString(now, true);
+ }
+ }
+}
+
+function initDates() {
+ isManualIssueTime = false;
+ isManualIssueDate = false;
+ updateIssueTimeBadge();
+ const now = new Date();
+ const today = getLocalDateString(now);
  const dateInput = document.getElementById('issueDate');
  if (dateInput) dateInput.value = today;
  const timeInput = document.getElementById('issueTime');
- if (timeInput) {
-   const hh = String(now.getHours()).padStart(2, '0');
-   const mm = String(now.getMinutes()).padStart(2, '0');
-   timeInput.value = `${hh}:${mm}`;
- }
+ if (timeInput) timeInput.value = getLocalTimeString(now, true);
  recalculateDueDate();
+
+ if (!liveClockInterval) {
+ liveClockInterval = setInterval(updateLiveClock, 1000);
+ }
 }
 
 const STUDENT_LOAN_DAYS = parseInt("{{ settings.loan_period_student or 15 }}") || 15;
@@ -460,12 +557,13 @@ const TEACHER_LOAN_DAYS = parseInt("{{ settings.loan_period_teacher or 30 }}") |
 function recalculateDueDate() {
  const iss = document.getElementById('issueDate') ? document.getElementById('issueDate').value : '';
  if (!iss) return;
- const d = new Date(iss);
+ const parts = iss.split('-').map(Number);
+ const d = new Date(parts[0], parts[1] - 1, parts[2]);
  const isTeacher = patronData && (patronData.patron_type === 'teacher' || patronData.patron_type === 'faculty' || patronData.patron_type === 'staff');
  const days = isTeacher ? TEACHER_LOAN_DAYS : STUDENT_LOAN_DAYS;
  d.setDate(d.getDate() + days);
  const dueInput = document.getElementById('dueDate');
- if (dueInput) dueInput.value = d.toISOString().split('T')[0];
+ if (dueInput) dueInput.value = getLocalDateString(d);
 }
 
 function clearAll() {
@@ -485,6 +583,30 @@ function clearAll() {
 }
 
 initDates();
+
+const issueTimeEl = document.getElementById('issueTime');
+if (issueTimeEl) {
+ issueTimeEl.addEventListener('input', () => {
+ isManualIssueTime = true;
+ updateIssueTimeBadge();
+ });
+ issueTimeEl.addEventListener('change', () => {
+ isManualIssueTime = true;
+ updateIssueTimeBadge();
+ });
+}
+
+const issueDateEl = document.getElementById('issueDate');
+if (issueDateEl) {
+ issueDateEl.addEventListener('input', () => {
+ isManualIssueDate = true;
+ recalculateDueDate();
+ });
+ issueDateEl.addEventListener('change', () => {
+ isManualIssueDate = true;
+ recalculateDueDate();
+ });
+}
 
 // Camera scanner integration
 let html5QrScanner = null;

@@ -33,8 +33,13 @@
  <input type="date" id="returnDate" class="form-control" onchange="updateFineDisplay()">
  </div>
  <div class="form-group" style="margin-bottom:0;">
- <label style="font-size:12px;font-weight:600;">Return Time</label>
- <input type="time" id="returnTime" class="form-control">
+ <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+ <label style="font-size:12px;font-weight:600;margin-bottom:0;">Return Time</label>
+ <span id="returnLiveBadge" style="font-size:10px; font-weight:700; color:#16a34a; background:rgba(22,163,74,0.12); padding:2px 7px; border-radius:4px; display:inline-flex; align-items:center; gap:4px; cursor:pointer;" onclick="toggleReturnTimeLive()" title="Real-time live clock active. Click to unlock manual editing or sync back.">
+ <span id="returnLiveDot" style="width:6px; height:6px; border-radius:50%; background:#16a34a; display:inline-block; box-shadow:0 0 6px #16a34a;"></span> <span id="returnLiveText">REAL-TIME</span>
+ </span>
+ </div>
+ <input type="time" id="returnTime" step="1" class="form-control" title="Real-time live clock (updates every second, editable for manual backdating)">
  </div>
  </div>
  </div>
@@ -113,13 +118,98 @@ bookInput.addEventListener('input', () => {
  }, 400);
 });
 
-function initReturnDate() {
- const today = new Date().toISOString().split('T')[0];
- document.getElementById('returnDate').value = today;
- const hh = String(new Date().getHours()).padStart(2, '0');
- const mm = String(new Date().getMinutes()).padStart(2, '0');
+let isManualReturnTime = false;
+let isManualReturnDate = false;
+let liveReturnClockInterval = null;
+
+function getLocalDateString(date = new Date()) {
+ const y = date.getFullYear();
+ const m = String(date.getMonth() + 1).padStart(2, '0');
+ const d = String(date.getDate()).padStart(2, '0');
+ return `${y}-${m}-${d}`;
+}
+
+function getLocalTimeString(date = new Date(), withSeconds = true) {
+ const hh = String(date.getHours()).padStart(2, '0');
+ const mm = String(date.getMinutes()).padStart(2, '0');
+ if (withSeconds) {
+ const ss = String(date.getSeconds()).padStart(2, '0');
+ return `${hh}:${mm}:${ss}`;
+ }
+ return `${hh}:${mm}`;
+}
+
+function updateReturnTimeBadge() {
+ const badge = document.getElementById('returnLiveBadge');
+ const dot = document.getElementById('returnLiveDot');
+ const text = document.getElementById('returnLiveText');
+ if (!badge || !dot || !text) return;
+
+ if (isManualReturnTime) {
+ badge.style.color = '#d97706';
+ badge.style.background = 'rgba(217,119,6,0.12)';
+ dot.style.background = '#d97706';
+ dot.style.boxShadow = 'none';
+ text.textContent = 'MANUAL (Click for Live)';
+ badge.title = 'Manual time mode. Click here to resume live real-time clock.';
+ } else {
+ badge.style.color = '#16a34a';
+ badge.style.background = 'rgba(22,163,74,0.12)';
+ dot.style.background = '#16a34a';
+ dot.style.boxShadow = '0 0 6px #16a34a';
+ text.textContent = 'REAL-TIME';
+ badge.title = 'Real-time live clock ticking. Click to unlock manual editing.';
+ }
+}
+
+function toggleReturnTimeLive() {
+ if (isManualReturnTime) {
+ isManualReturnTime = false;
+ updateReturnTimeBadge();
+ updateLiveReturnClock();
+ showToast('Resumed live real-time clock', 'info');
+ } else {
+ isManualReturnTime = true;
+ updateReturnTimeBadge();
+ const timeInput = document.getElementById('returnTime');
+ if (timeInput) timeInput.focus();
+ showToast('Manual time editing enabled', 'info');
+ }
+}
+
+function updateLiveReturnClock() {
+ const now = new Date();
+ if (!isManualReturnDate) {
+ const today = getLocalDateString(now);
+ const dateEl = document.getElementById('returnDate');
+ if (dateEl && dateEl.value !== today) {
+ dateEl.value = today;
+ updateFineDisplay();
+ }
+ }
+
+ if (!isManualReturnTime) {
  const timeEl = document.getElementById('returnTime');
- if (timeEl) timeEl.value = `${hh}:${mm}`;
+ if (timeEl) {
+ timeEl.value = getLocalTimeString(now, true);
+ }
+ }
+}
+
+function initReturnDate() {
+ isManualReturnTime = false;
+ isManualReturnDate = false;
+ updateReturnTimeBadge();
+ const now = new Date();
+ const today = getLocalDateString(now);
+ const dateEl = document.getElementById('returnDate');
+ if (dateEl) dateEl.value = today;
+ const timeEl = document.getElementById('returnTime');
+ if (timeEl) timeEl.value = getLocalTimeString(now, true);
+
+ if (!liveReturnClockInterval) {
+ liveReturnClockInterval = setInterval(updateLiveReturnClock, 1000);
+ }
 }
 
 function updateFineDisplay() {
@@ -208,10 +298,23 @@ async function doReturn() {
  btn.disabled = true;
  btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Processing Return…';
 
+ // If in real-time mode, sync to exact second of return
+ if (!isManualReturnTime) {
+ const now = new Date();
+ const timeEl = document.getElementById('returnTime');
+ if (timeEl) timeEl.value = getLocalTimeString(now, true);
+ }
+ if (!isManualReturnDate) {
+ const dateEl = document.getElementById('returnDate');
+ if (dateEl) dateEl.value = getLocalDateString(new Date());
+ }
+
  const returnDate = document.getElementById('returnDate').value;
+ const returnTime = document.getElementById('returnTime') ? document.getElementById('returnTime').value : '';
  const payload = {
  transaction_id: activeTxn.id,
- return_date: returnDate
+ return_date: returnDate,
+ return_time: returnTime
  };
 
  try {
@@ -284,6 +387,30 @@ function clearAll() {
 }
 
 initReturnDate();
+
+const returnTimeEl = document.getElementById('returnTime');
+if (returnTimeEl) {
+ returnTimeEl.addEventListener('input', () => {
+ isManualReturnTime = true;
+ updateReturnTimeBadge();
+ });
+ returnTimeEl.addEventListener('change', () => {
+ isManualReturnTime = true;
+ updateReturnTimeBadge();
+ });
+}
+
+const returnDateEl = document.getElementById('returnDate');
+if (returnDateEl) {
+ returnDateEl.addEventListener('input', () => {
+ isManualReturnDate = true;
+ updateFineDisplay();
+ });
+ returnDateEl.addEventListener('change', () => {
+ isManualReturnDate = true;
+ updateFineDisplay();
+ });
+}
 
 // Camera scanner integration
 let html5QrScanner = null;

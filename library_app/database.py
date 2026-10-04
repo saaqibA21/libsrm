@@ -532,17 +532,17 @@ def count_patrons():
 # ─── Transactions ──────────────────────────────────────────────────────────────
 
 def format_time_str(time_val=None):
-    """Normalize time string to standard 'HH:MM AM/PM' format or current time."""
+    """Normalize time string to standard 'HH:MM AM/PM' or 'HH:MM:SS AM/PM' format or current time."""
     if not time_val:
-        return datetime.now().strftime("%I:%M %p")
+        return datetime.now().strftime("%I:%M:%S %p")
     t = str(time_val).strip()
     if not t:
-        return datetime.now().strftime("%I:%M %p")
+        return datetime.now().strftime("%I:%M:%S %p")
     if "AM" in t.upper() or "PM" in t.upper():
         return t.upper()
-    for fmt in ("%H:%M", "%H:%M:%S", "%I:%M"):
+    for fmt, out_fmt in (("%H:%M:%S", "%I:%M:%S %p"), ("%H:%M", "%I:%M %p"), ("%I:%M", "%I:%M %p")):
         try:
-            return datetime.strptime(t, fmt).strftime("%I:%M %p")
+            return datetime.strptime(t, fmt).strftime(out_fmt)
         except ValueError:
             pass
     return t
