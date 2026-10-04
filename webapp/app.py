@@ -24,7 +24,8 @@ from library_app.database import (
     get_dashboard_stats, get_most_borrowed_books, get_most_active_patrons,
     mark_fine_paid, search_book_borrow_stats, search_patron_borrow_stats,
     search_transactions_by_date, normalize_edition, get_book_borrowers,
-    check_patron_no_due_status, get_all_cleared_patrons, get_no_due_bulk_summary
+    check_patron_no_due_status, get_all_cleared_patrons, get_no_due_bulk_summary,
+    mark_patron_no_due_emailed, reset_all_no_due_email_status
 )
 from library_app.utils.excel_importer import (
     import_books_from_excel, import_students_from_excel, import_staff_from_excel
@@ -1456,10 +1457,11 @@ def api_no_due_bulk_summary():
         return jsonify({"success": False, "message": "Unauthorized"}), 403
 
     patron_type = request.args.get("patron_type", "all").strip().lower()
+    only_unemailed = request.args.get("only_unemailed", "1").strip().lower() in ("1", "true", "yes")
     filter_type = None if patron_type in ("all", "", "both") else patron_type
 
     summary = get_no_due_bulk_summary()
-    cleared_list = get_all_cleared_patrons(filter_type)
+    cleared_list = get_all_cleared_patrons(filter_type, only_unemailed=only_unemailed)
 
     eligible_patrons = [
         {
@@ -1469,7 +1471,8 @@ def api_no_due_bulk_summary():
             "patron_type": p["patron_type"],
             "email": p["email"] or p["parent_email"],
             "year": p.get("year"),
-            "section": p.get("section")
+            "section": p.get("section"),
+            "no_due_emailed_at": p.get("no_due_emailed_at")
         }
         for p in cleared_list
         if (p.get("email") or p.get("parent_email"))
@@ -1481,6 +1484,14 @@ def api_no_due_bulk_summary():
         "eligible_count": len(eligible_patrons),
         "patrons": eligible_patrons
     })
+
+
+@app.route("/api/no_due/reset_bulk_status", methods=["POST"])
+def api_no_due_reset_bulk_status():
+    if not require_staff():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+    reset_all_no_due_email_status()
+    return jsonify({"success": True, "message": "All patron email clearance statuses have been reset."})
 
 
 @app.route("/api/no_due/bulk_send_batch", methods=["POST"])
@@ -1499,6 +1510,9 @@ def api_no_due_bulk_send_batch():
         return jsonify({"success": False, "message": "No patron IDs provided"}), 400
 
     results = []
+    quota_exceeded = False
+    quota_error_msg = ""
+
     for pid in patron_ids:
         try:
             patron = get_patron_by_id(pid)
@@ -1533,6 +1547,7 @@ def api_no_due_bulk_send_batch():
             ok, err = send_no_due_certificate_email(patron, pdf_bytes, cert_id, to_email=recipient)
 
             if ok:
+                mark_patron_no_due_emailed(pid, cert_id, recipient, success=True)
                 results.append({
                     "id": pid,
                     "name": patron.get("name"),
@@ -1542,6 +1557,7 @@ def api_no_due_bulk_send_batch():
                     "message": f"Sent to {recipient}"
                 })
             else:
+                mark_patron_no_due_emailed(pid, cert_id, recipient, success=False, err_msg=err)
                 results.append({
                     "id": pid,
                     "name": patron.get("name"),
@@ -1550,6 +1566,17 @@ def api_no_due_bulk_send_batch():
                     "success": False,
                     "message": f"Failed: {err}"
                 })
+
+                # Check if provider reported daily quota or rate limit exhaustion
+                err_lower = str(err).lower()
+                is_quota = any(q in err_lower for q in [
+                    "429", "quota", "limit exceeded", "exceeded your daily", 
+                    "credit", "credits", "rate limit", "too many requests", "daily limit"
+                ])
+                if is_quota:
+                    quota_exceeded = True
+                    quota_error_msg = str(err)
+                    break
         except Exception as e:
             results.append({
                 "id": pid,
@@ -1565,6 +1592,8 @@ def api_no_due_bulk_send_batch():
         "processed": len(results),
         "sent_count": sent_count,
         "fail_count": fail_count,
+        "quota_exceeded": quota_exceeded,
+        "quota_error_msg": quota_error_msg,
         "results": results
     })
 

@@ -14,32 +14,46 @@
     </div>
 
     <!-- Summary Statistics Grid -->
-    <div id="bulkSummaryCards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px;">
-      <div style="background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; text-align: center;">
-        <div style="font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: 700;">Cleared (No Due)</div>
-        <div id="b-stat-cleared" style="font-size: 24px; font-weight: 800; color: #166534; margin-top: 4px;">...</div>
-        <div style="font-size: 11px; color: var(--muted); margin-top: 2px;">Zero Outstanding Dues</div>
+    <div id="bulkSummaryCards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 18px;">
+      <div style="background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 12px; text-align: center;">
+        <div style="font-size: 10.5px; text-transform: uppercase; color: var(--muted); font-weight: 700;">Cleared (No Due)</div>
+        <div id="b-stat-cleared" style="font-size: 22px; font-weight: 800; color: #166534; margin-top: 3px;">...</div>
+        <div style="font-size: 10.5px; color: var(--muted); margin-top: 2px;">Zero Dues</div>
       </div>
-      <div style="background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; text-align: center;">
-        <div style="font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: 700;">With Email</div>
-        <div id="b-stat-email" style="font-size: 24px; font-weight: 800; color: var(--primary); margin-top: 4px;">...</div>
-        <div style="font-size: 11px; color: var(--muted); margin-top: 2px;">Ready to Receive PDF</div>
+      <div style="background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 12px; text-align: center;">
+        <div style="font-size: 10.5px; text-transform: uppercase; color: var(--muted); font-weight: 700;">With Email</div>
+        <div id="b-stat-email" style="font-size: 22px; font-weight: 800; color: var(--primary); margin-top: 3px;">...</div>
+        <div style="font-size: 10.5px; color: var(--muted); margin-top: 2px;">Eligible Patrons</div>
       </div>
-      <div style="background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; text-align: center;">
-        <div style="font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: 700;">Breakdown</div>
-        <div id="b-stat-breakdown" style="font-size: 13.5px; font-weight: 700; color: var(--text); margin-top: 8px;">...</div>
-        <div style="font-size: 11px; color: var(--muted); margin-top: 2px;">Students &amp; Faculty</div>
+      <div style="background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 12px; text-align: center;">
+        <div style="font-size: 10.5px; text-transform: uppercase; color: var(--muted); font-weight: 700;">Already Emailed</div>
+        <div id="b-stat-already-sent" style="font-size: 22px; font-weight: 800; color: #2563EB; margin-top: 3px;">0</div>
+        <div style="font-size: 10.5px; color: var(--muted); margin-top: 2px;">Previously Sent</div>
       </div>
-      <div style="background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; text-align: center;">
-        <div style="font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: 700;">Has Dues (Excluded)</div>
-        <div id="b-stat-due" style="font-size: 24px; font-weight: 800; color: #991b1b; margin-top: 4px;">...</div>
-        <div style="font-size: 11px; color: var(--muted); margin-top: 2px;">Protected from Sending</div>
+      <div style="background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 12px; text-align: center;">
+        <div style="font-size: 10.5px; text-transform: uppercase; color: var(--muted); font-weight: 700;">Pending In Queue</div>
+        <div id="b-stat-pending" style="font-size: 22px; font-weight: 800; color: #D97706; margin-top: 3px;">...</div>
+        <div style="font-size: 10.5px; color: var(--muted); margin-top: 2px;">Awaiting Dispatch</div>
+      </div>
+      <div style="background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 12px; text-align: center;">
+        <div style="font-size: 10.5px; text-transform: uppercase; color: var(--muted); font-weight: 700;">Has Dues</div>
+        <div id="b-stat-due" style="font-size: 22px; font-weight: 800; color: #991B1B; margin-top: 3px;">...</div>
+        <div style="font-size: 10.5px; color: var(--muted); margin-top: 2px;">Protected (Blocked)</div>
       </div>
     </div>
 
     <!-- Filter & Configuration Controls -->
     <div id="bulkControlsSection" style="background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 20px;">
-      <div class="form-row cols-2" style="margin-bottom: 0;">
+      
+      <!-- Quota Advisor Info Banner -->
+      <div style="display: flex; gap: 10px; align-items: flex-start; background: rgba(37,99,235,0.06); border: 1px solid rgba(37,99,235,0.2); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; font-size: 12px; line-height: 1.5; color: #1E3A8A;">
+        <i class="fa fa-shield-halved" style="font-size: 16px; color: #2563EB; margin-top: 2px;"></i>
+        <div>
+          <strong>Daily Quota Safety Active:</strong> Free tier providers limit daily emails (Brevo: 300/day, Resend: 100/day, Gmail SMTP: 500/day). The system tracks every sent certificate in the database. You can dispatch today's batch (e.g. 200 patrons), and tomorrow send the next batch with <strong>zero duplicates</strong>!
+        </div>
+      </div>
+
+      <div class="form-row cols-3" style="margin-bottom: 12px; gap: 12px;">
         <div class="form-group" style="margin-bottom: 0;">
           <label style="font-size: 12px; font-weight: 700;">Recipient Group</label>
           <select id="bulkPatronTypeSelect" class="form-control" onchange="loadBulkSummary()">
@@ -49,9 +63,28 @@
           </select>
         </div>
         <div class="form-group" style="margin-bottom: 0;">
+          <label style="font-size: 12px; font-weight: 700;">Daily Batch Limit (Quota)</label>
+          <select id="bulkDailyLimitSelect" class="form-control" onchange="loadBulkSummary()">
+            <option value="200" selected>Send 200 Patrons Today (Safe for Brevo/Resend)</option>
+            <option value="100">Send 100 Patrons (Resend Free Daily Limit)</option>
+            <option value="250">Send 250 Patrons (Brevo Free Daily Limit)</option>
+            <option value="0">Send All Remaining Eligible Patrons</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
           <label style="font-size: 12px; font-weight: 700;">Certificate Issue Date</label>
           <input type="text" id="bulkCertDate" class="form-control" placeholder="DD-MM-YYYY">
         </div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding-top: 6px; border-top: 1px dashed var(--border);">
+        <label style="font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: var(--text);">
+          <input type="checkbox" id="bulkSkipSentCheck" checked onchange="loadBulkSummary()" style="cursor: pointer; width: 15px; height: 15px; accent-color: var(--primary);">
+          <span>Only send to patrons who <strong>haven't received</strong> their certificate yet (Prevents duplicates)</span>
+        </label>
+        <button type="button" class="btn btn-outline btn-xs" onclick="resetBulkStatusPrompt()" style="font-size: 11px; opacity: 0.8;" title="Reset tracking for a new term">
+          <i class="fa fa-rotate-left"></i> Reset Sent History
+        </button>
       </div>
     </div>
 
@@ -688,13 +721,7 @@ async function sendCertEmail(patronId) {
 
 
 // ─── Bulk Emailing Certificates to All Cleared Patrons ───────────────────────────
-let bulkPatronsList = [];
-let bulkIsRunning = false;
-let bulkIsPaused = false;
-let bulkIndex = 0;
-let bulkSentCount = 0;
-let bulkFailCount = 0;
-const BATCH_SIZE = 5;
+let activeBulkList = [];
 
 async function openBulkEmailModal() {
   const modal = document.getElementById('bulkEmailModal');
@@ -718,29 +745,58 @@ async function openBulkEmailModal() {
 
 async function loadBulkSummary() {
   const patronType = document.getElementById('bulkPatronTypeSelect').value;
+  const skipSent = document.getElementById('bulkSkipSentCheck').checked ? '1' : '0';
+  const dailyLimit = parseInt(document.getElementById('bulkDailyLimitSelect').value, 10);
+
   document.getElementById('b-stat-cleared').textContent = '...';
   document.getElementById('b-stat-email').textContent = '...';
-  document.getElementById('b-stat-breakdown').textContent = '...';
+  document.getElementById('b-stat-already-sent').textContent = '...';
+  document.getElementById('b-stat-pending').textContent = '...';
   document.getElementById('b-stat-due').textContent = '...';
   document.getElementById('bulkStatusMsg').textContent = 'Loading clearance statistics...';
 
   try {
-    const res = await fetch(`/api/no_due/bulk_summary?patron_type=${encodeURIComponent(patronType)}`).then(r => r.json());
+    const res = await fetch(`/api/no_due/bulk_summary?patron_type=${encodeURIComponent(patronType)}&only_unemailed=${skipSent}`).then(r => r.json());
     if (res.success) {
       const s = res.summary;
       document.getElementById('b-stat-cleared').textContent = s.cleared_total;
-      document.getElementById('b-stat-email').textContent = res.eligible_count;
-      document.getElementById('b-stat-breakdown').textContent = `${s.students_cleared} Students • ${s.teachers_cleared} Faculty`;
+      document.getElementById('b-stat-email').textContent = s.cleared_with_email;
+      document.getElementById('b-stat-already-sent').textContent = s.already_emailed || 0;
+      document.getElementById('b-stat-pending').textContent = s.pending_to_email || 0;
       document.getElementById('b-stat-due').textContent = s.has_due_count;
 
       bulkPatronsList = res.patrons || [];
-      document.getElementById('bulkStatusMsg').textContent = `Ready to email ${bulkPatronsList.length} verified patrons with zero dues.`;
-      document.getElementById('btnStartBulk').disabled = bulkPatronsList.length === 0;
+      const targetCount = (dailyLimit > 0 && dailyLimit < bulkPatronsList.length) ? dailyLimit : bulkPatronsList.length;
+
+      if (bulkPatronsList.length === 0) {
+        document.getElementById('bulkStatusMsg').textContent = 'All eligible patrons have already received their certificates!';
+        document.getElementById('btnStartBulk').disabled = true;
+      } else {
+        document.getElementById('bulkStatusMsg').textContent = `Ready to email ${targetCount} patrons in today's batch (${bulkPatronsList.length} total pending).`;
+        document.getElementById('btnStartBulk').disabled = false;
+      }
     } else {
       document.getElementById('bulkStatusMsg').textContent = res.message || 'Failed to load summary stats.';
     }
   } catch(e) {
     document.getElementById('bulkStatusMsg').textContent = 'Failed to load summary stats: ' + e;
+  }
+}
+
+async function resetBulkStatusPrompt() {
+  if (!confirm("Reset all patron No Due email dispatch history?\n\nThis will clear the 'Already Sent' status for all patrons so they can be emailed again.")) {
+    return;
+  }
+  try {
+    const res = await postJSON('/api/no_due/reset_bulk_status', {});
+    if (res.success) {
+      showToast('Sent history reset successfully.', 'success');
+      await loadBulkSummary();
+    } else {
+      showToast(res.message || 'Failed to reset history', 'error');
+    }
+  } catch (err) {
+    showToast('Error resetting history: ' + err.message, 'error');
   }
 }
 
@@ -750,7 +806,14 @@ async function startBulkSend() {
     return;
   }
 
-  const confirmMsg = `This will generate official signed No Due Certificates and email them to ${bulkPatronsList.length} students and teachers with zero dues.\n\nProceed?`;
+  const dailyLimit = parseInt(document.getElementById('bulkDailyLimitSelect').value, 10);
+  if (dailyLimit > 0 && dailyLimit < bulkPatronsList.length) {
+    activeBulkList = bulkPatronsList.slice(0, dailyLimit);
+  } else {
+    activeBulkList = [...bulkPatronsList];
+  }
+
+  const confirmMsg = `Ready to dispatch official No Due Certificates:\n\n• Batch Size Today: ${activeBulkList.length} patrons\n• Pending in Queue: ${bulkPatronsList.length} total\n• Quota Safety: Active (Prevents duplicate sends)\n\nProceed with dispatching today's batch?`;
   if (!confirm(confirmMsg)) return;
 
   bulkIsRunning = true;
@@ -779,21 +842,21 @@ async function processNextBulkBatch() {
     return;
   }
 
-  if (bulkIndex >= bulkPatronsList.length) {
+  if (bulkIndex >= activeBulkList.length) {
     bulkIsRunning = false;
-    document.getElementById('bulkProgressLabel').textContent = '✓ All certificates sent!';
+    document.getElementById('bulkProgressLabel').textContent = '✓ Today\'s batch dispatch complete!';
     document.getElementById('btnPauseBulk').style.display = 'none';
     document.getElementById('btnCancelBulk').textContent = 'Done';
     document.getElementById('btnCancelBulk').className = 'btn btn-primary';
-    showToast(`Bulk email complete! Successfully sent ${bulkSentCount} certificates.`, 'success');
+    showToast(`Batch complete! Successfully sent ${bulkSentCount} certificates.`, 'success');
     return;
   }
 
-  const batch = bulkPatronsList.slice(bulkIndex, bulkIndex + BATCH_SIZE);
+  const batch = activeBulkList.slice(bulkIndex, bulkIndex + BATCH_SIZE);
   const ids = batch.map(p => p.id);
   const certDate = document.getElementById('bulkCertDate').value.trim();
 
-  document.getElementById('bulkProgressLabel').textContent = `Sending batch (${bulkIndex + 1} to ${Math.min(bulkIndex + BATCH_SIZE, bulkPatronsList.length)} of ${bulkPatronsList.length})...`;
+  document.getElementById('bulkProgressLabel').textContent = `Sending batch (${bulkIndex + 1} to ${Math.min(bulkIndex + BATCH_SIZE, activeBulkList.length)} of ${activeBulkList.length})...`;
 
   try {
     const res = await postJSON('/api/no_due/bulk_send_batch', {
@@ -813,6 +876,26 @@ async function processNextBulkBatch() {
         }
         logBox.scrollTop = logBox.scrollHeight;
       });
+
+      // Provider Quota Auto-Detection check
+      if (res.quota_exceeded) {
+        bulkIsRunning = false;
+        bulkIndex += (res.processed || batch.length);
+        updateBulkProgressUI();
+
+        logBox.innerHTML += `<div style="color:#b45309; background:#fef3c7; border:1px solid #f59e0b; padding:8px 10px; border-radius:6px; margin-top:8px; font-weight:700;">
+          ⚠️ DAILY EMAIL PROVIDER QUOTA REACHED (${escapeHtml(res.quota_error_msg || 'HTTP 429 Limit')})<br>
+          <span style="font-weight:normal; font-size:11px;">Sending paused automatically. ${bulkSentCount} certificates were successfully sent today. The remaining patrons are safely saved in the system and can be dispatched tomorrow when the quota resets at 5:30 AM IST.</span>
+        </div>`;
+        logBox.scrollTop = logBox.scrollHeight;
+
+        document.getElementById('bulkProgressLabel').textContent = '⚠️ Paused: Daily Email Quota Reached';
+        document.getElementById('btnPauseBulk').style.display = 'none';
+        document.getElementById('btnCancelBulk').textContent = 'Quota Reached — Close';
+        document.getElementById('btnCancelBulk').className = 'btn btn-warning';
+        showToast(`Daily quota reached (${bulkSentCount} sent today). Remaining patrons saved for tomorrow!`, 'warning');
+        return;
+      }
     } else {
       bulkFailCount += batch.length;
       logBox.innerHTML += `<div style="color:#dc2626; padding:2px 0;">✗ Batch error: ${escapeHtml(res.message || 'Server error')}</div>`;
@@ -831,7 +914,7 @@ async function processNextBulkBatch() {
 }
 
 function updateBulkProgressUI() {
-  const total = bulkPatronsList.length;
+  const total = activeBulkList.length;
   const pct = total > 0 ? Math.round((bulkIndex / total) * 100) : 0;
 
   document.getElementById('bulkProgressBar').style.width = `${pct}%`;

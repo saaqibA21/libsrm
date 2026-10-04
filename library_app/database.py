@@ -64,6 +64,26 @@ def initialize_db():
     except Exception:
         pass
 
+    # Schema migration: ensure no_due_emailed_at column exists in patrons
+    try:
+        c.execute("ALTER TABLE patrons ADD COLUMN no_due_emailed_at TEXT")
+    except Exception:
+        pass
+
+    # No Due certificate email dispatch logs
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS no_due_dispatches (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patron_id INTEGER NOT NULL,
+            cert_id TEXT,
+            sent_to_email TEXT,
+            sent_at TEXT DEFAULT (datetime('now', 'localtime')),
+            status TEXT DEFAULT 'sent',
+            error_message TEXT,
+            FOREIGN KEY (patron_id) REFERENCES patrons(id)
+        )
+    """)
+
     # Transactions table
     c.execute("""
         CREATE TABLE IF NOT EXISTS transactions (
@@ -1277,16 +1297,43 @@ def check_patron_no_due_status(identifier):
     }
 
 
-def get_all_cleared_patrons(patron_type=None):
+def mark_patron_no_due_emailed(patron_id: int, cert_id: str = "", email: str = "", success: bool = True, err_msg: str = ""):
+    """Record that a patron has received their No Due Certificate email."""
+    conn = get_connection()
+    c = conn.cursor()
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    if success:
+        c.execute("UPDATE patrons SET no_due_emailed_at = ? WHERE id = ?", (now_str, patron_id))
+    try:
+        c.execute(
+            "INSERT INTO no_due_dispatches (patron_id, cert_id, sent_to_email, sent_at, status, error_message) VALUES (?, ?, ?, ?, ?, ?)",
+            (patron_id, cert_id or "", email or "", now_str, "sent" if success else "failed", err_msg or "")
+        )
+    except Exception:
+        pass
+    conn.commit()
+    conn.close()
+
+
+def reset_all_no_due_email_status():
+    """Reset the emailed status of all patrons so a new batch/term can be emailed."""
+    conn = get_connection()
+    conn.execute("UPDATE patrons SET no_due_emailed_at = NULL")
+    conn.commit()
+    conn.close()
+
+
+def get_all_cleared_patrons(patron_type=None, only_unemailed=False):
     """
     Retrieve all patrons (students and teachers) who have zero pending dues
     (no active issued books and no unpaid fines from returned transactions).
     Optionally filter by patron_type: 'student', 'teacher', or None for all.
+    Optionally filter only_unemailed: only patrons who haven't yet been emailed their certificate.
     """
     conn = get_connection()
     sql = """
         SELECT p.id, p.name, p.register_number, p.patron_type, p.email, p.parent_email,
-               p.year, p.section, p.barcode
+               p.year, p.section, p.barcode, p.no_due_emailed_at
         FROM patrons p
         WHERE NOT EXISTS (
             SELECT 1 FROM transactions t WHERE t.patron_id = p.id AND t.status = 'issued'
@@ -1301,6 +1348,9 @@ def get_all_cleared_patrons(patron_type=None):
     elif patron_type in ("teacher", "faculty", "staff"):
         sql += " AND p.patron_type IN ('teacher', 'faculty', 'staff')"
 
+    if only_unemailed:
+        sql += " AND (p.no_due_emailed_at IS NULL OR p.no_due_emailed_at = '')"
+
     sql += " ORDER BY p.patron_type DESC, p.name ASC"
     rows = conn.execute(sql, params).fetchall()
     conn.close()
@@ -1308,12 +1358,12 @@ def get_all_cleared_patrons(patron_type=None):
 
 
 def get_no_due_bulk_summary():
-    """Summary of cleared vs due patrons for bulk No Due certificate emailing."""
+    """Summary of cleared vs due patrons for bulk No Due certificate emailing, including sent tracking."""
     conn = get_connection()
     total_patrons = conn.execute("SELECT COUNT(*) FROM patrons").fetchone()[0]
 
     cleared_sql = """
-        SELECT p.id, p.patron_type, p.email, p.parent_email
+        SELECT p.id, p.patron_type, p.email, p.parent_email, p.no_due_emailed_at
         FROM patrons p
         WHERE NOT EXISTS (
             SELECT 1 FROM transactions t WHERE t.patron_id = p.id AND t.status = 'issued'
@@ -1327,6 +1377,8 @@ def get_no_due_bulk_summary():
 
     cleared_total = len(cleared_rows)
     cleared_with_email = sum(1 for r in cleared_rows if (r["email"] or r["parent_email"]))
+    already_emailed = sum(1 for r in cleared_rows if (r["email"] or r["parent_email"]) and r["no_due_emailed_at"])
+    pending_to_email = cleared_with_email - already_emailed
     students_cleared = sum(1 for r in cleared_rows if r["patron_type"] == "student")
     teachers_cleared = sum(1 for r in cleared_rows if r["patron_type"] in ("teacher", "faculty", "staff"))
     has_due_count = total_patrons - cleared_total
@@ -1335,6 +1387,8 @@ def get_no_due_bulk_summary():
         "total_patrons": total_patrons,
         "cleared_total": cleared_total,
         "cleared_with_email": cleared_with_email,
+        "already_emailed": already_emailed,
+        "pending_to_email": pending_to_email,
         "students_cleared": students_cleared,
         "teachers_cleared": teachers_cleared,
         "has_due_count": has_due_count
