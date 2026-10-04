@@ -1,10 +1,27 @@
 import os
 import io
-import qrcode
 from datetime import datetime
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
+
+try:
+    import qrcode
+except ImportError:
+    qrcode = None
+
+def _resolve_image_path(filename: str) -> str:
+    """Find static image across various deployment directories."""
+    candidates = [
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "webapp", "static", "images", filename)),
+        os.path.abspath(os.path.join(os.getcwd(), "webapp", "static", "images", filename)),
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "static", "images", filename)),
+        os.path.abspath(os.path.join(os.getcwd(), "static", "images", filename))
+    ]
+    for p in candidates:
+        if os.path.exists(p):
+            return p
+    return None
 
 def generate_no_due_certificate_pdf(patron: dict, cert_date: str = None, cert_id: str = None) -> bytes:
     """
@@ -37,14 +54,21 @@ def generate_no_due_certificate_pdf(patron: dict, cert_date: str = None, cert_id
     c.rect(28, 28, w - 56, h - 56)
 
     # 1. Header: SRM Institutional Banner
-    banner_path = os.path.join(os.path.dirname(__file__), "..", "..", "webapp", "static", "images", "srm_header_banner.png")
-    if os.path.exists(banner_path):
-        c.drawImage(banner_path, 48, h - 100, width=220, height=65, mask="auto")
-    else:
+    banner_path = _resolve_image_path("srm_header_banner.png")
+    if banner_path:
+        try:
+            c.drawImage(banner_path, 48, h - 100, width=220, height=65, mask="auto")
+        except Exception:
+            banner_path = None
+
+    if not banner_path:
         # Fallback crest
-        logo_path = os.path.join(os.path.dirname(__file__), "..", "..", "webapp", "static", "images", "srm_logo.png")
-        if os.path.exists(logo_path):
-            c.drawImage(logo_path, 48, h - 96, width=54, height=54, mask="auto")
+        logo_path = _resolve_image_path("srm_logo.png")
+        if logo_path:
+            try:
+                c.drawImage(logo_path, 48, h - 96, width=54, height=54, mask="auto")
+            except Exception:
+                pass
         c.setFont("Helvetica-Bold", 20)
         c.setFillColor(SRM_BLUE)
         c.drawString(110, h - 68, "SRM")
@@ -174,18 +198,25 @@ def generate_no_due_certificate_pdf(patron: dict, cert_date: str = None, cert_id
     c.drawString(100, 140, cert_date)
 
     # 6. Verification QR Code & Official Clearance Seal
-    qr_img = qrcode.make(f"https://eeelibrary.org/my-books?q={reg_no}")
-    qr_buf = io.BytesIO()
-    qr_img.save(qr_buf, format="PNG")
-    qr_buf.seek(0)
-    qr_reportlab = canvas.ImageReader(qr_buf)
-    c.drawImage(qr_reportlab, 58, 48, width=70, height=70)
+    has_qr = False
+    if qrcode is not None:
+        try:
+            qr_img = qrcode.make(f"https://eeelibrary.org/my-books?q={reg_no}")
+            qr_buf = io.BytesIO()
+            qr_img.save(qr_buf, format="PNG")
+            qr_buf.seek(0)
+            qr_reportlab = canvas.ImageReader(qr_buf)
+            c.drawImage(qr_reportlab, 58, 48, width=70, height=70)
+            has_qr = True
+        except Exception:
+            has_qr = False
 
+    text_x = 136 if has_qr else 58
     c.setFont("Helvetica", 7.5)
     c.setFillColor(MUTED_GRAY)
-    c.drawString(136, 92, "Online Verified Clearance")
-    c.drawString(136, 80, "Scan QR to confirm catalog record")
-    c.drawString(136, 68, f"Ref: {cert_id}")
+    c.drawString(text_x, 92, "Online Verified Clearance")
+    c.drawString(text_x, 80, "Scan QR to confirm catalog record" if has_qr else "Official Catalog Clearance Record")
+    c.drawString(text_x, 68, f"Ref: {cert_id}")
 
     # Official Green Badge Stamp
     badge_x = (w / 2) - 30
@@ -200,11 +231,13 @@ def generate_no_due_certificate_pdf(patron: dict, cert_date: str = None, cert_id
     c.drawCentredString(badge_x + 10, 88, "Zero Outstanding Records")
 
     # 7. In-Charges Signatures & Signatory Block
-    # Signature image provided by user
-    sig_path = os.path.join(os.path.dirname(__file__), "..", "..", "webapp", "static", "images", "incharge_signature.png")
+    sig_path = _resolve_image_path("incharge_signature.png")
     sig_x = w - 240
-    if os.path.exists(sig_path):
-        c.drawImage(sig_path, sig_x + 20, 115, width=115, height=80, mask="auto")
+    if sig_path:
+        try:
+            c.drawImage(sig_path, sig_x + 20, 115, width=115, height=80, mask="auto")
+        except Exception:
+            pass
 
     # Signatory details
     c.setFont("Helvetica-Bold", 12)

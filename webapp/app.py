@@ -1336,33 +1336,38 @@ def api_no_due_check():
 @app.route("/api/no_due/pdf/<int:patron_id>")
 def api_no_due_pdf(patron_id):
     if not require_staff():
-        return jsonify({"success": False, "message": "Unauthorized"}), 403
-    from library_app.utils.no_due_pdf import generate_no_due_certificate_pdf
-    patron = get_patron_by_id(patron_id)
-    if not patron:
-        return jsonify({"success": False, "message": "Patron not found"}), 404
+        return redirect(url_for("staff_login", next=request.full_path))
+    try:
+        from library_app.utils.no_due_pdf import generate_no_due_certificate_pdf
+        patron = get_patron_by_id(patron_id)
+        if not patron:
+            return jsonify({"success": False, "message": "Patron not found"}), 404
 
-    # Verify no dues
-    due_check = check_patron_no_due_status(patron.get("register_number") or patron.get("barcode"))
-    if due_check.get("has_due"):
-        return jsonify({
-            "success": False,
-            "message": "Cannot generate No Due Certificate! Patron has active unreturned books or pending fines."
-        }), 400
+        # Verify no dues
+        due_check = check_patron_no_due_status(patron.get("register_number") or patron.get("barcode"))
+        if due_check.get("has_due"):
+            return jsonify({
+                "success": False,
+                "message": "Cannot generate No Due Certificate! Patron has active unreturned books or pending fines."
+            }), 400
 
-    cert_date = request.args.get("date", "").strip() or datetime.now().strftime("%d-%m-%Y")
-    cert_id = due_check.get("certificate_id")
+        cert_date = request.args.get("date", "").strip() or datetime.now().strftime("%d-%m-%Y")
+        cert_id = due_check.get("certificate_id")
 
-    pdf_bytes = generate_no_due_certificate_pdf(patron, cert_date=cert_date, cert_id=cert_id)
-    as_attachment = request.args.get("download") == "1"
-    filename = f"SRM_No_Due_{patron.get('register_number', 'Clearance')}.pdf"
+        pdf_bytes = generate_no_due_certificate_pdf(patron, cert_date=cert_date, cert_id=cert_id)
+        as_attachment = request.args.get("download") == "1"
+        filename = f"SRM_No_Due_{patron.get('register_number', 'Clearance')}.pdf"
 
-    return send_file(
-        io.BytesIO(pdf_bytes),
-        mimetype="application/pdf",
-        as_attachment=as_attachment,
-        download_name=filename
-    )
+        return send_file(
+            io.BytesIO(pdf_bytes),
+            mimetype="application/pdf",
+            as_attachment=as_attachment,
+            download_name=filename
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": f"PDF generation error: {e}"}), 500
 
 
 @app.route("/api/no_due/send_email", methods=["POST"])
