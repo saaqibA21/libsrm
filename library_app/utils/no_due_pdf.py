@@ -250,11 +250,6 @@ def generate_no_due_certificate_pdf(patron: dict, cert_date: str = None, cert_id
     c.drawRightString(w - 58, 83, "Department of Electrical and Electronics Engineering")
     c.drawRightString(w - 58, 70, "SRM Institute of Science and Technology")
 
-    # Additional In-Charge mention
-    c.setFont("Helvetica-Oblique", 8)
-    c.setFillColor(colors.HexColor("#6B7280"))
-    c.drawRightString(w - 58, 55, "Ms. Gomathy Lakshmi K, Teaching Assistant (Library In-Charge)")
-
     c.showPage()
     c.save()
     buf.seek(0)
