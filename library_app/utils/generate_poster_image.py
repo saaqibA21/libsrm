@@ -223,7 +223,7 @@ def render_premium_poster(target_url="https://eeelibrary.org"):
     draw.text((80, height - 120), "EEE DEPARTMENT LIBRARY  •  SRM INSTITUTE OF SCIENCE AND TECHNOLOGY", fill=WHITE, font=get_font("segoeuib.ttf", 24))
     draw.text((80, height - 80), "Knowledge Drives Innovation  |  Location: Department of EEE, SRMIST", fill=TEXT_MUTED, font=font_footer)
 
-    hours_str = "Working Hours: Mon – Fri: 8:30 AM – 5:00 PM  |  Sat: 9:00 AM – 1:00 PM"
+    hours_str = "Working Hours: 9:30 AM – 12:30 PM & 1:30 PM – 4:30 PM (Mon – Fri)"
     draw.text((width - 80, height - 120), hours_str, fill=MINT_GREEN, font=get_font("segoeuib.ttf", 22), anchor="ra")
     draw.text((width - 80, height - 80), f"Digital Portal: {url_text}", fill=GOLD_LIGHT, font=font_footer, anchor="ra")
 

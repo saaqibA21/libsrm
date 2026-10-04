@@ -96,11 +96,16 @@
   <!-- Timings & Policies -->
   <div class="two-col" style="margin-bottom: 24px;">
     <div class="card" style="border-radius: 18px;">
-      <div class="card-title"><i class="fa fa-clock" style="color:var(--accent);"></i> Working Hours</div>
+      <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+        <span><i class="fa fa-clock" style="color:var(--accent);"></i> Library Working Hours</span>
+        <span id="liveLibraryStatusBadge" class="badge badge-success" style="font-size:10.5px;">Checking...</span>
+      </div>
       <div class="info-card">
-        <div class="info-row"><span class="lbl">Monday – Friday</span><span class="val">8:30 AM – 5:00 PM</span></div>
-        <div class="info-row"><span class="lbl">Saturday</span><span class="val">9:00 AM – 1:00 PM</span></div>
-        <div class="info-row"><span class="lbl">Sunday & Holidays</span><span class="val" style="color:var(--muted);">Closed</span></div>
+        <div class="info-row"><span class="lbl">Morning Session</span><span class="val" style="font-weight:700; color:var(--text);">9:30 AM – 12:30 PM</span></div>
+        <div class="info-row"><span class="lbl">Lunch Break</span><span class="val" style="color:var(--muted);">12:30 PM – 1:30 PM (Closed)</span></div>
+        <div class="info-row"><span class="lbl">Afternoon Session</span><span class="val" style="font-weight:700; color:var(--text);">1:30 PM – 4:30 PM</span></div>
+        <div class="info-row"><span class="lbl">Working Days</span><span class="val">Monday – Friday</span></div>
+        <div class="info-row"><span class="lbl">Sunday &amp; Holidays</span><span class="val" style="color:var(--muted);">Closed</span></div>
         <div class="info-row"><span class="lbl">Location</span><span class="val">Department of EEE, SRMIST</span></div>
       </div>
     </div>
@@ -138,4 +143,46 @@
     </p>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateLiveLibraryStatus() {
+  const badge = document.getElementById('liveLibraryStatusBadge');
+  if (!badge) return;
+  const now = new Date();
+  const day = now.getDay(); // 0: Sun, 6: Sat
+  const mins = now.getHours() * 60 + now.getMinutes();
+
+  const mStart = 9 * 60 + 30;  // 9:30 AM (570)
+  const mEnd = 12 * 60 + 30;   // 12:30 PM (750)
+  const aStart = 13 * 60 + 30; // 1:30 PM (810)
+  const aEnd = 16 * 60 + 30;   // 4:30 PM (990)
+
+  if (day === 0) {
+    badge.className = 'badge badge-gray';
+    badge.innerHTML = '<i class="fa fa-door-closed"></i> Closed (Sunday)';
+  } else if (mins >= mStart && mins < mEnd) {
+    badge.className = 'badge badge-success';
+    badge.innerHTML = '<i class="fa fa-door-open"></i> Open Now (Morning Session: 9:30 AM – 12:30 PM)';
+  } else if (mins >= mEnd && mins < aStart) {
+    badge.className = 'badge badge-warning';
+    badge.innerHTML = '<i class="fa fa-utensils"></i> Lunch Break (Opens 1:30 PM)';
+  } else if (mins >= aStart && mins < aEnd) {
+    badge.className = 'badge badge-success';
+    badge.innerHTML = '<i class="fa fa-door-open"></i> Open Now (Afternoon Session: 1:30 PM – 4:30 PM)';
+  } else if (mins < mStart) {
+    badge.className = 'badge badge-gray';
+    badge.innerHTML = '<i class="fa fa-moon"></i> Closed (Opens at 9:30 AM)';
+  } else {
+    badge.className = 'badge badge-gray';
+    badge.innerHTML = '<i class="fa fa-moon"></i> Closed for Today (Opens Tomorrow at 9:30 AM)';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  updateLiveLibraryStatus();
+  setInterval(updateLiveLibraryStatus, 30000); // refresh every 30s
+});
+</script>
 {% endblock %}

@@ -153,6 +153,9 @@ def initialize_db():
         "github_backup_repo": "saaqibA21/libsrm",
         "github_backup_branch": "main",
         "github_last_backup_status": "Active",
+        "library_hours_morning": "9:30 AM – 12:30 PM",
+        "library_hours_afternoon": "1:30 PM – 4:30 PM",
+        "library_hours_display": "9:30 AM – 12:30 PM & 1:30 PM – 4:30 PM",
     }
     for k, v in defaults.items():
         c.execute("INSERT OR IGNORE INTO settings VALUES (?, ?)", (k, v))
