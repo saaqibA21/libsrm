@@ -295,8 +295,24 @@ def generate_circulation_report_pdf(output_path_or_buf=None) -> bytes:
         ]))
         story.append(t_tp)
 
-    # ── Footer / Signature ──
-    story.append(Spacer(1, 25))
+    # ── Institutional In-Charge Endorsement ──
+    story.append(Spacer(1, 20))
+    sig_data = [
+        [
+            Paragraph("<b>Dr. K. Saravanan</b><br/><font size='7.5' color='#4A5D4E'>Associate Professor &amp; Library In-Charge<br/>Department of Electrical &amp; Electronics Engineering<br/>Email: saravank3@srmist.edu.in</font>", cell_style),
+            Paragraph("<b>Ms. Gomathy Lakshmi K</b><br/><font size='7.5' color='#4A5D4E'>Teaching Assistant &amp; Library In-Charge<br/>Department of Electrical &amp; Electronics Engineering<br/>SRM Institute of Science and Technology</font>", cell_style),
+        ]
+    ]
+    t_sig = Table(sig_data, colWidths=[260, 262])
+    t_sig.setStyle(TableStyle([
+        ('LINEABOVE', (0,0), (-1,-1), 1, colors.HexColor('#CBD5E1')),
+        ('TOPPADDING', (0,0), (-1,-1), 8),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+    ]))
+    story.append(KeepTogether(t_sig))
+
+    # ── Footer ──
+    story.append(Spacer(1, 16))
     footer_text = f"SRMIST Kattankulathur — Department of EEE Library Management System • Confidential Institutional Report"
     story.append(Paragraph(footer_text, meta_style))
 

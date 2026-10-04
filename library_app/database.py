@@ -875,6 +875,24 @@ def get_dashboard_stats():
     }
 
 
+def get_today_transactions():
+    """Retrieve all circulation transactions issued or returned today."""
+    conn = get_connection()
+    today = datetime.now().strftime("%Y-%m-%d")
+    rows = conn.execute("""
+        SELECT t.id, t.issue_date, t.issue_time, t.due_date, t.return_date, t.return_time, t.status, t.fine_amount,
+               b.title as book_title, b.barcode as book_barcode, b.account_number as book_acc,
+               p.name as patron_name, p.register_number as patron_reg, p.patron_type
+        FROM transactions t
+        JOIN books b ON t.book_id = b.id
+        JOIN patrons p ON t.patron_id = p.id
+        WHERE date(t.issue_date) = date(?) OR date(t.return_date) = date(?)
+        ORDER BY t.id DESC
+    """, (today, today)).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
 def get_most_borrowed_books(limit=10):
     conn = get_connection()
     rows = conn.execute("""

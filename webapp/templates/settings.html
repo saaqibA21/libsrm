@@ -102,6 +102,28 @@
  </ol>
  </div>
 
+  <!-- Automated Daily Report Settings -->
+  <div style="background:linear-gradient(135deg, rgba(22, 101, 52, 0.05) 0%, rgba(28, 48, 34, 0.08) 100%); border:1.5px solid rgba(22, 101, 52, 0.25); border-radius:12px; padding:16px 18px; margin:18px 0;">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+      <div>
+        <strong style="font-size:13.5px; color:#14532D; display:flex; align-items:center; gap:6px;">
+          <i class="fa fa-file-pdf"></i> Automated Daily Report Dispatch (Dr. K. Saravanan)
+        </strong>
+        <span style="font-size:11.5px; color:var(--muted); margin-top:2px; display:block;">
+          Generates daily circulation &amp; analytics PDF and emails it every day at 6:00 PM IST (18:00).
+        </span>
+      </div>
+      <span class="badge badge-success" style="font-size:10px;"><i class="fa fa-clock"></i> Active: 6:00 PM IST</span>
+    </div>
+    <div class="form-group" style="margin-bottom:10px;">
+      <label style="font-size:11.5px; font-weight:700;">Recipient Email Address</label>
+      <input class="form-control" name="daily_report_recipient_email" value="{{ settings.daily_report_recipient_email or 'saravank3@srmist.edu.in' }}" placeholder="saravank3@srmist.edu.in">
+      <span style="font-size:11px; color:var(--muted); margin-top:3px; display:block;">
+        Default: <strong>saravank3@srmist.edu.in</strong> (Dr. K. Saravanan, Associate Professor &amp; Library In-Charge)
+      </span>
+    </div>
+  </div>
+
  <div class="form-group" style="margin-top:16px; padding-top:14px; border-top:1px dashed var(--border);">
  <label style="display:flex; justify-content:space-between; align-items:center;">
  <span>Send Test Email To (Recipient)</span>

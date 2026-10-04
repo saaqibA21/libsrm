@@ -116,6 +116,13 @@ def start_keep_alive_daemon():
             except Exception as e:
                 print(f"[Auto-Backup] Scheduler notice: {e}")
 
+            # Check and run daily 6:00 PM IST automated daily report email to Dr. K. Saravanan
+            try:
+                from library_app.utils.daily_report_service import check_and_run_daily_report_email
+                check_and_run_daily_report_email()
+            except Exception as e:
+                print(f"[Daily-Report] Scheduler notice: {e}")
+
             time.sleep(600)  # Ping every 10 minutes (Render sleep threshold is 15 min)
 
     t = threading.Thread(target=_pinger, daemon=True, name="RenderKeepAlive")
@@ -878,6 +885,35 @@ def reports_pdf():
         as_attachment=as_attachment,
         download_name=f"SRM_Library_Circulation_Report_{stamp}.pdf"
     )
+
+
+@app.route("/api/reports/send_daily_report", methods=["POST"])
+def api_reports_send_daily_report():
+    if not require_staff():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+    from library_app.utils.daily_report_service import send_daily_report_email, get_daily_report_recipient
+    d = request.json or {}
+    recipient = (d.get("recipient") or "").strip() or get_daily_report_recipient()
+    ok, msg = send_daily_report_email(recipient=recipient, force=True)
+    if ok:
+        return jsonify({"success": True, "message": msg, "recipient": recipient})
+    else:
+        return jsonify({"success": False, "message": msg}), 500
+
+
+@app.route("/api/reports/daily_report_status", methods=["GET"])
+def api_reports_daily_report_status():
+    if not require_staff():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+    from library_app.utils.daily_report_service import get_daily_report_recipient
+    return jsonify({
+        "success": True,
+        "recipient": get_daily_report_recipient(),
+        "last_status": get_setting("daily_report_last_status", "Pending / Never run"),
+        "last_sent_time": get_setting("daily_report_last_sent_time", ""),
+        "last_sent_date": get_setting("daily_report_last_sent_date", ""),
+        "schedule": "Automated Daily at 6:00 PM IST"
+    })
 
 
 @app.route("/api/reports/search_books")
