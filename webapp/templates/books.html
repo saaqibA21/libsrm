@@ -2,6 +2,36 @@
 {% block title %}Books — SRM Library{% endblock %}
 {% block page_title %}Books Catalog{% endblock %}
 {% block content %}
+<style>
+.btn-view-borrows {
+  border-radius: 9999px !important;
+  padding: 4px 14px !important;
+  font-weight: 700 !important;
+  font-size: 11.5px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  border: 1px solid var(--border, #cbd5e1) !important;
+  background: var(--card-bg, #ffffff) !important;
+  color: var(--text, #0f172a) !important;
+  line-height: 1.15 !important;
+  text-align: left !important;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.btn-view-borrows:hover {
+  background: var(--hover-bg, #f8fafc) !important;
+  border-color: #64748b !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+.btn-view-borrows i {
+  font-size: 13.5px;
+  color: var(--text, #0f172a);
+}
+</style>
+
 
 <!-- Toolbar -->
 <div class="toolbar">
@@ -35,7 +65,7 @@
 <div class="table-wrap">
  <table>
  <thead>
- <tr><th>Barcode</th><th>Account No.</th><th>Title</th><th>Authors</th><th>Publisher</th><th>Edition</th><th>Status</th><th>Actions</th></tr>
+ <tr><th>Barcode</th><th>Account No.</th><th>Title</th><th>Authors</th><th>Publisher</th><th>Edition</th><th>Status</th><th>Action</th></tr>
  </thead>
  <tbody>
  {% for book in books %}
@@ -64,9 +94,15 @@
  {% endif %}
  </td>
  <td style="white-space:nowrap;">
+ <div style="display:inline-flex; align-items:center; gap:6px;">
+ <button class="btn btn-view-borrows" onclick="viewBookBorrows({{ book.id }}, '{{ book.title[:60]|e }}')" title="View borrowing history for this book">
+ <i class="fa fa-history"></i>
+ <span>View<br>Borrows</span>
+ </button>
  <button class="btn btn-outline btn-sm" onclick="showBarcodeModal({{ book.id }})" title="View & Print Barcode Label Sticker"><i class="fa fa-barcode" style="color:var(--primary);"></i></button>
  <button class="btn btn-outline btn-sm" onclick="editBook({{ book.id }})" title="Edit Book"><i class="fa fa-edit"></i></button>
  <button class="btn btn-danger btn-sm" onclick="deleteBook({{ book.id }}, '{{ book.title[:30]|e }}')" title="Delete Book"><i class="fa fa-trash"></i></button>
+ </div>
  </td>
  </tr>
  {% else %}
@@ -192,9 +228,131 @@
  </div>
  </div>
  </div>
-</div>{% endblock %}
+</div>
+<!-- Book Borrowers Record Modal -->
+<div class="modal-overlay" id="bookBorrowersModal">
+ <div class="modal" style="max-width:880px; width:95%;">
+ <div class="modal-header">
+ <div>
+ <div class="badge badge-info" style="font-size:10.5px; margin-bottom:4px;"><i class="fa fa-book"></i> Book Borrowers Record</div>
+ <h3 id="bookBorrowersModalTitle" style="margin:0; font-size:18px;">Borrowers History</h3>
+ </div>
+ <button class="modal-close" onclick="closeModal('bookBorrowersModal')">✕</button>
+ </div>
+ 
+ <div style="padding:12px 16px; background:var(--card2); border:1px solid var(--border); border-radius:12px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+ <div id="bookBorrowersMeta" style="font-size:12.5px; color:var(--text);"></div>
+ <div id="bookBorrowersCount" class="badge badge-purple" style="font-size:11.5px;"></div>
+ </div>
+ 
+ <div class="table-wrap" style="max-height:420px; overflow-y:auto;">
+ <table>
+ <thead>
+ <tr>
+ <th>#</th>
+ <th>Borrower Name</th>
+ <th>Reg. / ID</th>
+ <th>Type</th>
+ <th>Issue Date & Time</th>
+ <th>Due Date</th>
+ <th>Return Date & Time</th>
+ <th>Fine</th>
+ <th>Status</th>
+ </tr>
+ </thead>
+ <tbody id="bookBorrowersTbody">
+ <tr><td colspan="9" style="text-align:center; padding:24px; color:var(--muted);"><i class="fa fa-spinner fa-spin"></i> Fetching borrower records...</td></tr>
+ </tbody>
+ </table>
+ </div>
+ 
+ <div class="modal-footer" style="margin-top:18px; display:flex; justify-content:flex-end;">
+ <button type="button" class="btn btn-outline btn-sm" onclick="closeModal('bookBorrowersModal')">Close</button>
+ </div>
+ </div>
+</div>
+{% endblock %}
 {% block scripts %}
 <script>
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+async function viewBookBorrows(bookId, bookTitle) {
+  const modalTitle = document.getElementById('bookBorrowersModalTitle');
+  const modalMeta = document.getElementById('bookBorrowersMeta');
+  const modalCount = document.getElementById('bookBorrowersCount');
+  const tbody = document.getElementById('bookBorrowersTbody');
+
+  modalTitle.textContent = bookTitle || 'Book Borrowers';
+  modalMeta.innerHTML = `<i class="fa fa-spinner fa-spin"></i> Loading book details...`;
+  modalCount.textContent = '...';
+  tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:28px; color:var(--muted);"><i class="fa fa-spinner fa-spin"></i> Fetching borrower records...</td></tr>';
+  openModal('bookBorrowersModal');
+
+  try {
+    const res = await fetch(`/api/reports/book_borrowers/${bookId}`).then(r => r.json());
+    if (!res.success) {
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:24px; color:var(--danger);">${escapeHtml(res.message || 'Error fetching records')}</td></tr>`;
+      return;
+    }
+
+    const b = res.book;
+    modalTitle.textContent = b.title;
+    modalMeta.innerHTML = `<strong>Barcode:</strong> <code>${b.barcode}</code> ${b.account_number ? `&nbsp;|&nbsp; <strong>Acc No:</strong> ${b.account_number}` : ''} &nbsp;|&nbsp; <strong>Author:</strong> ${escapeHtml(b.authors || '—')}`;
+    modalCount.textContent = `${res.borrowers.length} Checkout${res.borrowers.length === 1 ? '' : 's'}`;
+
+    if (!res.borrowers || res.borrowers.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:32px; color:var(--muted);"><i class="fa fa-info-circle" style="font-size:22px; display:block; margin-bottom:8px; opacity:0.4;"></i> This book has not been borrowed yet.</td></tr>';
+      return;
+    }
+
+    let rows = '';
+    res.borrowers.forEach((t, idx) => {
+      const isIssued = t.status === 'issued';
+      const statusBadge = isIssued
+        ? '<span class="badge badge-warning" style="font-size:10.5px;">Issued</span>'
+        : '<span class="badge badge-success" style="font-size:10.5px;">Returned</span>';
+
+      const ptype = (t.patron_type || 'student').toLowerCase();
+      const ptypeBadge = `<span class="badge badge-${ptype==='teacher'?'purple':'info'}" style="font-size:10px;">${(t.patron_type||'student').toUpperCase()}</span>`;
+
+      const fineText = t.fine_amount && t.fine_amount > 0
+        ? `<span style="color:var(--danger); font-weight:600;">₹${Number(t.fine_amount).toFixed(2)}</span>`
+        : '<span class="text-muted">₹0.00</span>';
+
+      rows += `
+        <tr style="${isIssued ? 'background:rgba(245, 158, 11, 0.04);' : ''}">
+          <td class="text-sm text-muted">${idx + 1}</td>
+          <td style="font-weight:600; color:var(--text);">
+            ${escapeHtml(t.borrower_name || 'Unknown')}
+            ${t.borrower_year ? `<div class="text-muted" style="font-size:11px; font-weight:normal;">Yr ${escapeHtml(t.borrower_year)} ${escapeHtml(t.borrower_section || '')}</div>` : ''}
+          </td>
+          <td class="text-sm">${escapeHtml(t.borrower_reg || '—')}</td>
+          <td>${ptypeBadge}</td>
+          <td class="text-sm">
+            ${escapeHtml(t.issue_date || '—')}
+            ${t.issue_time ? `<div class="text-muted" style="font-size:10.5px;"><i class="fa fa-clock" style="font-size:9.5px; opacity:0.75;"></i> ${escapeHtml(t.issue_time)}</div>` : ''}
+          </td>
+          <td class="text-sm text-muted">${escapeHtml(t.due_date || '—')}</td>
+          <td class="text-sm">
+            ${t.return_date ? `
+              <div>${escapeHtml(t.return_date)}</div>
+              ${t.return_time ? `<div class="text-muted" style="font-size:10.5px;"><i class="fa fa-clock" style="font-size:9.5px; opacity:0.75;"></i> ${escapeHtml(t.return_time)}</div>` : ''}
+            ` : '<span class="badge badge-warning" style="font-size:10px;">Currently Held</span>'}
+          </td>
+          <td class="text-sm">${fineText}</td>
+          <td>${statusBadge}</td>
+        </tr>
+      `;
+    });
+    tbody.innerHTML = rows;
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:20px; color:var(--danger);">Failed to load borrowers: ${err}</td></tr>`;
+  }
+}
+
 function openImport() { document.getElementById('importFile').value=''; openModal('importModal'); }
 
 function openAddBook() {
