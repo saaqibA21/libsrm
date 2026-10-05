@@ -315,7 +315,9 @@ async function viewBookBorrows(bookId, bookTitle) {
         : '<span class="badge badge-success" style="font-size:10.5px;">Returned</span>';
 
       const ptype = (t.patron_type || 'student').toLowerCase();
-      const ptypeBadge = `<span class="badge badge-${ptype==='teacher'?'purple':'info'}" style="font-size:10px;">${(t.patron_type||'student').toUpperCase()}</span>`;
+      const ptypeBadge = (ptype === 'research_scholar' || ptype === 'scholar')
+        ? `<span class="badge badge-scholar" style="font-size:10px;"><i class="fa fa-graduation-cap" style="font-size:8.5px; margin-right:2px;"></i> SCHOLAR</span>`
+        : `<span class="badge badge-${ptype==='teacher'?'purple':'info'}" style="font-size:10px;">${(t.patron_type||'student').toUpperCase()}</span>`;
 
       const fineText = t.fine_amount && t.fine_amount > 0
         ? `<span style="color:var(--danger); font-weight:600;">₹${Number(t.fine_amount).toFixed(2)}</span>`

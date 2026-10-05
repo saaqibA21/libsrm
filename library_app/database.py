@@ -525,8 +525,13 @@ def search_patrons(query="", patron_type=None):
     """
     params = [q, q, q, q]
     if patron_type:
-        sql += " AND patron_type=?"
-        params.append(patron_type)
+        if patron_type == 'research_scholar':
+            sql += " AND (patron_type='research_scholar' OR UPPER(COALESCE(year,''))='RS' OR UPPER(COALESCE(section,'')) LIKE '%RS%')"
+        elif patron_type == 'student':
+            sql += " AND patron_type='student' AND UPPER(COALESCE(year,'')) != 'RS' AND UPPER(COALESCE(section,'')) NOT LIKE '%RS%'"
+        else:
+            sql += " AND patron_type=?"
+            params.append(patron_type)
     sql += " ORDER BY name"
     rows = conn.execute(sql, params).fetchall()
     conn.close()
@@ -551,9 +556,9 @@ def get_all_patrons():
 def count_patrons():
     conn = get_connection()
     total = conn.execute("SELECT COUNT(*) FROM patrons").fetchone()[0]
-    students = conn.execute("SELECT COUNT(*) FROM patrons WHERE patron_type='student'").fetchone()[0]
     teachers = conn.execute("SELECT COUNT(*) FROM patrons WHERE patron_type='teacher'").fetchone()[0]
-    scholars = conn.execute("SELECT COUNT(*) FROM patrons WHERE patron_type='research_scholar'").fetchone()[0]
+    scholars = conn.execute("SELECT COUNT(*) FROM patrons WHERE patron_type='research_scholar' OR UPPER(COALESCE(year,''))='RS' OR UPPER(COALESCE(section,'')) LIKE '%RS%'").fetchone()[0]
+    students = conn.execute("SELECT COUNT(*) FROM patrons WHERE patron_type='student' AND UPPER(COALESCE(year,'')) != 'RS' AND UPPER(COALESCE(section,'')) NOT LIKE '%RS%'").fetchone()[0]
     conn.close()
     return {"total": total, "students": students, "teachers": teachers, "scholars": scholars}
 

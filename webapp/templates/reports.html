@@ -85,7 +85,15 @@
  {% endif %}
  </td>
  <td class="text-sm">{{ txn.register_number or '—' }}</td>
- <td><span class="badge badge-{% if txn.patron_type=='teacher' %}purple{% else %}info{% endif %}">{{ txn.patron_type.title() }}</span></td>
+ <td>
+ {% if txn.patron_type=='teacher' %}
+ <span class="badge badge-purple">Teacher</span>
+ {% elif txn.patron_type=='research_scholar' %}
+ <span class="badge badge-scholar"><i class="fa fa-graduation-cap" style="font-size:9px; margin-right:2px;"></i> Scholar</span>
+ {% else %}
+ <span class="badge badge-info">Student</span>
+ {% endif %}
+ </td>
  <td style="max-width:220px; font-weight:500">{{ txn.book_title }}</td>
  <td class="text-sm">{{ txn.issue_date }}</td>
  <td><span class="badge badge-danger">{{ txn.due_date }}</span></td>
@@ -452,7 +460,15 @@
  </td>
  <td class="text-sm">
  {{ txn.register_number or '—' }}
- <div><span class="badge badge-{% if txn.patron_type=='teacher' %}purple{% else %}info{% endif %}" style="font-size:10px;">{{ (txn.patron_type or '').title() }}</span></div>
+ <div>
+ {% if txn.patron_type=='teacher' %}
+ <span class="badge badge-purple" style="font-size:10px;">Teacher</span>
+ {% elif txn.patron_type=='research_scholar' %}
+ <span class="badge badge-scholar" style="font-size:10px;"><i class="fa fa-graduation-cap" style="font-size:8.5px; margin-right:2px;"></i> Scholar</span>
+ {% else %}
+ <span class="badge badge-info" style="font-size:10px;">Student</span>
+ {% endif %}
+ </div>
  </td>
  <td style="max-width:220px; font-weight:500">{{ txn.book_title }}</td>
  <td class="text-sm">
@@ -699,7 +715,9 @@ async function showBookBorrowers(bookId, bookTitle) {
  : '<span class="badge badge-success" style="font-size:10.5px;">Returned</span>';
  
  const ptype = (t.patron_type || 'student').toLowerCase();
- const ptypeBadge = `<span class="badge badge-${ptype==='teacher'?'purple':'info'}" style="font-size:10px;">${(t.patron_type||'student').toUpperCase()}</span>`;
+ const ptypeBadge = (ptype === 'research_scholar' || ptype === 'scholar')
+ ? '<span class="badge badge-scholar" style="font-size:10px;"><i class="fa fa-graduation-cap" style="font-size:8.5px; margin-right:2px;"></i> SCHOLAR</span>'
+ : `<span class="badge badge-${ptype==='teacher'?'purple':'info'}" style="font-size:10px;">${(t.patron_type||'student').toUpperCase()}</span>`;
  
  const fineText = t.fine_amount && t.fine_amount > 0
  ? `<span style="color:var(--danger); font-weight:600;">₹${Number(t.fine_amount).toFixed(2)}</span>`
@@ -974,7 +992,9 @@ async function searchCirculationRecords() {
  : '';
 
  const ptype = (t.patron_type || '').toLowerCase();
- const ptypeBadge = `<span class="badge badge-${ptype==='teacher'?'purple':'info'}" style="font-size:10px;">${(t.patron_type||'').charAt(0).toUpperCase() + (t.patron_type||'').slice(1)}</span>`;
+ const ptypeBadge = (ptype === 'research_scholar' || ptype === 'scholar')
+ ? '<span class="badge badge-scholar" style="font-size:10px;"><i class="fa fa-graduation-cap" style="font-size:8.5px; margin-right:2px;"></i> Scholar</span>'
+ : `<span class="badge badge-${ptype==='teacher'?'purple':'info'}" style="font-size:10px;">${(t.patron_type||'').charAt(0).toUpperCase() + (t.patron_type||'').slice(1)}</span>`;
 
  const fineDisplay = (t.fine_payable && t.fine_payable > 0)
  ? `<span style="color:var(--danger); font-weight:700;">₹${Number(t.fine_payable).toFixed(2)}</span>`

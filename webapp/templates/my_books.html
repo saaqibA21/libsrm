@@ -44,7 +44,9 @@
  <div style="font-size:12.5px; color:var(--muted);">
  <strong>{{ patron.register_number }}</strong>
  {% if patron.year %} • Year {{ patron.year }} Sec {{ patron.section }}{% endif %}
- • <span class="badge badge-{% if patron.patron_type=='teacher' %}purple{% else %}info{% endif %}">{{ patron.patron_type.title() }}</span>
+ • <span class="badge badge-{% if patron.patron_type=='teacher' %}purple{% elif patron.patron_type=='research_scholar' %}scholar{% else %}info{% endif %}">
+ {% if patron.patron_type=='research_scholar' %}<i class="fa fa-graduation-cap" style="font-size:9px; margin-right:2px;"></i> Scholar{% else %}{{ patron.patron_type.title() }}{% endif %}
+ </span>
  </div>
  </div>
  </div>

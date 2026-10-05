@@ -44,8 +44,8 @@
  <td>
  {% if p.patron_type == 'teacher' %}
  <span class="badge badge-purple">Teacher</span>
- {% elif p.patron_type == 'research_scholar' %}
- <span class="badge badge-scholar">Scholar</span>
+ {% elif p.patron_type == 'research_scholar' or (p.year and p.year.strip().upper() == 'RS') or (p.section and 'RS' in p.section.upper()) %}
+ <span class="badge badge-scholar"><i class="fa fa-graduation-cap" style="font-size:10px; margin-right:3px;"></i> Scholar</span>
  {% else %}
  <span class="badge badge-info">Student</span>
  {% endif %}
@@ -54,6 +54,8 @@
  <td class="text-sm">
  {% if p.patron_type == 'teacher' %}
  <span style="font-weight:600; color:var(--text);"><i class="fa fa-briefcase" style="font-size:10px; color:var(--primary); opacity:0.8; margin-right:4px;"></i>{{ p.designation or p.section or '—' }}</span>
+ {% elif p.patron_type == 'research_scholar' or (p.year and p.year.strip().upper() == 'RS') or (p.section and 'RS' in p.section.upper()) %}
+ <span style="font-weight:600; color:var(--text);"><i class="fa fa-graduation-cap" style="font-size:10px; color:#B45309; opacity:0.8; margin-right:4px;"></i>{{ p.designation or p.section or '—' }}</span>
  {% else %}
  <span class="text-muted">{{ p.section or '—' }}</span>
  {% endif %}
