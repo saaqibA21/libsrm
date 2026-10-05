@@ -291,8 +291,8 @@
  <td style="font-weight:600;">{{ p.name }}</td>
  <td class="text-sm">{{ p.register_number or '—' }}</td>
  <td>
- <span class="badge badge-{% if p.patron_type=='teacher' %}purple{% else %}info{% endif %}">
- {{ (p.patron_type or '').title() }}
+ <span class="badge badge-{% if p.patron_type=='teacher' %}purple{% elif p.patron_type=='research_scholar' %}scholar{% else %}info{% endif %}">
+ {{ 'Scholar' if p.patron_type=='research_scholar' else (p.patron_type or '').title() }}
  </span>
  {% if p.year %}<span class="text-sm text-muted">Yr {{ p.year }} {{ p.section }}</span>{% endif %}
  </td>
@@ -753,7 +753,10 @@ async function doPatronSearch() {
  return;
  }
  res.results.forEach(p => {
- const roleBadge = `<span class="badge badge-${p.patron_type === 'teacher' ? 'purple' : 'info'}">${(p.patron_type||'').toUpperCase()}</span>`;
+ const ptype = (p.patron_type || '').toLowerCase();
+ const roleBadge = ptype === 'research_scholar'
+   ? '<span class="badge badge-scholar">SCHOLAR</span>'
+   : `<span class="badge badge-${ptype === 'teacher' ? 'purple' : 'info'}">${(p.patron_type||'').toUpperCase()}</span>`;
  const classInfo = p.year ? `<span class="text-sm text-muted"> Yr ${p.year} ${p.section || ''}</span>` : '';
  const finesColor = p.pending_fines > 0 ? 'var(--danger)' : 'var(--muted)';
  tbody.innerHTML += `

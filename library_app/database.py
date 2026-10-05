@@ -413,7 +413,12 @@ def add_patron(barcode, register_number, name, patron_type="student",
     conn = get_connection()
     if not barcode:
         clean_reg = (register_number or "").strip().replace(" ", "").replace("/", "")
-        prefix = "ST" if patron_type == "student" else "TC"
+        if patron_type == "student":
+            prefix = "ST"
+        elif patron_type == "research_scholar":
+            prefix = "RS"
+        else:
+            prefix = "TC"
         if clean_reg:
             barcode = f"{prefix}{clean_reg}"
         else:
@@ -548,8 +553,9 @@ def count_patrons():
     total = conn.execute("SELECT COUNT(*) FROM patrons").fetchone()[0]
     students = conn.execute("SELECT COUNT(*) FROM patrons WHERE patron_type='student'").fetchone()[0]
     teachers = conn.execute("SELECT COUNT(*) FROM patrons WHERE patron_type='teacher'").fetchone()[0]
+    scholars = conn.execute("SELECT COUNT(*) FROM patrons WHERE patron_type='research_scholar'").fetchone()[0]
     conn.close()
-    return {"total": total, "students": students, "teachers": teachers}
+    return {"total": total, "students": students, "teachers": teachers, "scholars": scholars}
 
 
 # ─── Transactions ──────────────────────────────────────────────────────────────

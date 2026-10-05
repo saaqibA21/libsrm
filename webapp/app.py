@@ -585,16 +585,27 @@ def add_patron_route():
     if not require_staff():
         return jsonify({"success": False, "message": "Unauthorized"}), 403
     d = request.form
+    name = d.get("name","").strip()
+    email = d.get("email","").strip()
+    mobile = d.get("mobile","").strip()
+
+    if not name:
+        return jsonify({"success": False, "message": "Full Name is required"}), 400
+    if not email:
+        return jsonify({"success": False, "message": "Email ID is mandatory. Please provide a valid email address."}), 400
+    if not mobile:
+        return jsonify({"success": False, "message": "Phone / Mobile number is mandatory. Please provide a valid mobile number."}), 400
+
     success, msg = add_patron(
         barcode=d.get("barcode","").strip(),
         register_number=d.get("register_number","").strip(),
-        name=d.get("name","").strip(),
+        name=name,
         patron_type=d.get("patron_type","student"),
         designation=d.get("designation","").strip(),
         year=d.get("year",""),
         section=d.get("section","").strip(),
-        mobile=d.get("mobile","").strip(),
-        email=d.get("email","").strip(),
+        mobile=mobile,
+        email=email,
         parent_mobile=d.get("parent_mobile","").strip(),
         parent_email=d.get("parent_email","").strip(),
     )
@@ -606,8 +617,19 @@ def edit_patron_route(pid):
     if not require_staff():
         return jsonify({"success": False, "message": "Unauthorized"}), 403
     d = request.form
-    update_patron(pid, d.get("name"), d.get("patron_type"), d.get("year"),
-                  d.get("section"), d.get("mobile"), d.get("email"),
+    name = d.get("name","").strip()
+    email = d.get("email","").strip()
+    mobile = d.get("mobile","").strip()
+
+    if not name:
+        return jsonify({"success": False, "message": "Full Name is required"}), 400
+    if not email:
+        return jsonify({"success": False, "message": "Email ID is mandatory. Please provide a valid email address."}), 400
+    if not mobile:
+        return jsonify({"success": False, "message": "Phone / Mobile number is mandatory. Please provide a valid mobile number."}), 400
+
+    update_patron(pid, name, d.get("patron_type"), d.get("year"),
+                  d.get("section"), mobile, email,
                   d.get("parent_mobile"), d.get("parent_email"),
                   designation=d.get("designation","").strip())
     return jsonify({"success": True, "message": "Patron updated"})

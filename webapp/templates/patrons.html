@@ -9,10 +9,11 @@
  <i class="fa fa-search"></i>
  <input name="q" value="{{ q }}" placeholder="Search by name, reg. no., barcode…">
  </div>
- <select name="type" class="form-control" style="width:140px;" onchange="this.form.submit()">
+ <select name="type" class="form-control" style="width:160px;" onchange="this.form.submit()">
  <option value="">All Types</option>
  <option value="student" {% if ptype=='student' %}selected{% endif %}>Students</option>
  <option value="teacher" {% if ptype=='teacher' %}selected{% endif %}>Teachers</option>
+ <option value="research_scholar" {% if ptype=='research_scholar' %}selected{% endif %}>Research Scholars</option>
  </select>
  <button type="submit" class="btn btn-primary"><i class="fa fa-search"></i> Search</button>
  </form>
@@ -26,7 +27,8 @@
 <div style="margin-bottom:14px;font-size:13px;color:var(--muted);">
  Total: <strong style="color:var(--text)">{{ counts.total }}</strong> &nbsp;•&nbsp;
  Students: <strong style="color:var(--info)">{{ counts.students }}</strong> &nbsp;•&nbsp;
- Teachers: <strong style="color:var(--purple, #a855f7)">{{ counts.teachers }}</strong>
+ Teachers: <strong style="color:var(--purple, #a855f7)">{{ counts.teachers }}</strong> &nbsp;•&nbsp;
+ Scholars: <strong style="color:#B45309;">{{ counts.scholars or 0 }}</strong>
  &nbsp;&nbsp;<span>Showing {{ patrons|length }} results</span>
 </div>
 
@@ -42,6 +44,8 @@
  <td>
  {% if p.patron_type == 'teacher' %}
  <span class="badge badge-purple">Teacher</span>
+ {% elif p.patron_type == 'research_scholar' %}
+ <span class="badge badge-scholar">Scholar</span>
  {% else %}
  <span class="badge badge-info">Student</span>
  {% endif %}
@@ -94,7 +98,7 @@
  </div>
  <div class="form-row cols-3">
  <div class="form-group"><label>Type</label>
- <select class="form-control" id="fp-type"><option value="student">Student</option><option value="teacher">Teacher</option></select>
+ <select class="form-control" id="fp-type"><option value="student">Student</option><option value="teacher">Teacher / Faculty</option><option value="research_scholar">Research Scholar</option></select>
  </div>
  <div class="form-group"><label>Year</label>
  <select class="form-control" id="fp-year"><option value="">—</option><option>I</option><option>II</option><option>III</option><option>IV</option></select>
@@ -102,8 +106,8 @@
  <div class="form-group"><label>Section</label><input class="form-control" id="fp-section" placeholder="A / B / C / D"></div>
  </div>
  <div class="form-row cols-2">
- <div class="form-group"><label>Mobile</label><input class="form-control" id="fp-mobile"></div>
- <div class="form-group"><label>Email</label><input class="form-control" id="fp-email" type="email"></div>
+ <div class="form-group"><label>Mobile / Phone * <small style="color:var(--danger);font-weight:600;">(Compulsory)</small></label><input class="form-control" id="fp-mobile" placeholder="e.g. 9876543210" required></div>
+ <div class="form-group"><label>Email ID * <small style="color:var(--danger);font-weight:600;">(Compulsory)</small></label><input class="form-control" id="fp-email" type="email" placeholder="e.g. name@srmist.edu.in" required></div>
  </div>
  <div class="form-row cols-2">
  <div class="form-group"><label>Parent Mobile</label><input class="form-control" id="fp-pmobile"></div>
@@ -315,7 +319,9 @@ async function savePatron() {
  fd.append(k==='reg'?'register_number':k==='type'?'patron_type':k==='pmobile'?'parent_mobile':k==='pemail'?'parent_email':k,
  document.getElementById(`fp-${k}`).value);
  });
- if (!fd.get('name')) { showToast('Name is required','error'); return; }
+ if (!fd.get('name') || !fd.get('name').trim()) { showToast('Full Name is required','error'); return; }
+ if (!fd.get('mobile') || !fd.get('mobile').trim()) { showToast('Phone / Mobile number is compulsory','error'); return; }
+ if (!fd.get('email') || !fd.get('email').trim()) { showToast('Email ID is compulsory','error'); return; }
  const url = id ? `/patrons/edit/${id}` : '/patrons/add';
  const res = await postForm(url, fd);
  if (res.success) { showToast(res.message,'success'); closeModal('patronModal'); setTimeout(()=>location.reload(),800); }

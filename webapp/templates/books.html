@@ -5,17 +5,16 @@
 <style>
 .btn-view-borrows {
   border-radius: 9999px !important;
-  padding: 4px 14px !important;
-  font-weight: 700 !important;
+  padding: 5px 12px !important;
+  font-weight: 600 !important;
   font-size: 11.5px !important;
   display: inline-flex !important;
   align-items: center !important;
-  gap: 8px !important;
-  border: 1px solid var(--border, #cbd5e1) !important;
-  background: var(--card-bg, #ffffff) !important;
-  color: var(--text, #0f172a) !important;
-  line-height: 1.15 !important;
-  text-align: left !important;
+  gap: 6px !important;
+  border: 1px solid #CBD5E1 !important;
+  background: #F8FAFC !important;
+  color: #1E293B !important;
+  white-space: nowrap !important;
   cursor: pointer;
   transition: all 0.15s ease-in-out;
   box-shadow: 0 1px 2px rgba(0,0,0,0.04);
@@ -95,13 +94,13 @@
  </td>
  <td style="white-space:nowrap;">
  <div style="display:inline-flex; align-items:center; gap:6px;">
- <button class="btn btn-view-borrows" onclick="viewBookBorrows({{ book.id }}, '{{ book.title[:60]|e }}')" title="View borrowing history for this book">
- <i class="fa fa-history"></i>
- <span>View<br>Borrows</span>
- </button>
  <button class="btn btn-outline btn-sm" onclick="showBarcodeModal({{ book.id }})" title="View & Print Barcode Label Sticker"><i class="fa fa-barcode" style="color:var(--primary);"></i></button>
  <button class="btn btn-outline btn-sm" onclick="editBook({{ book.id }})" title="Edit Book"><i class="fa fa-edit"></i></button>
  <button class="btn btn-danger btn-sm" onclick="deleteBook({{ book.id }}, '{{ book.title[:30]|e }}')" title="Delete Book"><i class="fa fa-trash"></i></button>
+ <button class="btn btn-view-borrows" onclick="viewBookBorrows({{ book.id }}, '{{ book.title[:60]|e }}')" title="View borrowing history for this book">
+ <i class="fa fa-history"></i>
+ <span>View Borrows</span>
+ </button>
  </div>
  </td>
  </tr>

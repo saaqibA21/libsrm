@@ -112,12 +112,15 @@ def generate_no_due_certificate_pdf(patron: dict, cert_date: str = None, cert_id
     reg_no = (patron.get("register_number") or patron.get("barcode") or "").strip().upper()
     ptype = (patron.get("patron_type") or "student").lower()
     is_staff = ptype in ("teacher", "faculty", "staff")
+    is_scholar = ptype in ("research_scholar", "scholar")
 
-    salutation = "Mr./Ms." if not is_staff else ("Dr./Mr./Ms.")
-    role_label = "Staff" if is_staff else "Student"
+    salutation = "Mr./Ms." if (not is_staff and not is_scholar) else ("Dr./Mr./Ms.")
+    role_label = "Research Scholar" if is_scholar else ("Staff" if is_staff else "Student")
 
     # Department / Class string
-    if is_staff:
+    if is_scholar:
+        dept_str = patron.get("designation") or "Research Scholar, Department of Electrical and Electronics Engineering"
+    elif is_staff:
         dept_str = patron.get("designation") or "Electrical and Electronics Engineering"
     else:
         year = patron.get("year", "")

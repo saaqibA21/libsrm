@@ -476,12 +476,15 @@ function renderResults(data) {
 
   const ptype = (p.patron_type || 'student').toLowerCase();
   const isStaff = ptype === 'teacher' || ptype === 'faculty' || ptype === 'staff';
-  const roleBadge = isStaff 
-    ? '<span class="badge badge-purple">FACULTY / STAFF</span>' 
-    : '<span class="badge badge-info">STUDENT</span>';
+  const isScholar = ptype === 'research_scholar' || ptype === 'scholar';
+  const roleBadge = isScholar
+    ? '<span class="badge badge-scholar">RESEARCH SCHOLAR</span>'
+    : (isStaff ? '<span class="badge badge-purple">FACULTY / STAFF</span>' : '<span class="badge badge-info">STUDENT</span>');
 
   let deptClass = '';
-  if (isStaff) {
+  if (isScholar) {
+    deptClass = p.designation || 'Research Scholar • Department of Electrical & Electronics Engineering';
+  } else if (isStaff) {
     deptClass = p.designation || 'Department of Electrical & Electronics Engineering';
   } else {
     deptClass = `EEE Department ${p.year ? '• Year ' + p.year : ''} ${p.section ? '• Section ' + p.section : ''}`;
@@ -515,7 +518,6 @@ function renderResults(data) {
         <div style="text-align: right; font-size: 12px; color: var(--muted);">
           <div><strong>Official Email:</strong> ${escapeHtml(p.email || '—')}</div>
           ${p.mobile ? `<div><strong>Phone:</strong> ${escapeHtml(p.mobile)}</div>` : ''}
-          ${p.parent_email && p.parent_email !== p.email ? `<div><strong>Alt Email:</strong> ${escapeHtml(p.parent_email)}</div>` : ''}
           <div style="margin-top: 4px;"><span class="badge badge-gray">Lifetime Borrows: ${data.lifetime_borrows}</span></div>
         </div>
       </div>
@@ -682,8 +684,11 @@ function openCertPreviewModal() {
   const d = currentCertData;
 
   const isStaff = (p.patron_type || '').toLowerCase() === 'teacher' || (p.patron_type || '').toLowerCase() === 'faculty';
+  const isScholar = (p.patron_type || '').toLowerCase() === 'research_scholar' || (p.patron_type || '').toLowerCase() === 'scholar';
   let deptText = '';
-  if (isStaff) {
+  if (isScholar) {
+    deptText = p.designation || 'Research Scholar, Department of Electrical and Electronics Engineering';
+  } else if (isStaff) {
     deptText = p.designation || 'Electrical and Electronics Engineering';
   } else {
     deptText = `EEE ${p.year ? '(Year ' + p.year + (p.section ? ' - Section ' + p.section : '') + ')' : ''}`;
@@ -694,7 +699,7 @@ function openCertPreviewModal() {
   document.getElementById('modalCertDate2').textContent = d.issue_date;
   document.getElementById('modalCertName').textContent = p.name.toUpperCase();
   document.getElementById('modalCertReg').textContent = (p.register_number || p.barcode).toUpperCase();
-  document.getElementById('modalCertRole').textContent = isStaff ? 'Staff' : 'Student';
+  document.getElementById('modalCertRole').textContent = isScholar ? 'Research Scholar' : (isStaff ? 'Staff' : 'Student');
   document.getElementById('modalCertDept').textContent = deptText;
 
   document.getElementById('modalDownloadPdfBtn').href = `/api/no_due/pdf/${p.id}?download=1`;
