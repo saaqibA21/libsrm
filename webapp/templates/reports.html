@@ -192,8 +192,9 @@
  <th>Accession / Barcode</th>
  <th style="text-align:center;">Times Borrowed</th>
  <th>Borrowers (People Who Borrowed)</th>
- <th>Current Status</th>
- <th>Last Issued Date</th>
+ <th style="text-align:center;">Current Status</th>
+ <th style="text-align:center;">Last Issued Date</th>
+ <th style="text-align:center;">Action</th>
  </tr>
  </thead>
  <tbody id="bookStatsTbody">
@@ -216,9 +217,8 @@
  </td>
  <td>
  {% if b.borrowers_list %}
- <div style="display:flex; flex-direction:column; gap:4px; max-width:280px;">
+ <div style="display:flex; flex-wrap:wrap; gap:4px; max-width:280px;">
  {% set b_names = b.borrowers_list.split(',') %}
- <div style="display:flex; flex-wrap:wrap; gap:4px;">
  {% for name in b_names[:2] %}
  <span class="badge badge-info" style="font-size:11px; font-weight:500; white-space:normal; text-align:left;">
  <i class="fa fa-user" style="font-size:9.5px; opacity:0.8;"></i> {{ name.strip() }}
@@ -228,15 +228,11 @@
  <span class="badge badge-gray" style="font-size:11px;">+{{ b_names|length - 2 }} more</span>
  {% endif %}
  </div>
- <button type="button" class="btn btn-outline btn-xs" style="margin-top:2px; font-size:11px; align-self:flex-start; padding:3px 8px;" onclick="showBookBorrowers({{ b.id }}, '{{ b.title|replace("'", "\\'") }}')">
- <i class="fa fa-history"></i> View Borrow History ({{ b.times_borrowed }})
- </button>
- </div>
  {% else %}
  <span class="text-muted text-sm">None (Not borrowed yet)</span>
  {% endif %}
  </td>
- <td>
+ <td style="text-align:center;">
  {% if b.status == 'issued' %}
  <span class="badge badge-warning" style="margin-bottom:2px;">Currently Borrowed</span><br>
  <span class="text-sm" style="color:var(--text); font-weight:500;">By: {{ b.current_borrower or 'Patron' }}</span>
@@ -245,10 +241,15 @@
  <span class="badge badge-success">Available on Shelf</span>
  {% endif %}
  </td>
- <td class="text-sm text-muted">{{ b.last_issued_date or 'Never' }}</td>
+ <td class="text-sm text-muted" style="text-align:center;">{{ b.last_issued_date or 'Never' }}</td>
+ <td style="text-align:center; white-space:nowrap;">
+ <button type="button" class="btn btn-outline btn-sm" onclick="showBookBorrowers({{ b.id }}, '{{ b.title|replace("'", "\\'") }}')" title="View borrowing history">
+ <i class="fa fa-history" style="color:var(--primary);"></i> View Borrows
+ </button>
+ </td>
  </tr>
  {% else %}
- <tr><td colspan="7" style="text-align:center; padding:30px; color:var(--muted)">No books found matching search query.</td></tr>
+ <tr><td colspan="8" style="text-align:center; padding:30px; color:var(--muted)">No books found matching search query.</td></tr>
  {% endfor %}
  </tbody>
  </table>
@@ -282,7 +283,7 @@
  <th style="text-align:center;">Overdue</th>
  <th>Pending Fines</th>
  <th>Last Borrowed</th>
- <th>Action</th>
+ <th style="text-align:center;">Action</th>
  </tr>
  </thead>
  <tbody id="patronStatsTbody">
@@ -318,8 +319,8 @@
  <td style="font-weight:600; color:{% if p.pending_fines > 0 %}var(--danger){% else %}var(--muted){% endif %};">
  ₹{{ "%.2f"|format(p.pending_fines or 0) }}
  </td>
- <td class="text-sm text-muted">{{ p.last_borrowed_date or 'Never' }}</td>
- <td>
+ <td class="text-sm text-muted" style="text-align:center;">{{ p.last_borrowed_date or 'Never' }}</td>
+ <td style="text-align:center; white-space:nowrap;">
  <button class="btn btn-outline btn-sm" onclick="viewHistory({{ p.id }}, '{{ p.name|e }}')">
  <i class="fa fa-history"></i> View Borrows
  </button>
@@ -614,7 +615,7 @@ async function doBookSearch() {
  const tbody = document.getElementById('bookStatsTbody');
  tbody.innerHTML = '';
  if (!res.results || !res.results.length) {
- tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:30px; color:var(--muted)">No books found matching search query.</td></tr>';
+ tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--muted)">No books found matching search query.</td></tr>';
  return;
  }
  res.results.forEach(b => {
@@ -622,7 +623,7 @@ async function doBookSearch() {
  if (b.status === 'issued') {
  statusBadge = `<span class="badge badge-warning" style="margin-bottom:2px;">Currently Borrowed</span><br>
  <span class="text-sm" style="color:var(--text); font-weight:500;">By: ${escapeHtml(b.current_borrower || 'Patron')}</span>
- ${b.current_due_date ? `<span class="text-sm text-muted"> (Due: ${b.current_due_date})</span>` : ''}`;
+ ${b.current_due_date ? `<div class="text-sm text-muted">(Due: ${b.current_due_date})</div>` : ''}`;
  } else {
  statusBadge = '<span class="badge badge-success">Available on Shelf</span>';
  }
@@ -632,14 +633,7 @@ async function doBookSearch() {
  const names = b.borrowers_list.split(',');
  const pills = names.slice(0, 2).map(n => `<span class="badge badge-info" style="font-size:11px; font-weight:500; white-space:normal; text-align:left;"><i class="fa fa-user" style="font-size:9.5px; opacity:0.8;"></i> ${escapeHtml(n.trim())}</span>`).join('');
  const more = names.length > 2 ? `<span class="badge badge-gray" style="font-size:11px;">+${names.length - 2} more</span>` : '';
- borrowersHtml = `
- <div style="display:flex; flex-direction:column; gap:4px; max-width:280px;">
- <div style="display:flex; flex-wrap:wrap; gap:4px;">${pills}${more}</div>
- <button type="button" class="btn btn-outline btn-xs" style="margin-top:2px; font-size:11px; align-self:flex-start; padding:3px 8px;" onclick="showBookBorrowers(${b.id}, '${escapeQuotes(b.title)}')">
- <i class="fa fa-history"></i> View Borrow History (${b.times_borrowed})
- </button>
- </div>
- `;
+ borrowersHtml = `<div style="display:flex; flex-wrap:wrap; gap:4px; max-width:280px;">${pills}${more}</div>`;
  }
 
  const timesBadge = b.times_borrowed > 0
@@ -656,8 +650,13 @@ async function doBookSearch() {
  </td>
  <td style="text-align:center;">${timesBadge}</td>
  <td>${borrowersHtml}</td>
- <td>${statusBadge}</td>
- <td class="text-sm text-muted">${b.last_issued_date || 'Never'}</td>
+ <td style="text-align:center;">${statusBadge}</td>
+ <td class="text-sm text-muted" style="text-align:center;">${b.last_issued_date || 'Never'}</td>
+ <td style="text-align:center; white-space:nowrap;">
+ <button type="button" class="btn btn-outline btn-sm" onclick="showBookBorrowers(${b.id}, '${escapeQuotes(b.title)}')" title="View borrowing history">
+ <i class="fa fa-history" style="color:var(--primary);"></i> View Borrows
+ </button>
+ </td>
  </tr>
  `;
  });
@@ -778,8 +777,8 @@ async function doPatronSearch() {
  <td style="font-weight:600; color:${finesColor};">
  ₹${(p.pending_fines || 0).toFixed(2)}
  </td>
- <td class="text-sm text-muted">${p.last_borrowed_date || 'Never'}</td>
- <td>
+ <td class="text-sm text-muted" style="text-align:center;">${p.last_borrowed_date || 'Never'}</td>
+ <td style="text-align:center; white-space:nowrap;">
  <button class="btn btn-outline btn-sm" onclick="viewHistory(${p.id}, '${escapeQuotes(p.name)}')">
  <i class="fa fa-history"></i> View Borrows
  </button>
