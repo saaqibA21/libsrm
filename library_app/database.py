@@ -127,7 +127,7 @@ def initialize_db():
     except Exception:
         pass
 
-    # Schema migration: update all Research Scholars (Year = 'RS' or section/designation mentions RS/Scholar)
+    # Schema migration: update all Research Scholars (Year = 'RS' or section/designation mentions RS/Scholar or barcode starts with RS)
     try:
         c.execute("""
             UPDATE patrons 
@@ -135,7 +135,16 @@ def initialize_db():
             WHERE UPPER(COALESCE(year,'')) = 'RS' 
                OR UPPER(COALESCE(section,'')) LIKE '%RS%' 
                OR UPPER(COALESCE(designation,'')) LIKE '%SCHOLAR%'
+               OR UPPER(COALESCE(designation,'')) LIKE '%GUIDE%'
+               OR barcode LIKE 'RS%'
         """)
+        c.execute("""
+            UPDATE patrons 
+            SET year = 'RS'
+            WHERE (patron_type = 'research_scholar' OR barcode LIKE 'RS%')
+              AND (year IS NULL OR year = '' OR year = '—' OR year = '-')
+        """)
+        conn.commit()
     except Exception:
         pass
 
@@ -425,6 +434,8 @@ def add_patron(barcode, register_number, name, patron_type="student",
     conn = get_connection()
     if (year or "").strip().upper() == "RS" and patron_type != "teacher":
         patron_type = "research_scholar"
+    if patron_type == "research_scholar" and not (year or "").strip():
+        year = "RS"
     if not barcode:
         clean_reg = (register_number or "").strip().replace(" ", "").replace("/", "")
         if patron_type == "student":
@@ -458,6 +469,8 @@ def update_patron(patron_id, name, patron_type, year="", section="", mobile="", 
     conn = get_connection()
     if (year or "").strip().upper() == "RS" and patron_type != "teacher":
         patron_type = "research_scholar"
+    if patron_type == "research_scholar" and not (year or "").strip():
+        year = "RS"
     conn.execute("""
         UPDATE patrons SET name=?, patron_type=?, designation=?, year=?, section=?,
         mobile=?, email=?, parent_mobile=?, parent_email=?
@@ -478,7 +491,7 @@ def delete_patron(patron_id):
 def get_patron_by_barcode(barcode):
     """
     Lookup a patron by barcode, register number, staff ID, or mobile number.
-    Handles case-insensitivity, spaces, and 'ST'/'TC' prefix variations.
+    Handles case-insensitivity, spaces, and 'ST'/'TC'/'RS' prefix variations.
     """
     if not barcode:
         return None
@@ -498,20 +511,24 @@ def get_patron_by_barcode(barcode):
            OR UPPER(register_number) = UPPER(?)
     """, (ident, ident, clean, clean)).fetchone()
 
-    # 2. Try prefix variations (e.g. user entered reg no without ST/TC, or with ST/TC)
+    # 2. Try prefix variations (e.g. user entered reg no without ST/TC/RS, or with ST/TC/RS)
     if not row:
-        stripped_prefix = clean[2:] if clean.upper().startswith(("ST", "TC")) else clean
+        stripped_prefix = clean[2:] if clean.upper().startswith(("ST", "TC", "RS")) else clean
         row = conn.execute("""
             SELECT * FROM patrons
             WHERE UPPER(barcode) = UPPER(?)
+               OR UPPER(barcode) = UPPER(?)
+               OR UPPER(barcode) = UPPER(?)
                OR UPPER(barcode) = UPPER(?)
                OR UPPER(register_number) = UPPER(?)
                OR UPPER(register_number) = UPPER(?)
         """, (
             f"ST{clean}",
+            f"RS{clean}",
             f"TC{clean}",
             stripped_prefix,
-            clean
+            clean,
+            stripped_prefix
         )).fetchone()
 
     # 3. Fallback: match on mobile number or email

@@ -600,6 +600,8 @@ def add_patron_route():
     patron_type = d.get("patron_type","student")
     if year.upper() == "RS" and patron_type != "teacher":
         patron_type = "research_scholar"
+    if patron_type == "research_scholar" and (not year or year == "—"):
+        year = "RS"
 
     success, msg = add_patron(
         barcode=d.get("barcode","").strip(),
@@ -637,6 +639,8 @@ def edit_patron_route(pid):
     patron_type = d.get("patron_type","student")
     if year.upper() == "RS" and patron_type != "teacher":
         patron_type = "research_scholar"
+    if patron_type == "research_scholar" and (not year or year == "—"):
+        year = "RS"
 
     update_patron(pid, name, patron_type, year,
                   d.get("section"), mobile, email,

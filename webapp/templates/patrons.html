@@ -50,7 +50,15 @@
  <span class="badge badge-info">Student</span>
  {% endif %}
  </td>
- <td class="text-muted text-sm">{{ p.year or '—' }}</td>
+ <td class="text-sm">
+ {% if p.patron_type == 'research_scholar' or (p.year and 'RS' in p.year|upper) or (p.barcode and p.barcode.startswith('RS')) or (p.section and 'RS' in p.section|upper) or (p.designation and ('SCHOLAR' in p.designation|upper or 'GUIDE' in p.designation|upper)) %}
+ <strong style="color:#B45309;">RS</strong>
+ {% elif p.year %}
+ <span class="text-muted">{{ p.year }}</span>
+ {% else %}
+ <span class="text-muted">—</span>
+ {% endif %}
+ </td>
  <td class="text-sm">
  {% if p.patron_type == 'teacher' %}
  <span style="font-weight:600; color:var(--text);"><i class="fa fa-briefcase" style="font-size:10px; color:var(--primary); opacity:0.8; margin-right:4px;"></i>{{ p.designation or p.section or '—' }}</span>
@@ -341,9 +349,17 @@ async function editPatron(id) {
  document.getElementById('fp-reg').value=p.register_number||'';
  document.getElementById('fp-name').value=p.name||'';
  document.getElementById('fp-designation').value=p.designation||'';
- const ptype = p.patron_type || ((p.year && p.year.toUpperCase()==='RS') ? 'research_scholar' : 'student');
+ const isScholar = (p.patron_type === 'research_scholar') || 
+                   (p.year && p.year.toUpperCase() === 'RS') || 
+                   (p.barcode && p.barcode.startsWith('RS')) || 
+                   (p.designation && (p.designation.toUpperCase().includes('SCHOLAR') || p.designation.toUpperCase().includes('GUIDE')));
+ const ptype = p.patron_type || (isScholar ? 'research_scholar' : 'student');
  document.getElementById('fp-type').value=ptype;
- document.getElementById('fp-year').value=p.year||'';
+ let pyear = p.year || '';
+ if (isScholar && (!pyear || pyear === '—')) {
+  pyear = 'RS';
+ }
+ document.getElementById('fp-year').value=pyear;
  document.getElementById('fp-section').value=p.section||'';
  document.getElementById('fp-mobile').value=p.mobile||'';
  document.getElementById('fp-email').value=p.email||'';
@@ -359,7 +375,10 @@ async function savePatron() {
  fd.append(k==='reg'?'register_number':k==='type'?'patron_type':k==='pmobile'?'parent_mobile':k==='pemail'?'parent_email':k,
  document.getElementById(`fp-${k}`).value);
  });
- if (document.getElementById('fp-year').value === 'RS' && fd.get('patron_type') !== 'teacher') {
+ if (fd.get('patron_type') === 'research_scholar' && (!fd.get('year') || fd.get('year') === '' || fd.get('year') === '—')) {
+  fd.set('year', 'RS');
+ }
+ if (fd.get('year') === 'RS' && fd.get('patron_type') !== 'teacher') {
   fd.set('patron_type', 'research_scholar');
  }
  if (!fd.get('name') || !fd.get('name').trim()) { showToast('Full Name is required','error'); return; }

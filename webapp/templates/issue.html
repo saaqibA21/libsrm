@@ -414,8 +414,9 @@ function fillBookDetails(b) {
 function fillPatronDetails(p, activeBooks) {
  document.getElementById('p-name').textContent = p.name || '—';
  document.getElementById('p-reg').textContent = p.register_number || '—';
- document.getElementById('p-type').textContent = (p.patron_type||'').charAt(0).toUpperCase()+(p.patron_type||'').slice(1);
- document.getElementById('p-year').textContent = p.year ? `Year ${p.year} — Section ${p.section}` : '—';
+ const isScholar = p.patron_type === 'research_scholar' || (p.year && p.year.toUpperCase() === 'RS');
+ document.getElementById('p-type').textContent = isScholar ? 'Research Scholar' : ((p.patron_type||'').charAt(0).toUpperCase()+(p.patron_type||'').slice(1));
+ document.getElementById('p-year').textContent = isScholar ? `Research Scholar (RS)${p.section ? ' — ' + p.section : ''}` : (p.year ? `Year ${p.year} — Section ${p.section || '—'}` : (p.section || '—'));
  document.getElementById('p-mobile').textContent = p.mobile || '—';
  document.getElementById('p-email').textContent = p.email || '—';
  document.getElementById('p-held').textContent = activeBooks.length;
