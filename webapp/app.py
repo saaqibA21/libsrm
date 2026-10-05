@@ -353,7 +353,12 @@ def api_issue():
         return jsonify({"success": False, "message": "Staff login required"}), 403
     data = request.json or {}
     patron_id = data.get("patron_id")
-    patron_type = data.get("patron_type", "student")
+    patron_type = data.get("patron_type")
+    if patron_id:
+        p_obj = get_patron_by_id(patron_id)
+        if p_obj:
+            patron_type = p_obj.get("patron_type") or patron_type
+    patron_type = patron_type or "student"
 
     # Support both multi-book (book_ids) and single book (book_id)
     book_ids = data.get("book_ids")

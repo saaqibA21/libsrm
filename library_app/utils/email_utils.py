@@ -326,7 +326,15 @@ def build_patron_barcode_email(patron: dict, library_name: str = "SRM EEE Depart
     barcode_url = f"https://eeelibrary.org/api/barcode/image/{barcode_str}"
     barcode_img_tag = f'<img src="{barcode_url}" alt="Barcode {barcode_str}" width="280" style="width:280px; max-width:100%; height:auto; display:block; margin:0 auto; border:none;" />'
 
-    class_info = f"Class: Year {year} • Section {section}" if year else f"Role: {ptype}"
+    ptype_raw = (patron.get("patron_type", "") or "student").lower()
+    desig = (patron.get("designation", "") or "").strip()
+    if ptype_raw == "research_scholar" or year == "RS":
+        class_info = f"Role: Research Scholar{(' • ' + desig) if desig else ''}"
+    elif ptype_raw in ("teacher", "faculty", "staff") or (barcode_str and barcode_str.startswith("TC")):
+        class_info = f"Role: {desig if desig else 'Teaching Faculty'}"
+    else:
+        sec_str = f" • Section {section}" if section else ""
+        class_info = f"Class: Year {year}{sec_str}" if year else f"Role: Student{sec_str}"
 
     return f"""
     <!DOCTYPE html>
