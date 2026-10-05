@@ -127,6 +127,18 @@ def initialize_db():
     except Exception:
         pass
 
+    # Schema migration: update all Research Scholars (Year = 'RS' or section/designation mentions RS/Scholar)
+    try:
+        c.execute("""
+            UPDATE patrons 
+            SET patron_type = 'research_scholar'
+            WHERE UPPER(COALESCE(year,'')) = 'RS' 
+               OR UPPER(COALESCE(section,'')) LIKE '%RS%' 
+               OR UPPER(COALESCE(designation,'')) LIKE '%SCHOLAR%'
+        """)
+    except Exception:
+        pass
+
     # Settings table
     c.execute("""
         CREATE TABLE IF NOT EXISTS settings (
