@@ -362,9 +362,8 @@ def import_staff_from_excel(filepath: str) -> tuple[list[dict], list[str]]:
 
             # Standardize barcode
             clean_id = raw_id.replace(" ", "").replace("/", "").replace(".", "")
-            barcode = f"TC{clean_id}"
-
             p_type = "research_scholar" if ("rs" in sheet_name.lower() or "scholar" in sheet_name.lower()) else "teacher"
+            barcode = f"RS{clean_id}" if p_type == "research_scholar" else f"TC{clean_id}"
             patrons.append({
                 "barcode": barcode,
                 "register_number": raw_id,

@@ -42,16 +42,18 @@
  <td class="text-sm">{{ p.register_number or '—' }}</td>
  <td style="font-weight:600">{{ p.name }}</td>
  <td>
- {% if p.patron_type == 'teacher' %}
+ {% if p.patron_type == 'teacher' or (p.barcode and p.barcode.startswith('TC10')) or (p.designation and ('PROF' in p.designation|upper or 'CHAIRPERSON' in p.designation|upper)) %}
  <span class="badge badge-purple">Teacher</span>
- {% elif p.patron_type == 'research_scholar' or (p.year and 'RS' in p.year|upper) or (p.section and 'RS' in p.section|upper) or (p.designation and ('SCHOLAR' in p.designation|upper or 'GUIDE' in p.designation|upper)) %}
+ {% elif p.patron_type == 'research_scholar' or (p.year and p.year|upper == 'RS') or (p.barcode and p.barcode.startswith('RS')) %}
  <span class="badge badge-scholar"><i class="fa fa-graduation-cap" style="font-size:10px; margin-right:3px;"></i> Scholar</span>
  {% else %}
  <span class="badge badge-info">Student</span>
  {% endif %}
  </td>
  <td class="text-sm">
- {% if p.patron_type == 'research_scholar' or (p.year and 'RS' in p.year|upper) or (p.barcode and p.barcode.startswith('RS')) or (p.section and 'RS' in p.section|upper) or (p.designation and ('SCHOLAR' in p.designation|upper or 'GUIDE' in p.designation|upper)) %}
+ {% if p.patron_type == 'teacher' or (p.barcode and p.barcode.startswith('TC10')) or (p.designation and ('PROF' in p.designation|upper or 'CHAIRPERSON' in p.designation|upper)) %}
+ <span class="text-muted">—</span>
+ {% elif p.patron_type == 'research_scholar' or (p.year and p.year|upper == 'RS') or (p.barcode and p.barcode.startswith('RS')) %}
  <strong style="color:#B45309;">RS</strong>
  {% elif p.year %}
  <span class="text-muted">{{ p.year }}</span>
@@ -60,9 +62,9 @@
  {% endif %}
  </td>
  <td class="text-sm">
- {% if p.patron_type == 'teacher' %}
+ {% if p.patron_type == 'teacher' or (p.barcode and p.barcode.startswith('TC10')) or (p.designation and ('PROF' in p.designation|upper or 'CHAIRPERSON' in p.designation|upper)) %}
  <span style="font-weight:600; color:var(--text);"><i class="fa fa-briefcase" style="font-size:10px; color:var(--primary); opacity:0.8; margin-right:4px;"></i>{{ p.designation or p.section or '—' }}</span>
- {% elif p.patron_type == 'research_scholar' or (p.year and 'RS' in p.year|upper) or (p.section and 'RS' in p.section|upper) or (p.designation and ('SCHOLAR' in p.designation|upper or 'GUIDE' in p.designation|upper)) %}
+ {% elif p.patron_type == 'research_scholar' or (p.year and p.year|upper == 'RS') or (p.barcode and p.barcode.startswith('RS')) %}
  <span style="font-weight:600; color:var(--text);"><i class="fa fa-graduation-cap" style="font-size:10px; color:#B45309; opacity:0.8; margin-right:4px;"></i>{{ p.designation or p.section or '—' }}</span>
  {% else %}
  <span class="text-muted">{{ p.section or '—' }}</span>
@@ -349,14 +351,19 @@ async function editPatron(id) {
  document.getElementById('fp-reg').value=p.register_number||'';
  document.getElementById('fp-name').value=p.name||'';
  document.getElementById('fp-designation').value=p.designation||'';
- const isScholar = (p.patron_type === 'research_scholar') || 
+ const isTeacher = (p.patron_type === 'teacher') || 
+                   (p.barcode && p.barcode.startsWith('TC10')) || 
+                   (p.designation && (p.designation.toUpperCase().includes('PROF') || p.designation.toUpperCase().includes('CHAIRPERSON')));
+ const isScholar = !isTeacher && ((p.patron_type === 'research_scholar') || 
                    (p.year && p.year.toUpperCase() === 'RS') || 
                    (p.barcode && p.barcode.startsWith('RS')) || 
-                   (p.designation && (p.designation.toUpperCase().includes('SCHOLAR') || p.designation.toUpperCase().includes('GUIDE')));
- const ptype = p.patron_type || (isScholar ? 'research_scholar' : 'student');
+                   (p.designation && p.designation.toUpperCase().includes('SCHOLAR')));
+ const ptype = isTeacher ? 'teacher' : (isScholar ? 'research_scholar' : (p.patron_type || 'student'));
  document.getElementById('fp-type').value=ptype;
  let pyear = p.year || '';
- if (isScholar && (!pyear || pyear === '—')) {
+ if (isTeacher) {
+  pyear = '';
+ } else if (isScholar && (!pyear || pyear === '—')) {
   pyear = 'RS';
  }
  document.getElementById('fp-year').value=pyear;

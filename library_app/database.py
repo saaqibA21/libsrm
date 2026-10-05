@@ -127,21 +127,42 @@ def initialize_db():
     except Exception:
         pass
 
-    # Schema migration: update all Research Scholars (Year = 'RS' or section/designation mentions RS/Scholar or barcode starts with RS)
+    # 1. Strictly restore all teaching faculty & staff (faculty IDs, Chairperson, Professor, TF Details, TC10 barcodes)
+    try:
+        c.execute("""
+            UPDATE patrons 
+            SET patron_type = 'teacher', year = ''
+            WHERE barcode LIKE 'TC10%' 
+               OR (length(COALESCE(register_number,'')) <= 6 AND register_number GLOB '[0-9]*')
+               OR UPPER(COALESCE(designation,'')) LIKE '%PROF%'
+               OR UPPER(COALESCE(designation,'')) LIKE '%CHAIRPERSON%'
+               OR UPPER(COALESCE(section,'')) LIKE '%CHAIRPERSON%'
+               OR UPPER(COALESCE(section,'')) LIKE '%TF DETAILS%'
+               OR UPPER(COALESCE(section,'')) LIKE '%NT FACULTY%'
+        """)
+        conn.commit()
+    except Exception:
+        pass
+
+    # 2. Schema migration: update Research Scholars (Year = 'RS', RS Details sheet, or scholar register numbers)
     try:
         c.execute("""
             UPDATE patrons 
             SET patron_type = 'research_scholar'
-            WHERE UPPER(COALESCE(year,'')) = 'RS' 
-               OR UPPER(COALESCE(section,'')) LIKE '%RS%' 
-               OR UPPER(COALESCE(designation,'')) LIKE '%SCHOLAR%'
-               OR UPPER(COALESCE(designation,'')) LIKE '%GUIDE%'
+            WHERE patron_type != 'teacher'
+              AND barcode NOT LIKE 'TC10%'
+              AND (
+                  UPPER(COALESCE(year,'')) = 'RS' 
+               OR UPPER(COALESCE(section,'')) LIKE '%RS DETAILS%'
+               OR UPPER(COALESCE(section,'')) = 'RS'
+               OR (UPPER(COALESCE(designation,'')) LIKE '%SCHOLAR%' AND UPPER(COALESCE(designation,'')) NOT LIKE '%PROF%')
                OR barcode LIKE 'RS%'
+              )
         """)
         c.execute("""
             UPDATE patrons 
             SET year = 'RS'
-            WHERE (patron_type = 'research_scholar' OR barcode LIKE 'RS%')
+            WHERE patron_type = 'research_scholar'
               AND (year IS NULL OR year = '' OR year = '—' OR year = '-')
         """)
         conn.commit()
@@ -559,9 +580,11 @@ def search_patrons(query="", patron_type=None):
     params = [q, q, q, q]
     if patron_type:
         if patron_type == 'research_scholar':
-            sql += " AND (patron_type='research_scholar' OR UPPER(COALESCE(year,''))='RS' OR UPPER(COALESCE(section,'')) LIKE '%RS%')"
+            sql += " AND patron_type='research_scholar'"
         elif patron_type == 'student':
-            sql += " AND patron_type='student' AND UPPER(COALESCE(year,'')) != 'RS' AND UPPER(COALESCE(section,'')) NOT LIKE '%RS%'"
+            sql += " AND patron_type='student'"
+        elif patron_type == 'teacher':
+            sql += " AND patron_type='teacher'"
         else:
             sql += " AND patron_type=?"
             params.append(patron_type)
@@ -576,7 +599,7 @@ def get_all_patrons():
     rows = conn.execute("""
         SELECT * FROM patrons
         ORDER BY 
-            CASE patron_type WHEN 'student' THEN 1 ELSE 2 END,
+            CASE patron_type WHEN 'teacher' THEN 1 WHEN 'research_scholar' THEN 2 ELSE 3 END,
             CASE year WHEN 'I' THEN 1 WHEN 'II' THEN 2 WHEN 'III' THEN 3 WHEN 'IV' THEN 4 ELSE 5 END,
             section,
             register_number,
@@ -590,8 +613,8 @@ def count_patrons():
     conn = get_connection()
     total = conn.execute("SELECT COUNT(*) FROM patrons").fetchone()[0]
     teachers = conn.execute("SELECT COUNT(*) FROM patrons WHERE patron_type='teacher'").fetchone()[0]
-    scholars = conn.execute("SELECT COUNT(*) FROM patrons WHERE patron_type='research_scholar' OR UPPER(COALESCE(year,''))='RS' OR UPPER(COALESCE(section,'')) LIKE '%RS%'").fetchone()[0]
-    students = conn.execute("SELECT COUNT(*) FROM patrons WHERE patron_type='student' AND UPPER(COALESCE(year,'')) != 'RS' AND UPPER(COALESCE(section,'')) NOT LIKE '%RS%'").fetchone()[0]
+    scholars = conn.execute("SELECT COUNT(*) FROM patrons WHERE patron_type='research_scholar'").fetchone()[0]
+    students = conn.execute("SELECT COUNT(*) FROM patrons WHERE patron_type='student'").fetchone()[0]
     conn.close()
     return {"total": total, "students": students, "teachers": teachers, "scholars": scholars}
 
