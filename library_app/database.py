@@ -918,16 +918,46 @@ def search_transactions_by_date(from_date=None, to_date=None, date_type="issue_d
 
 def get_dashboard_stats():
     conn = get_connection()
-    today = datetime.now().strftime("%Y-%m-%d")
+    today_dt = datetime.now()
+    today = today_dt.date()
+    today_str = today.strftime("%Y-%m-%d")
 
     total_books = conn.execute("SELECT COUNT(*) FROM books").fetchone()[0]
     available_books = conn.execute("SELECT COUNT(*) FROM books WHERE status='available'").fetchone()[0]
     issued_books = conn.execute("SELECT COUNT(*) FROM books WHERE status='issued'").fetchone()[0]
     total_patrons = conn.execute("SELECT COUNT(*) FROM patrons").fetchone()[0]
-    overdue = conn.execute("SELECT COUNT(*) FROM transactions WHERE status='issued' AND due_date < ?", (today,)).fetchone()[0]
+    overdue = conn.execute("SELECT COUNT(*) FROM transactions WHERE status='issued' AND due_date < ?", (today_str,)).fetchone()[0]
     issued_today = conn.execute("SELECT COUNT(*) FROM transactions WHERE date(issue_date)=date('now','localtime')").fetchone()[0]
     returned_today = conn.execute("SELECT COUNT(*) FROM transactions WHERE date(return_date)=date('now','localtime')").fetchone()[0]
-    total_fines = conn.execute("SELECT COALESCE(SUM(fine_amount),0) FROM transactions WHERE fine_paid=0 AND status='returned'").fetchone()[0]
+
+    # Fine rate per day
+    fine_val = conn.execute("SELECT value FROM settings WHERE key='fine_per_day'").fetchone()
+    fine_rate = float(fine_val["value"]) if fine_val and fine_val["value"] else 2.0
+
+    # 1. Unpaid fines from already returned books
+    unpaid_returned = conn.execute("""
+        SELECT COALESCE(SUM(fine_amount), 0)
+        FROM transactions
+        WHERE status='returned' AND fine_paid=0 AND fine_amount > 0
+    """).fetchone()[0] or 0.0
+
+    # 2. Accumulated active fines on currently issued overdue books
+    overdue_txns = conn.execute("""
+        SELECT due_date
+        FROM transactions
+        WHERE status='issued' AND due_date < ?
+    """, (today_str,)).fetchall()
+
+    active_overdue_fines = 0.0
+    for r in overdue_txns:
+        try:
+            due_dt = datetime.strptime(r["due_date"], "%Y-%m-%d").date()
+            if due_dt < today:
+                active_overdue_fines += (today - due_dt).days * fine_rate
+        except Exception:
+            pass
+
+    total_fines = round(float(unpaid_returned) + active_overdue_fines, 2)
 
     conn.close()
     return {
@@ -1035,13 +1065,19 @@ def search_patron_borrow_stats(query="", limit=50):
     """Search how many books each patron has taken, with active loans and fines."""
     conn = get_connection()
     q = f"%{query}%"
-    today = datetime.now().strftime("%Y-%m-%d")
+    today_dt = datetime.now()
+    today = today_dt.date()
+    today_str = today.strftime("%Y-%m-%d")
+
+    fine_val = conn.execute("SELECT value FROM settings WHERE key='fine_per_day'").fetchone()
+    fine_rate = float(fine_val["value"]) if fine_val and fine_val["value"] else 2.0
+
     sql = """
         SELECT p.id, p.name, p.register_number, p.patron_type, p.year, p.section, p.barcode, p.email,
                COUNT(t.id) as total_books_taken,
                SUM(CASE WHEN t.status = 'issued' THEN 1 ELSE 0 END) as active_loans_count,
                SUM(CASE WHEN t.status = 'issued' AND t.due_date < ? THEN 1 ELSE 0 END) as overdue_count,
-               SUM(CASE WHEN t.fine_paid = 0 THEN t.fine_amount ELSE 0 END) as pending_fines,
+               SUM(CASE WHEN t.status = 'returned' AND t.fine_paid = 0 THEN t.fine_amount ELSE 0 END) as returned_unpaid_fines,
                MAX(t.issue_date) as last_borrowed_date
         FROM patrons p
         LEFT JOIN transactions t ON p.id = t.patron_id
@@ -1050,9 +1086,32 @@ def search_patron_borrow_stats(query="", limit=50):
         ORDER BY total_books_taken DESC, p.name ASC
         LIMIT ?
     """
-    rows = conn.execute(sql, (today, q, q, q, q, limit)).fetchall()
+    rows = conn.execute(sql, (today_str, q, q, q, q, limit)).fetchall()
+
+    results = []
+    for r in rows:
+        d = dict(r)
+        pid = d["id"]
+        # Calculate active overdue fines for this patron
+        active_overdue = conn.execute("""
+            SELECT due_date FROM transactions
+            WHERE patron_id = ? AND status = 'issued' AND due_date < ?
+        """, (pid, today_str)).fetchall()
+
+        active_fine = 0.0
+        for ao in active_overdue:
+            try:
+                due_dt = datetime.strptime(ao["due_date"], "%Y-%m-%d").date()
+                if due_dt < today:
+                    active_fine += (today - due_dt).days * fine_rate
+            except Exception:
+                pass
+
+        d["pending_fines"] = round(float(d.get("returned_unpaid_fines") or 0.0) + active_fine, 2)
+        results.append(d)
+
     conn.close()
-    return [dict(r) for r in rows]
+    return results
 
 
 def mark_fine_paid(transaction_id, paid=1):
