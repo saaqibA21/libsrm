@@ -423,6 +423,8 @@ def add_patron(barcode, register_number, name, patron_type="student",
                designation="", year="", section="", mobile="", email="",
                parent_mobile="", parent_email=""):
     conn = get_connection()
+    if (year or "").strip().upper() == "RS" and patron_type != "teacher":
+        patron_type = "research_scholar"
     if not barcode:
         clean_reg = (register_number or "").strip().replace(" ", "").replace("/", "")
         if patron_type == "student":
@@ -454,6 +456,8 @@ def add_patron(barcode, register_number, name, patron_type="student",
 def update_patron(patron_id, name, patron_type, year="", section="", mobile="", email="",
                   parent_mobile="", parent_email="", designation=""):
     conn = get_connection()
+    if (year or "").strip().upper() == "RS" and patron_type != "teacher":
+        patron_type = "research_scholar"
     conn.execute("""
         UPDATE patrons SET name=?, patron_type=?, designation=?, year=?, section=?,
         mobile=?, email=?, parent_mobile=?, parent_email=?

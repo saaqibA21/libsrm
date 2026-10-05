@@ -116,11 +116,14 @@ def _import_students_from_docx(filepath: str, year: str, section: str) -> tuple[
                             break
 
                     if reg and name and not name.lower().startswith("name"):
+                        is_rs = (str(year).strip().upper() == "RS")
+                        ptype = "research_scholar" if is_rs else "student"
+                        barcode = f"RS{reg}" if is_rs else f"ST{reg}"
                         patrons.append({
-                            "barcode": f"ST{reg}",
+                            "barcode": barcode,
                             "register_number": reg,
                             "name": name,
-                            "patron_type": "student",
+                            "patron_type": ptype,
                             "year": year,
                             "section": section,
                             "mobile": mobile,
@@ -242,12 +245,14 @@ def import_students_from_excel(filepath: str, year: str, section: str) -> tuple[
             if name.lower().startswith("name") or name.lower().startswith("student") or len(name) < 2:
                 continue
 
-            barcode = f"ST{reg}"
+            is_rs = (str(year).strip().upper() == "RS")
+            ptype = "research_scholar" if is_rs else "student"
+            barcode = f"RS{reg}" if is_rs else f"ST{reg}"
             patrons.append({
                 "barcode": barcode,
                 "register_number": reg,
                 "name": name,
-                "patron_type": "student",
+                "patron_type": ptype,
                 "year": year,
                 "section": section,
                 "mobile": mobile,

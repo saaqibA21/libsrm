@@ -103,10 +103,10 @@
  </div>
  <div class="form-row cols-3">
  <div class="form-group"><label>Type</label>
- <select class="form-control" id="fp-type"><option value="student">Student</option><option value="teacher">Teacher / Faculty</option><option value="research_scholar">Research Scholar</option></select>
+ <select class="form-control" id="fp-type" onchange="onTypeChange()"><option value="student">Student</option><option value="teacher">Teacher / Faculty</option><option value="research_scholar">Research Scholar</option></select>
  </div>
  <div class="form-group"><label>Year</label>
- <select class="form-control" id="fp-year"><option value="">—</option><option>I</option><option>II</option><option>III</option><option>IV</option></select>
+ <select class="form-control" id="fp-year" onchange="onYearChange()"><option value="">—</option><option value="I">I</option><option value="II">II</option><option value="III">III</option><option value="IV">IV</option><option value="RS">RS (Research Scholar)</option></select>
  </div>
  <div class="form-group"><label>Section</label><input class="form-control" id="fp-section" placeholder="A / B / C / D"></div>
  </div>
@@ -132,7 +132,7 @@
  <div class="form-group"><label>Excel File</label><input type="file" class="form-control" id="studFile" accept=".xlsx,.xls"></div>
  <div class="form-row cols-2">
  <div class="form-group"><label>Year</label>
- <select class="form-control" id="studYear"><option>I</option><option>II</option><option>III</option><option>IV</option></select>
+ <select class="form-control" id="studYear"><option value="I">I</option><option value="II">II</option><option value="III">III</option><option value="IV">IV</option><option value="RS">RS (Research Scholars)</option></select>
  </div>
  <div class="form-group"><label>Section</label><input class="form-control" id="studSection" placeholder="A" value="A"></div>
  </div>
@@ -247,8 +247,9 @@
  <div class="form-group">
  <label>Recipient Type</label>
  <select class="form-control" id="batchEmailType">
- <option value="all">All (Students & Staff)</option>
+ <option value="all">All (Students, Scholars & Teachers)</option>
  <option value="student">Students Only</option>
+ <option value="research_scholar">Research Scholars Only</option>
  <option value="teacher">Teachers Only</option>
  </select>
  </div>
@@ -260,6 +261,7 @@
  <option value="II">Year II</option>
  <option value="III">Year III</option>
  <option value="IV">Year IV</option>
+ <option value="RS">RS (Research Scholars)</option>
  </select>
  </div>
  <div class="form-group">
@@ -288,11 +290,43 @@
 </div>{% endblock %}
 {% block scripts %}
 <script>
+function onTypeChange() {
+ const t = document.getElementById('fp-type').value;
+ const y = document.getElementById('fp-year');
+ const d = document.getElementById('fp-designation');
+ const s = document.getElementById('fp-section');
+ if (t === 'research_scholar') {
+  y.value = 'RS';
+  if (!d.value) d.placeholder = 'e.g. Full Time (Guide: Dr. ...) / Research Scholar';
+  if (!s.value) s.placeholder = 'RS Details / Area of Research';
+ } else if (t === 'teacher') {
+  if (y.value === 'RS') y.value = '';
+  d.placeholder = 'e.g. Professor & Head / Assistant Professor';
+  s.placeholder = 'Department / Specialization';
+ } else {
+  if (y.value === 'RS') y.value = '';
+  d.placeholder = 'Optional designation';
+  s.placeholder = 'A / B / C / D';
+ }
+}
+
+function onYearChange() {
+ const y = document.getElementById('fp-year').value;
+ const t = document.getElementById('fp-type');
+ if (y === 'RS') {
+  t.value = 'research_scholar';
+  onTypeChange();
+ } else if (y && t.value === 'research_scholar') {
+  t.value = 'student';
+  onTypeChange();
+ }
+}
+
 function openAddModal() {
  document.getElementById('editPatronId').value='';
  document.getElementById('patronModalTitle').textContent='Add New Patron';
  document.getElementById('fp-barcode').readOnly=false;
- document.getElementById('fp-barcode').placeholder='Leave blank to auto-generate (e.g. ST… / TC…)';
+ document.getElementById('fp-barcode').placeholder='Leave blank to auto-generate (e.g. ST… / RS… / TC…)';
  ['fp-barcode','fp-reg','fp-name','fp-designation','fp-section','fp-mobile','fp-email','fp-pmobile','fp-pemail'].forEach(id=>document.getElementById(id).value='');
  document.getElementById('fp-type').value='student';
  document.getElementById('fp-year').value='';
@@ -307,7 +341,8 @@ async function editPatron(id) {
  document.getElementById('fp-reg').value=p.register_number||'';
  document.getElementById('fp-name').value=p.name||'';
  document.getElementById('fp-designation').value=p.designation||'';
- document.getElementById('fp-type').value=p.patron_type||'student';
+ const ptype = p.patron_type || ((p.year && p.year.toUpperCase()==='RS') ? 'research_scholar' : 'student');
+ document.getElementById('fp-type').value=ptype;
  document.getElementById('fp-year').value=p.year||'';
  document.getElementById('fp-section').value=p.section||'';
  document.getElementById('fp-mobile').value=p.mobile||'';
@@ -324,6 +359,9 @@ async function savePatron() {
  fd.append(k==='reg'?'register_number':k==='type'?'patron_type':k==='pmobile'?'parent_mobile':k==='pemail'?'parent_email':k,
  document.getElementById(`fp-${k}`).value);
  });
+ if (document.getElementById('fp-year').value === 'RS' && fd.get('patron_type') !== 'teacher') {
+  fd.set('patron_type', 'research_scholar');
+ }
  if (!fd.get('name') || !fd.get('name').trim()) { showToast('Full Name is required','error'); return; }
  if (!fd.get('mobile') || !fd.get('mobile').trim()) { showToast('Phone / Mobile number is compulsory','error'); return; }
  if (!fd.get('email') || !fd.get('email').trim()) { showToast('Email ID is compulsory','error'); return; }

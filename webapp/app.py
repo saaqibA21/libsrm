@@ -596,13 +596,18 @@ def add_patron_route():
     if not mobile:
         return jsonify({"success": False, "message": "Phone / Mobile number is mandatory. Please provide a valid mobile number."}), 400
 
+    year = d.get("year","").strip()
+    patron_type = d.get("patron_type","student")
+    if year.upper() == "RS" and patron_type != "teacher":
+        patron_type = "research_scholar"
+
     success, msg = add_patron(
         barcode=d.get("barcode","").strip(),
         register_number=d.get("register_number","").strip(),
         name=name,
-        patron_type=d.get("patron_type","student"),
+        patron_type=patron_type,
         designation=d.get("designation","").strip(),
-        year=d.get("year",""),
+        year=year,
         section=d.get("section","").strip(),
         mobile=mobile,
         email=email,
@@ -628,7 +633,12 @@ def edit_patron_route(pid):
     if not mobile:
         return jsonify({"success": False, "message": "Phone / Mobile number is mandatory. Please provide a valid mobile number."}), 400
 
-    update_patron(pid, name, d.get("patron_type"), d.get("year"),
+    year = d.get("year","").strip()
+    patron_type = d.get("patron_type","student")
+    if year.upper() == "RS" and patron_type != "teacher":
+        patron_type = "research_scholar"
+
+    update_patron(pid, name, patron_type, year,
                   d.get("section"), mobile, email,
                   d.get("parent_mobile"), d.get("parent_email"),
                   designation=d.get("designation","").strip())
@@ -673,13 +683,18 @@ def import_students_route():
     added = skipped = 0
     added_items = []
     for p in patrons:
+        if str(year).strip().upper() == "RS":
+            p["patron_type"] = "research_scholar"
+            if not p.get("designation"):
+                p["designation"] = "Research Scholar"
         ok, _ = add_patron(**p)
         if ok:
             added += 1
+            extra_txt = f"Research Scholar - {section} | {p.get('register_number','')}" if str(year).strip().upper() == "RS" else f"Student - Yr {year} Sec {section} | {p.get('register_number','')}"
             added_items.append({
                 "barcode": p["barcode"],
                 "name": p["name"],
-                "extra": f"Student - Yr {year} Sec {section} | {p.get('register_number','')}"
+                "extra": extra_txt
             })
         else:
             skipped += 1
