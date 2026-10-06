@@ -130,6 +130,48 @@
     </div>
   </div>
 
+  <!-- Automated Daily Overdue Notices (Auto-Pilot) -->
+  <div style="background:linear-gradient(135deg, rgba(153, 27, 27, 0.04) 0%, rgba(127, 29, 29, 0.08) 100%); border:1.5px solid rgba(153, 27, 27, 0.25); border-radius:12px; padding:16px 18px; margin:18px 0;">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+      <div>
+        <strong style="font-size:13.5px; color:#991B1B; display:flex; align-items:center; gap:6px;">
+          <i class="fa fa-envelope-open-text"></i> Automated Daily Overdue Email Notices (Auto-Pilot)
+        </strong>
+        <span style="font-size:11.5px; color:var(--muted); margin-top:2px; display:block;">
+          Scans for overdue textbooks every morning at 9:00 AM IST and delivers itemized notices with fine breakdowns to borrowers.
+        </span>
+      </div>
+      <div id="overdueAutoPilotBadge">
+        {% if settings.auto_overdue_email_active == '1' %}
+        <span class="badge badge-success" style="font-size:10.5px;"><i class="fa fa-clock"></i> Active: 9:00 AM IST</span>
+        {% else %}
+        <span class="badge" style="background:#FEF3C7; color:#92400E; border:1px solid #FCD34D; font-size:10.5px;"><i class="fa fa-shield-halved"></i> Safe Mode: Paused (Fake/Test Data)</span>
+        {% endif %}
+      </div>
+    </div>
+    
+    <div style="background:#FFFFFF; border:1px solid #E5E7EB; border-radius:10px; padding:12px 14px; font-size:12px; color:#374151; line-height:1.55; margin-bottom:14px;">
+      <strong style="color:#B45309; display:block; margin-bottom:4px;">
+        <i class="fa fa-triangle-exclamation"></i> Safe Mode Protection Active:
+      </strong>
+      Because current overdue loans are test/fake data, automated overdue emails are kept <strong>PAUSED</strong> so no real emails are dispatched. You can run safe dry-run simulations anytime to verify email grouping and fine calculations. Once real borrowers are enrolled, toggle Auto-Pilot ON.
+    </div>
+
+    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+      <button type="button" class="btn btn-outline btn-sm" id="btnToggleOverdueAutoPilot" onclick="toggleOverdueAutoPilot()" style="font-size:12px;">
+        <i class="fa fa-power-off"></i> <span id="toggleOverdueAutoPilotText">{{ 'Pause Auto-Pilot' if settings.auto_overdue_email_active == '1' else 'Activate Auto-Pilot' }}</span>
+      </button>
+      <button type="button" class="btn btn-outline btn-sm" id="btnPreviewOverdue" onclick="previewOverdueNotices()" style="font-size:12px;">
+        <i class="fa fa-eye"></i> Preview Overdue Notices (Dry Run - Safe)
+      </button>
+      <button type="button" class="btn btn-sm" id="btnRunOverdueNow" onclick="sendOverdueNoticesNow()" style="background:#991B1B; color:#FFFFFF; font-size:12px;">
+        <i class="fa fa-paper-plane"></i> Send Overdue Notices Now
+      </button>
+    </div>
+
+    <div id="overduePreviewBox" style="display:none; margin-top:14px; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:10px; padding:14px; font-size:12px;"></div>
+  </div>
+
  <div class="form-group" style="margin-top:16px; padding-top:14px; border-top:1px dashed var(--border);">
  <label style="display:flex; justify-content:space-between; align-items:center;">
  <span>Send Test Email To (Recipient)</span>
@@ -261,5 +303,92 @@ async function testEmail() {
  btn.disabled = false;
  btn.innerHTML = '<i class="fa fa-paper-plane"></i> Send Test Email';
  }
+}
+
+async function toggleOverdueAutoPilot() {
+  const btn = document.getElementById('btnToggleOverdueAutoPilot');
+  if (btn) btn.disabled = true;
+  try {
+    const res = await postJSON('/api/overdue_autopilot/toggle', {});
+    showToast(res.message, res.active ? 'success' : 'info');
+    const badge = document.getElementById('overdueAutoPilotBadge');
+    const txt = document.getElementById('toggleOverdueAutoPilotText');
+    if (res.active) {
+      if (badge) badge.innerHTML = '<span class="badge badge-success" style="font-size:10.5px;"><i class="fa fa-clock"></i> Active: 9:00 AM IST</span>';
+      if (txt) txt.innerText = 'Pause Auto-Pilot';
+    } else {
+      if (badge) badge.innerHTML = '<span class="badge" style="background:#FEF3C7; color:#92400E; border:1px solid #FCD34D; font-size:10.5px;"><i class="fa fa-shield-halved"></i> Safe Mode: Paused (Fake/Test Data)</span>';
+      if (txt) txt.innerText = 'Activate Auto-Pilot';
+    }
+  } catch (err) {
+    showToast('Failed to toggle Auto-Pilot: ' + err.message, 'error');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function previewOverdueNotices() {
+  const box = document.getElementById('overduePreviewBox');
+  const btn = document.getElementById('btnPreviewOverdue');
+  if (btn) btn.disabled = true;
+  if (box) {
+    box.style.display = 'block';
+    box.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Running safe dry-run simulation...';
+  }
+  try {
+    const res = await postJSON('/api/overdue_autopilot/preview', {});
+    if (res.success) {
+      let html = `<div style="font-weight:700; color:#166534; margin-bottom:8px;">✅ Safe Dry-Run Simulation: Zero Emails Sent</div>`;
+      html += `<div style="color:#4B5563; margin-bottom:10px;">${res.message}</div>`;
+      if (res.previews && res.previews.length > 0) {
+        html += `<table style="width:100%; border-collapse:collapse; font-size:11.5px; border:1px solid #E5E7EB;">
+          <thead>
+            <tr style="background:#F9FAFB; border-bottom:1px solid #E5E7EB; text-align:left;">
+              <th style="padding:6px 8px;">Patron Name</th>
+              <th style="padding:6px 8px;">Email Address</th>
+              <th style="padding:6px 8px;">Overdue Books</th>
+              <th style="padding:6px 8px; text-align:right;">Total Fine</th>
+            </tr>
+          </thead><tbody>`;
+        res.previews.forEach(p => {
+          html += `<tr style="border-bottom:1px solid #F3F4F6;">
+            <td style="padding:6px 8px; font-weight:600;">${p.patron_name}</td>
+            <td style="padding:6px 8px; color:#4B5563;">${p.email}</td>
+            <td style="padding:6px 8px;">${p.overdue_books_count} book(s)</td>
+            <td style="padding:6px 8px; font-weight:700; color:#991B1B; text-align:right;">₹${p.total_fine.toFixed(2)}</td>
+          </tr>`;
+        });
+        html += `</tbody></table>`;
+      }
+      box.innerHTML = html;
+      showToast('Dry-run simulation completed! Zero emails were sent.', 'success');
+    } else {
+      box.innerHTML = `<span style="color:#991B1B;">${res.message || 'Simulation error'}</span>`;
+    }
+  } catch (err) {
+    box.innerHTML = `<span style="color:#991B1B;">Error: ${err.message}</span>`;
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function sendOverdueNoticesNow() {
+  if (!confirm('⚠️ Note: Current overdue items are test/fake data.\\n\\nAre you sure you want to send REAL live emails to overdue borrowers now?')) return;
+  const btn = document.getElementById('btnRunOverdueNow');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Dispatching...';
+  }
+  try {
+    const res = await postJSON('/api/overdue_autopilot/run_now', {});
+    showToast(res.message, res.success ? 'success' : 'error');
+  } catch (err) {
+    showToast('Dispatch error: ' + err.message, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa fa-paper-plane"></i> Send Overdue Notices Now';
+    }
+  }
 }
 </script>{% endblock %}

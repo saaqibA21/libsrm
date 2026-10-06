@@ -84,6 +84,21 @@ def initialize_db():
         )
     """)
 
+    # Overdue email dispatch logs
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS overdue_dispatches (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patron_id INTEGER NOT NULL,
+            patron_email TEXT,
+            books_count INTEGER DEFAULT 1,
+            total_fine REAL DEFAULT 0.0,
+            sent_at TEXT DEFAULT (datetime('now', 'localtime')),
+            status TEXT DEFAULT 'sent',
+            error_message TEXT,
+            FOREIGN KEY (patron_id) REFERENCES patrons(id)
+        )
+    """)
+
     # Transactions table
     c.execute("""
         CREATE TABLE IF NOT EXISTS transactions (
@@ -199,6 +214,11 @@ def initialize_db():
         "library_hours_morning": "9:30 AM – 12:30 PM",
         "library_hours_afternoon": "1:30 PM – 4:30 PM",
         "library_hours_display": "9:30 AM – 12:30 PM & 1:30 PM – 4:30 PM",
+        "auto_overdue_email_active": "0",  # Paused by default (Safe Mode: Fake test data)
+        "auto_overdue_email_hour": "9",
+        "auto_overdue_last_status": "Paused (Safe Mode: Test/Fake Data)",
+        "auto_overdue_last_run_date": "",
+        "auto_overdue_last_sent_count": "0",
     }
     for k, v in defaults.items():
         c.execute("INSERT OR IGNORE INTO settings VALUES (?, ?)", (k, v))

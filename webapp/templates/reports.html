@@ -839,9 +839,9 @@ async function viewHistory(id, name) {
 }
 
 async function sendOverdueEmails() {
- if (!confirm('Send overdue email notices to all overdue patrons?')) return;
+ if (!confirm('⚠️ Caution: If test/fake overdue records are present, real emails will be dispatched.\\n\\nAre you sure you want to send overdue notices to all overdue borrowers now?')) return;
  const res = await postJSON('/api/send_overdue_emails', {});
- if (res.success) showToast(`Sent: ${res.sent}, Failed: ${res.failed}`, res.failed > 0 ? 'info' : 'success');
+ if (res.success) showToast(res.message || `Sent: ${res.sent}, Failed: ${res.failed}`, res.failed > 0 ? 'info' : 'success');
  else showToast(res.message, 'error');
 }
 

@@ -131,6 +131,13 @@ def start_keep_alive_daemon():
             except Exception as e:
                 print(f"[NoDue-AutoPilot] Scheduler notice: {e}")
 
+            # Check and run daily 9:00 AM IST automated overdue notices (safely skips when paused)
+            try:
+                from library_app.utils.automated_overdue_service import check_and_run_daily_overdue_notices
+                check_and_run_daily_overdue_notices()
+            except Exception as e:
+                print(f"[Overdue-AutoPilot] Scheduler notice: {e}")
+
             time.sleep(600)  # Ping every 10 minutes (Render sleep threshold is 15 min)
 
     t = threading.Thread(target=_pinger, daemon=True, name="RenderKeepAlive")
@@ -1086,32 +1093,53 @@ def export_reports_csv():
 def send_overdue_emails():
     if not require_staff():
         return jsonify({"success": False, "message": "Unauthorized"}), 403
-    from library_app.utils.email_utils import send_email, build_overdue_email
-    overdue = get_overdue_transactions()
-    smtp_host = get_setting("email_host", "smtp.gmail.com")
-    smtp_port = int(get_setting("email_port", "465"))
-    smtp_user = get_setting("email_user", "")
-    smtp_pass = get_setting("email_password", "")
-    lib_name = get_setting("library_name", "SRM EEE Library")
-    fine_rate = float(get_setting("fine_per_day", "2.0"))
-    brevo_key = get_setting("brevo_api_key", "")
-    if not brevo_key and (not smtp_user or not smtp_pass):
-        return jsonify({"success": False, "message": "Email not configured in Settings. Please enter Brevo API key or Gmail App Password."})
-    patron_books = {}
-    for txn in overdue:
-        email = txn.get("patron_email", "")
-        if not email: continue
-        key = f"{email}|{txn.get('patron_name','')}"
-        patron_books.setdefault(key, []).append(txn)
-    sent = failed = 0
-    for key, books in patron_books.items():
-        email, name = key.split("|", 1)
-        body = build_overdue_email(name, books, fine_rate, lib_name)
-        ok, _ = send_email(email, f"[{lib_name}] Overdue Notice", body,
-                           smtp_host, smtp_port, smtp_user, smtp_pass)
-        if ok: sent += 1
-        else: failed += 1
-    return jsonify({"success": True, "sent": sent, "failed": failed})
+    from library_app.utils.automated_overdue_service import dispatch_overdue_emails
+    ok, res = dispatch_overdue_emails(dry_run=False, force=True)
+    return jsonify({"success": ok, **res})
+
+
+@app.route("/api/overdue_autopilot/status", methods=["GET"])
+def api_overdue_autopilot_status():
+    if not require_staff():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+    from library_app.utils.automated_overdue_service import get_auto_overdue_status
+    status = get_auto_overdue_status()
+    return jsonify({"success": True, "status": status})
+
+
+@app.route("/api/overdue_autopilot/toggle", methods=["POST"])
+def api_overdue_autopilot_toggle():
+    if not require_staff():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+    from library_app.database import get_setting, set_setting
+    current = get_setting("auto_overdue_email_active", "0")
+    new_val = "0" if current == "1" else "1"
+    set_setting("auto_overdue_email_active", new_val)
+    if new_val == "1":
+        set_setting("auto_overdue_last_status", "Active: Scheduled daily at 9:00 AM IST")
+        msg = "Automated Overdue Email notices are now ACTIVE (Scheduled daily at 9:00 AM IST)."
+    else:
+        set_setting("auto_overdue_last_status", "Paused (Safe Mode: Test/Fake Data)")
+        msg = "Automated Overdue Email notices are now PAUSED (Safe mode: no automatic emails will be sent)."
+    return jsonify({"success": True, "active": new_val == "1", "message": msg})
+
+
+@app.route("/api/overdue_autopilot/preview", methods=["POST", "GET"])
+def api_overdue_autopilot_preview():
+    if not require_staff():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+    from library_app.utils.automated_overdue_service import dispatch_overdue_emails
+    ok, res = dispatch_overdue_emails(dry_run=True)
+    return jsonify({"success": ok, **res})
+
+
+@app.route("/api/overdue_autopilot/run_now", methods=["POST"])
+def api_overdue_autopilot_run_now():
+    if not require_staff():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+    from library_app.utils.automated_overdue_service import dispatch_overdue_emails
+    ok, res = dispatch_overdue_emails(dry_run=False, force=True)
+    return jsonify({"success": ok, **res})
 
 
 @app.route("/api/mark_fine_paid/<int:txn_id>", methods=["POST"])

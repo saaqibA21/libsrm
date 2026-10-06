@@ -511,55 +511,141 @@ def build_due_reminder_email(patron_name: str, books: list[dict], library_name: 
 
 
 def build_overdue_email(patron_name: str, books: list[dict],
-                        fine_per_day: float, library_name: str) -> str:
-    """Build HTML email for overdue notice."""
-    rows = ""
+                        fine_per_day: float = 2.0, library_name: str = "SRM EEE Department Library",
+                        patron_info: dict = None) -> str:
+    """Build an official institutional HTML email for overdue book notice with itemized table and fines."""
     today = datetime.now()
-    total_fine = 0
-    for b in books:
+    date_display = today.strftime("%d-%B-%Y")
+    total_fine = 0.0
+    rows = ""
+
+    patron_info = patron_info or {}
+    reg_number = patron_info.get("reg") or patron_info.get("register_number") or ""
+    ptype = (patron_info.get("patron_type") or "Student").title()
+
+    for idx, b in enumerate(books, 1):
         try:
             due = datetime.strptime(b.get("due_date", ""), "%Y-%m-%d")
-            days_overdue = (today - due).days
+            days_overdue = max(0, (today - due).days)
             fine = days_overdue * fine_per_day
-            total_fine += fine
         except Exception:
-            days_overdue = 0
-            fine = 0
+            days_overdue = int(b.get("days_overdue", 0))
+            fine = float(b.get("calculated_fine", 0.0))
+        total_fine += fine
+
+        title = b.get("book_title") or b.get("title") or "Library Textbook"
+        barcode = b.get("book_barcode") or b.get("barcode") or "—"
+        issue_date = b.get("issue_date") or "—"
+        due_date = b.get("due_date") or "—"
+
         rows += f"""
-        <tr>
-            <td style="padding:10px;border-bottom:1px solid #eee;">{b.get('book_title','')}</td>
-            <td style="padding:10px;border-bottom:1px solid #eee;color:#c0392b;">{b.get('due_date','')}</td>
-            <td style="padding:10px;border-bottom:1px solid #eee;color:#c0392b;font-weight:600;">{days_overdue} days</td>
-            <td style="padding:10px;border-bottom:1px solid #eee;color:#c0392b;font-weight:700;">₹{fine:.2f}</td>
-        </tr>"""
+        <tr style="border-bottom: 1px solid #FEE2E2; background: {'#FFFFFF' if idx % 2 != 0 else '#FEF2F2'};">
+            <td style="padding: 10px 12px; font-weight: 600; color: #1F2937;">
+                {title}
+                <div style="font-size: 11px; color: #6B7280; font-family: monospace; font-weight: normal; margin-top: 2px;">
+                    Barcode: {barcode}
+                </div>
+            </td>
+            <td style="padding: 10px 12px; font-size: 12px; color: #4B5563;">{issue_date}</td>
+            <td style="padding: 10px 12px; font-size: 12px; font-weight: 700; color: #DC2626;">{due_date}</td>
+            <td style="padding: 10px 12px; font-size: 12px; font-weight: 700; color: #991B1B; text-align: center;">{days_overdue} days</td>
+            <td style="padding: 10px 12px; font-size: 13px; font-weight: 800; color: #991B1B; text-align: right;">₹{fine:.2f}</td>
+        </tr>
+        """
+
+    reg_badge = f'<span style="background: #E5E7EB; color: #374151; font-size: 11.5px; padding: 2px 8px; border-radius: 6px; font-weight: 600; margin-left: 6px;">ID: {reg_number}</span>' if reg_number else ''
 
     return f"""
-    <html><body style="font-family:'Segoe UI',Arial,sans-serif;color:#333;max-width:580px;margin:auto;padding:20px;">
-    <div style="background:#991B1B;color:white;padding:20px;border-radius:12px 12px 0 0;text-align:center;">
-        <h2 style="margin:0;">{library_name}</h2>
-        <p style="margin:5px 0 0;color:#FECACA;">Overdue Textbook Notice</p>
-    </div>
-    <div style="padding:24px;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:0 0 12px 12px;">
-        <p>Dear <strong>{patron_name}</strong>,</p>
-        <p>The following textbook(s) borrowed under your account are <strong>overdue</strong> and accruing daily late fines:</p>
-        <table style="width:100%;border-collapse:collapse;background:white;border-radius:8px;overflow:hidden;">
-            <thead>
-                <tr style="background:#991B1B;color:white;font-size:12px;">
-                    <th style="padding:10px;text-align:left;">Book Title</th>
-                    <th style="padding:10px;text-align:left;">Due Date</th>
-                    <th style="padding:10px;text-align:left;">Overdue</th>
-                    <th style="padding:10px;text-align:left;">Fine</th>
-                </tr>
-            </thead>
-            <tbody>{rows}</tbody>
-        </table>
-        <div style="margin-top:16px;font-size:14px;font-weight:700;color:#991B1B;">
-            Total Pending Late Fine: ₹{total_fine:.2f}
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="margin: 0; padding: 20px; background-color: #F4F6F1; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1F2937;">
+      <div style="max-width: 620px; margin: 0 auto; background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 18px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.06);">
+        
+        <!-- Urgent Notice Header -->
+        <div style="background: #991B1B; color: #FFFFFF; padding: 24px 28px; text-align: center;">
+          <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #FCA5A5; font-weight: 700; margin-bottom: 4px;">
+            SRM Institute of Science and Technology • Kattankulathur
+          </div>
+          <h1 style="margin: 0; font-size: 21px; font-weight: 700; letter-spacing: -0.3px;">
+            Department of Electrical &amp; Electronics Engineering
+          </h1>
+          <div style="font-size: 13px; color: #FEE2E2; margin-top: 4px;">
+            {library_name} • Urgent Overdue Textbook Notice
+          </div>
         </div>
-        <p style="margin-top:16px;color:#7F1D1D;font-size:13px;"><strong>Please return the textbook(s) to the department library immediately.</strong></p>
-        <p style="color:#888;font-size:11px;margin-top:24px;">Automated notice from {library_name}.</p>
-    </div>
-    </body></html>
+
+        <!-- Body -->
+        <div style="padding: 26px 28px;">
+          <p style="font-size: 15px; margin: 0 0 14px; line-height: 1.6;">
+            Dear <strong>{patron_name}</strong>{reg_badge},
+          </p>
+          <p style="font-size: 13.5px; margin: 0 0 18px; line-height: 1.6; color: #374151;">
+            Our library records indicate that the following textbook(s) borrowed under your account are <strong>past their return due date</strong> as of <strong>{date_display}</strong>. 
+            Late fines of <strong>₹{fine_per_day:.2f} per day</strong> are accruing on each overdue item.
+          </p>
+
+          <!-- Overdue Items Table -->
+          <div style="border: 1px solid #FCA5A5; border-radius: 12px; overflow: hidden; margin-bottom: 18px;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: left;">
+              <thead>
+                <tr style="background: #7F1D1D; color: #FFFFFF; font-size: 11.5px; text-transform: uppercase;">
+                  <th style="padding: 10px 12px;">Textbook Title</th>
+                  <th style="padding: 10px 12px;">Issue Date</th>
+                  <th style="padding: 10px 12px;">Due Date</th>
+                  <th style="padding: 10px 12px; text-align: center;">Overdue</th>
+                  <th style="padding: 10px 12px; text-align: right;">Late Fine</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Total Fine Highlight Banner -->
+          <div style="background: #FEF2F2; border: 1.5px solid #F87171; border-radius: 12px; padding: 14px 18px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-size: 11.5px; text-transform: uppercase; color: #991B1B; font-weight: 700;">Total Pending Late Fine Accrued</div>
+              <div style="font-size: 12px; color: #7F1D1D; margin-top: 2px;">Calculated up to today ({date_display})</div>
+            </div>
+            <div style="font-size: 24px; font-weight: 800; color: #991B1B;">
+              ₹{total_fine:.2f}
+            </div>
+          </div>
+
+          <!-- Return Instructions Box -->
+          <div style="background: #F0FDF4; border: 1.5px solid #86EFAC; border-radius: 12px; padding: 16px 18px; font-size: 12.5px; color: #166534; line-height: 1.6; margin-bottom: 22px;">
+            <strong style="font-size: 13.5px; display: block; margin-bottom: 6px; color: #14532D;">
+              📌 Action Required: Immediate Return or Renewal
+            </strong>
+            <ul style="margin: 0; padding-left: 20px;">
+              <li>Please bring the textbook(s) to the <strong>SRM EEE Department Library Desk</strong> to return or renew them.</li>
+              <li><strong>Circulation Desk Working Hours:</strong> 9:30 AM – 12:30 PM &amp; 1:30 PM – 4:30 PM (Working Days).</li>
+              <li>Returning books promptly prevents further accumulation of daily late fines and frees materials for other students.</li>
+              <li>If you have already returned these books today, please disregard this notice or notify the desk to update records.</li>
+            </ul>
+          </div>
+
+          <!-- Signatures -->
+          <div style="border-top: 1px solid #E5E7EB; padding-top: 18px;">
+            <p style="margin: 0 0 4px; font-size: 12px; font-weight: 700; color: #111827;">Library In-Charges:</p>
+            <p style="margin: 0; font-size: 12px; color: #4B5563; line-height: 1.5;">
+              <strong>Dr. K. Saravanan</strong>, Associate Professor &amp; Library In-Charge<br>
+              <strong>Ms. Gomathy Lakshmi K</strong>, Teaching Assistant &amp; Library In-Charge<br>
+              Department of Electrical &amp; Electronics Engineering<br>
+              SRM Institute of Science and Technology
+            </p>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="background: #F9FAFB; padding: 14px 20px; text-align: center; font-size: 11px; color: #6B7280; border-top: 1px solid #E5E7EB;">
+          {library_name} • <a href="https://eeelibrary.org" style="color: #1C3022; font-weight: 600; text-decoration: none;">eeelibrary.org</a> • Desk Email: <a href="mailto:srmktreeedeptlibrary@gmail.com" style="color: #1C3022;">srmktreeedeptlibrary@gmail.com</a>
+        </div>
+      </div>
+    </body>
+    </html>
     """
 
 
