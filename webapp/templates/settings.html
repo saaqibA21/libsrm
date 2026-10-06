@@ -70,7 +70,7 @@
  </div>
  <div class="form-group" style="margin-bottom:0;">
  <label style="font-size:11.5px; font-weight:700; color:#14532D;">Reply-To Email Address</label>
- <input class="form-control" name="email_reply_to" value="{{ settings.email_reply_to or 'srmeeelibraray@gmail.com' }}" placeholder="srmeeelibraray@gmail.com" style="background:#FFFFFF; font-size:12.5px;">
+ <input class="form-control" name="email_reply_to" value="{{ settings.email_reply_to or 'srmktreeedeptlibrary@gmail.com' }}" placeholder="srmktreeedeptlibrary@gmail.com" style="background:#FFFFFF; font-size:12.5px;">
  <span style="font-size:10.5px; color:#15803D; display:block; margin-top:3px;">
  Where patron replies arrive
  </span>
@@ -89,7 +89,7 @@
  <input class="form-control" type="number" name="email_port" value="{{ settings.email_port or '465' }}" placeholder="465"></div>
  </div>
  <div class="form-group"><label>Email Address</label>
- <input class="form-control" name="email_user" value="{{ settings.email_user }}" placeholder="your@gmail.com"></div>
+ <input class="form-control" name="email_user" value="{{ settings.email_user }}" placeholder="srmktreeedeptlibrary@gmail.com"></div>
  <div class="form-group"><label>App Password</label>
  <input class="form-control" type="password" name="email_password" value="{{ settings.email_password }}" placeholder="Gmail App Password (not your main password)"></div>
  <div class="form-group"><label>From Address (optional)</label>
@@ -113,7 +113,7 @@
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
       <div>
         <strong style="font-size:13.5px; color:#14532D; display:flex; align-items:center; gap:6px;">
-          <i class="fa fa-file-pdf"></i> Automated Daily Report Dispatch (Dr. K. Saravanan)
+          <i class="fa fa-file-pdf"></i> Automated Daily Report Dispatch (Dr. K. Saravanan &amp; Library)
         </strong>
         <span style="font-size:11.5px; color:var(--muted); margin-top:2px; display:block;">
           Generates daily circulation &amp; analytics PDF and emails it every day at 6:00 PM IST (18:00).
@@ -122,10 +122,10 @@
       <span class="badge badge-success" style="font-size:10px;"><i class="fa fa-clock"></i> Active: 6:00 PM IST</span>
     </div>
     <div class="form-group" style="margin-bottom:10px;">
-      <label style="font-size:11.5px; font-weight:700;">Recipient Email Address</label>
-      <input class="form-control" name="daily_report_recipient_email" value="{{ settings.daily_report_recipient_email or 'saravank3@srmist.edu.in' }}" placeholder="saravank3@srmist.edu.in">
+      <label style="font-size:11.5px; font-weight:700;">Recipient Email Address(es)</label>
+      <input class="form-control" name="daily_report_recipient_email" value="{{ settings.daily_report_recipient_email or 'saravank3@srmist.edu.in, srmktreeedeptlibrary@gmail.com' }}" placeholder="saravank3@srmist.edu.in, srmktreeedeptlibrary@gmail.com">
       <span style="font-size:11px; color:var(--muted); margin-top:3px; display:block;">
-        Default: <strong>saravank3@srmist.edu.in</strong> (Dr. K. Saravanan, Associate Professor &amp; Library In-Charge)
+        Default: <strong>saravank3@srmist.edu.in, srmktreeedeptlibrary@gmail.com</strong> (Delivered daily at 6:00 PM IST)
       </span>
     </div>
   </div>

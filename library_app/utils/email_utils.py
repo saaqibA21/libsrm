@@ -88,9 +88,9 @@ def send_email_brevo(api_key: str, to_addr: str, subject: str, body_html: str,
     if not reply_to or not reply_to.strip():
         try:
             from library_app.database import get_setting
-            reply_to = get_setting("email_reply_to", "") or get_setting("email_from", "") or "srmeeelibraray@gmail.com"
+            reply_to = get_setting("email_reply_to", "") or get_setting("email_from", "") or "srmktreeedeptlibrary@gmail.com"
         except Exception:
-            reply_to = "srmeeelibraray@gmail.com"
+            reply_to = "srmktreeedeptlibrary@gmail.com"
 
     url = "https://api.brevo.com/v3/smtp/email"
     headers = {
@@ -99,6 +99,10 @@ def send_email_brevo(api_key: str, to_addr: str, subject: str, body_html: str,
         "Accept": "application/json"
     }
 
+    recipients = [a.strip() for a in to_addr.replace(";", ",").split(",") if a.strip()]
+    if not recipients:
+        return False, "Recipient email list is empty"
+
     payload = {
         "sender": {
             "name": sender_name or "SRM EEE Department Library",
@@ -106,9 +110,10 @@ def send_email_brevo(api_key: str, to_addr: str, subject: str, body_html: str,
         },
         "to": [
             {
-                "email": to_addr.strip(),
-                "name": to_name or to_addr.strip()
+                "email": addr,
+                "name": to_name if (len(recipients) == 1 and to_name) else addr
             }
+            for addr in recipients
         ],
         "subject": subject,
         "htmlContent": body_html
@@ -201,12 +206,17 @@ def send_email(to_addr: str, subject: str, body_html: str,
 
     from_addr = from_addr or smtp_user
 
+    recipient_list = [a.strip() for a in to_addr.replace(";", ",").split(",") if a.strip()]
+    if not recipient_list:
+        return False, "Recipient email list is empty"
+    to_header = ", ".join(recipient_list)
+
     if attachments:
         from email.mime.application import MIMEApplication
         msg = MIMEMultipart("mixed")
         msg["Subject"] = subject
         msg["From"] = f"SRM EEE Library <{from_addr}>"
-        msg["To"] = to_addr
+        msg["To"] = to_header
 
         if inline_images:
             related_part = MIMEMultipart("related")
@@ -230,7 +240,7 @@ def send_email(to_addr: str, subject: str, body_html: str,
         msg = MIMEMultipart("related")
         msg["Subject"] = subject
         msg["From"] = f"SRM EEE Library <{from_addr}>"
-        msg["To"] = to_addr
+        msg["To"] = to_header
 
         alt_part = MIMEMultipart("alternative")
         alt_part.attach(MIMEText(body_html, "html"))
@@ -245,7 +255,7 @@ def send_email(to_addr: str, subject: str, body_html: str,
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
         msg["From"] = f"SRM EEE Library <{from_addr}>"
-        msg["To"] = to_addr
+        msg["To"] = to_header
         msg.attach(MIMEText(body_html, "html"))
 
     def _try_connect(port):
@@ -290,8 +300,8 @@ def send_email(to_addr: str, subject: str, body_html: str,
         current_step = f"authenticating with {clean_user}"
         server.login(clean_user, clean_pass)
 
-        current_step = f"dispatching email to {to_addr}"
-        server.sendmail(from_addr, [to_addr], msg.as_string())
+        current_step = f"dispatching email to {to_header}"
+        server.sendmail(from_addr, recipient_list, msg.as_string())
 
         current_step = "closing connection"
         server.quit()

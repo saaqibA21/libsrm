@@ -14,7 +14,7 @@ from library_app.utils.email_utils import send_email
 
 # Indian Standard Time (UTC +5:30)
 IST = timezone(timedelta(hours=5, minutes=30))
-DEFAULT_RECIPIENT = "saravank3@srmist.edu.in"
+DEFAULT_RECIPIENT = "saravank3@srmist.edu.in, srmktreeedeptlibrary@gmail.com"
 
 
 def get_ist_now():
@@ -128,7 +128,7 @@ def send_daily_report_email(recipient: str = None, force: bool = False) -> tuple
         <!-- Body Content -->
         <div style="padding:28px 30px;">
           <p style="font-size:15px; margin:0 0 14px; line-height:1.6;">
-            Respected <strong>Dr. K. Saravanan</strong>,
+            Respected <strong>Dr. K. Saravanan &amp; Library Team</strong>,
           </p>
           <p style="font-size:13.5px; margin:0 0 18px; line-height:1.6; color:#374151;">
             Here is your automated daily library activity, circulation statistics, and holdings status for <strong>{date_display}</strong> ({time_display}). 

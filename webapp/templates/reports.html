@@ -34,7 +34,7 @@
           <span class="badge badge-success" style="font-size:10px;"><i class="fa fa-clock"></i> Active: Daily at 6:00 PM IST</span>
         </div>
         <div style="font-size:12.5px; color:var(--muted); margin-top:2px;">
-          Automatically generates and emails daily circulation PDF report to <strong>Dr. K. Saravanan</strong> (<a href="mailto:saravank3@srmist.edu.in" style="color:var(--primary); font-weight:600;">saravank3@srmist.edu.in</a>).
+          Automatically generates and emails daily circulation PDF report to <strong>Dr. K. Saravanan</strong> (<a href="mailto:saravank3@srmist.edu.in" style="color:var(--primary); font-weight:600;">saravank3@srmist.edu.in</a>) and the Department Library (<a href="mailto:srmktreeedeptlibrary@gmail.com" style="color:var(--primary); font-weight:600;">srmktreeedeptlibrary@gmail.com</a>).
         </div>
       </div>
     </div>
@@ -43,7 +43,7 @@
         <i class="fa fa-circle-check" style="color:#16a34a;"></i> Scheduled Daily at 6:00 PM IST
       </span>
       <button type="button" class="btn btn-success btn-sm" id="btnSendDailyReport" onclick="sendDailyReportNow()" style="padding:8px 14px; font-weight:700; box-shadow:0 2px 8px rgba(22,101,52,0.25);">
-        <i class="fa fa-paper-plane"></i> Email Report to Dr. Saravanan Now
+        <i class="fa fa-paper-plane"></i> Email Daily Report Now
       </button>
     </div>
   </div>
@@ -1086,7 +1086,7 @@ async function sendDailyReportNow() {
       showToast(res.message, 'success');
       const badge = document.getElementById('dailyReportStatusBadge');
       if (badge) {
-        badge.innerHTML = '<i class="fa fa-circle-check" style="color:#16a34a;"></i> Sent: Just Now to Dr. Saravanan';
+        badge.innerHTML = '<i class="fa fa-circle-check" style="color:#16a34a;"></i> Sent: Just Now to Designated Recipients';
       }
     } else {
       showToast(res.message || 'Failed to send daily report email', 'error');

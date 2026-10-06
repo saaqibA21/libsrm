@@ -3,11 +3,12 @@ Circulation & Analytics PDF Report Generator for SRM EEE Library
 """
 
 import io
+import os
 from datetime import datetime
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, KeepTogether
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, KeepTogether, Image, HRFlowable
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch, cm
@@ -17,6 +18,19 @@ from library_app.database import (
     get_all_active_transactions, get_most_borrowed_books,
     get_most_active_patrons, get_setting
 )
+
+
+def _find_srm_logo() -> str | None:
+    """Locate SRM University logo image on disk."""
+    candidates = [
+        os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "webapp", "static", "images", "srm_logo.png")),
+        os.path.normpath(os.path.join(os.getcwd(), "webapp", "static", "images", "srm_logo.png")),
+        os.path.abspath("webapp/static/images/srm_logo.png"),
+    ]
+    for c in candidates:
+        if os.path.isfile(c):
+            return c
+    return None
 
 
 def generate_circulation_report_pdf(output_path_or_buf=None) -> bytes:
@@ -36,30 +50,35 @@ def generate_circulation_report_pdf(output_path_or_buf=None) -> bytes:
 
     styles = getSampleStyleSheet()
     
-    # Custom styles
+    # Custom styles - Neat & Center Justified Header
     title_style = ParagraphStyle(
         'DocTitle',
         parent=styles['Normal'],
         fontName='Helvetica-Bold',
-        fontSize=18,
-        leading=22,
+        fontSize=16,
+        leading=20,
+        alignment=1,  # TA_CENTER
         textColor=colors.HexColor('#1C3022')
     )
     subtitle_style = ParagraphStyle(
         'DocSubtitle',
         parent=styles['Normal'],
         fontName='Helvetica',
-        fontSize=10.5,
-        leading=14,
-        textColor=colors.HexColor('#4A5D4E')
+        fontSize=9.5,
+        leading=13,
+        alignment=1,  # TA_CENTER
+        textColor=colors.HexColor('#374151'),
+        spaceBefore=3
     )
     meta_style = ParagraphStyle(
         'DocMeta',
         parent=styles['Normal'],
         fontName='Helvetica-Oblique',
-        fontSize=8.5,
+        fontSize=8,
         leading=11,
-        textColor=colors.HexColor('#6B7D6E')
+        alignment=1,  # TA_CENTER
+        textColor=colors.HexColor('#6B7D6E'),
+        spaceBefore=3
     )
     section_heading = ParagraphStyle(
         'SectionHeading',
@@ -106,14 +125,34 @@ def generate_circulation_report_pdf(output_path_or_buf=None) -> bytes:
 
     story = []
     
-    # ── Header ──
+    # ── Header with Top-Left SRM Logo & Center-Justified Details ──
     lib_name = get_setting("library_name", "SRM EEE Department Library")
     today_str = datetime.now().strftime("%B %d, %Y • %I:%M %p")
     
-    story.append(Paragraph("SRM Institute of Science & Technology", title_style))
-    story.append(Paragraph(f"Department of Electrical & Electronics Engineering — {lib_name}", subtitle_style))
-    story.append(Paragraph(f"Official Circulation & Analytics Report • Generated on {today_str}", meta_style))
-    story.append(Spacer(1, 14))
+    logo_file = _find_srm_logo()
+    logo_flowable = Image(logo_file, width=54, height=54) if logo_file else ""
+    
+    header_content = [
+        Paragraph("SRM Institute of Science & Technology", title_style),
+        Paragraph(f"Department of Electrical & Electronics Engineering — {lib_name}", subtitle_style),
+        Paragraph(f"Official Circulation & Analytics Report • Generated on {today_str}", meta_style),
+    ]
+
+    # Usable printable width is 523.27 pt (595.27 - 72). 60 + 402 + 60 = 522 pt matches the KPI table.
+    header_table = Table([[logo_flowable, header_content, ""]], colWidths=[60, 402, 60])
+    header_table.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('ALIGN', (0,0), (0,0), 'LEFT'),
+        ('ALIGN', (1,0), (1,0), 'CENTER'),
+        ('ALIGN', (2,0), (2,0), 'RIGHT'),
+        ('LEFTPADDING', (0,0), (-1,-1), 0),
+        ('RIGHTPADDING', (0,0), (-1,-1), 0),
+        ('TOPPADDING', (0,0), (-1,-1), 0),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 0),
+    ]))
+    story.append(header_table)
+    story.append(Spacer(1, 6))
+    story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#1C3022'), spaceBefore=2, spaceAfter=10))
 
     # ── Summary KPI Cards ──
     stats = get_dashboard_stats()

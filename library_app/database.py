@@ -186,11 +186,12 @@ def initialize_db():
         "staff_pin": "1234",
         "email_host": "smtp.gmail.com",
         "email_port": "587",
-        "email_user": "",
+        "email_user": "srmktreeedeptlibrary@gmail.com",
         "email_password": "",
-        "email_from": "",
+        "email_from": "srmktreeedeptlibrary@gmail.com",
         "brevo_sender_email": "saaqibheroindia@gmail.com",
-        "email_reply_to": "srmeeelibraray@gmail.com",
+        "email_reply_to": "srmktreeedeptlibrary@gmail.com",
+        "daily_report_recipient_email": "saravank3@srmist.edu.in, srmktreeedeptlibrary@gmail.com",
         "github_backup_token": "",
         "github_backup_repo": "saaqibA21/libsrm",
         "github_backup_branch": "main",
@@ -201,6 +202,20 @@ def initialize_db():
     }
     for k, v in defaults.items():
         c.execute("INSERT OR IGNORE INTO settings VALUES (?, ?)", (k, v))
+
+    # Auto-migrate legacy email addresses to official srmktreeedeptlibrary@gmail.com
+    c.execute("""
+        UPDATE settings
+        SET value = 'srmktreeedeptlibrary@gmail.com'
+        WHERE key IN ('email_user', 'email_from', 'email_reply_to')
+          AND value IN ('srmeeelibraray@gmail.com', 'srmeeelibrary@gmail.com')
+    """)
+    c.execute("""
+        UPDATE settings
+        SET value = 'saravank3@srmist.edu.in, srmktreeedeptlibrary@gmail.com'
+        WHERE key = 'daily_report_recipient_email'
+          AND value = 'saravank3@srmist.edu.in'
+    """)
 
     conn.commit()
     conn.close()
