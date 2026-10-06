@@ -122,6 +122,51 @@ def generate_circulation_report_pdf(output_path_or_buf=None) -> bytes:
         leading=11,
         textColor=colors.HexColor('#991B1B')
     )
+    kpi_card_style = ParagraphStyle(
+        'KPICardCell',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=8.5,
+        leading=13,
+        alignment=1,
+        textColor=colors.HexColor('#1F2937')
+    )
+    cell_center = ParagraphStyle(
+        'TableCellCenter',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=8.5,
+        leading=11,
+        alignment=1,
+        textColor=colors.HexColor('#1F2937')
+    )
+    cell_bold_center = ParagraphStyle(
+        'TableCellBoldCenter',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=8.5,
+        leading=11,
+        alignment=1,
+        textColor=colors.HexColor('#111827')
+    )
+    cell_danger_center = ParagraphStyle(
+        'TableDangerCenter',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=8.5,
+        leading=11,
+        alignment=1,
+        textColor=colors.HexColor('#991B1B')
+    )
+    cell_header_center = ParagraphStyle(
+        'TableHeaderCenter',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=8.5,
+        leading=11,
+        alignment=1,
+        textColor=colors.white
+    )
 
     story = []
     
@@ -160,11 +205,11 @@ def generate_circulation_report_pdf(output_path_or_buf=None) -> bytes:
     
     kpi_data = [
         [
-            Paragraph(f"<b>Total Catalog</b><br/><font size='14'><b>{stats['total_books']}</b></font>", cell_style),
-            Paragraph(f"<b>On Shelf</b><br/><font size='14' color='#166534'><b>{stats['available_books']}</b></font>", cell_style),
-            Paragraph(f"<b>Currently Borrowed</b><br/><font size='14' color='#0E7490'><b>{stats['issued_books']}</b></font>", cell_style),
-            Paragraph(f"<b>Overdue Items</b><br/><font size='14' color='#991B1B'><b>{stats['overdue']}</b></font>", cell_style),
-            Paragraph(f"<b>Registered Patrons</b><br/><font size='14' color='#7E22CE'><b>{stats['total_patrons']}</b></font>", cell_style),
+            Paragraph(f"<b>Total Catalog</b><br/><font size='14'><b>{stats['total_books']}</b></font>", kpi_card_style),
+            Paragraph(f"<b>On Shelf</b><br/><font size='14' color='#166534'><b>{stats['available_books']}</b></font>", kpi_card_style),
+            Paragraph(f"<b>Currently Borrowed</b><br/><font size='14' color='#0E7490'><b>{stats['issued_books']}</b></font>", kpi_card_style),
+            Paragraph(f"<b>Overdue Items</b><br/><font size='14' color='#991B1B'><b>{stats['overdue']}</b></font>", kpi_card_style),
+            Paragraph(f"<b>Registered Patrons</b><br/><font size='14' color='#7E22CE'><b>{stats['total_patrons']}</b></font>", kpi_card_style),
         ]
     ]
     kpi_table = Table(kpi_data, colWidths=[104, 104, 104, 104, 106])
@@ -187,11 +232,11 @@ def generate_circulation_report_pdf(output_path_or_buf=None) -> bytes:
     if overdue:
         overdue_table_data = [[
             Paragraph("Borrower Name", cell_header),
-            Paragraph("Reg. Number", cell_header),
+            Paragraph("Reg. Number", cell_header_center),
             Paragraph("Book Title", cell_header),
-            Paragraph("Due Date", cell_header),
-            Paragraph("Days Overdue", cell_header),
-            Paragraph("Accrued Fine", cell_header),
+            Paragraph("Due Date", cell_header_center),
+            Paragraph("Days Overdue", cell_header_center),
+            Paragraph("Accrued Fine", cell_header_center),
         ]]
         for txn in overdue:
             try:
@@ -204,14 +249,14 @@ def generate_circulation_report_pdf(output_path_or_buf=None) -> bytes:
             
             overdue_table_data.append([
                 Paragraph(txn.get("patron_name",""), cell_bold),
-                Paragraph(txn.get("register_number","") or "—", cell_style),
+                Paragraph(txn.get("register_number","") or "—", cell_center),
                 Paragraph(txn.get("book_title","")[:40], cell_style),
-                Paragraph(txn.get("due_date",""), cell_danger),
-                Paragraph(f"{days_over} days", cell_danger),
-                Paragraph(f"₹{fine_val:.2f}", cell_danger),
+                Paragraph(txn.get("due_date",""), cell_danger_center),
+                Paragraph(f"{days_over} days", cell_danger_center),
+                Paragraph(f"Rs. {fine_val:.2f}", cell_danger_center),
             ])
         
-        t_overdue = Table(overdue_table_data, colWidths=[105, 80, 177, 65, 55, 40])
+        t_overdue = Table(overdue_table_data, colWidths=[100, 75, 172, 65, 55, 55])
         t_overdue.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#991B1B')),
             ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.HexColor('#FFF5F5'), colors.white]),
@@ -231,11 +276,11 @@ def generate_circulation_report_pdf(output_path_or_buf=None) -> bytes:
     if active:
         active_table_data = [[
             Paragraph("Borrower Name", cell_header),
-            Paragraph("Type / Class", cell_header),
+            Paragraph("Type / Class", cell_header_center),
             Paragraph("Book Title", cell_header),
-            Paragraph("Issue Date", cell_header),
-            Paragraph("Due Date", cell_header),
-            Paragraph("Status", cell_header),
+            Paragraph("Issue Date", cell_header_center),
+            Paragraph("Due Date", cell_header_center),
+            Paragraph("Status", cell_header_center),
         ]]
         for txn in active:
             ptype = (txn.get("patron_type","") or "").title()
@@ -245,21 +290,21 @@ def generate_circulation_report_pdf(output_path_or_buf=None) -> bytes:
                 due_dt = datetime.strptime(txn["due_date"], "%Y-%m-%d")
                 days_left = (due_dt - now_dt).days
                 st_str = "Overdue" if days_left < 0 else (f"{days_left}d left" if days_left <= 3 else "On Time")
-                st_color = cell_danger if days_left < 0 else cell_style
+                st_color = cell_danger_center if days_left < 0 else cell_center
             except Exception:
                 st_str = "Active"
-                st_color = cell_style
+                st_color = cell_center
             
             active_table_data.append([
                 Paragraph(txn.get("patron_name",""), cell_bold),
-                Paragraph(type_str, cell_style),
+                Paragraph(type_str, cell_center),
                 Paragraph(txn.get("book_title","")[:45], cell_style),
-                Paragraph(txn.get("issue_date",""), cell_style),
-                Paragraph(txn.get("due_date",""), cell_style),
+                Paragraph(txn.get("issue_date",""), cell_center),
+                Paragraph(txn.get("due_date",""), cell_center),
                 Paragraph(st_str, st_color),
             ])
         
-        t_active = Table(active_table_data, colWidths=[115, 75, 172, 60, 60, 40])
+        t_active = Table(active_table_data, colWidths=[110, 70, 167, 60, 60, 55])
         t_active.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1C3022')),
             ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.HexColor('#F8FAF6'), colors.white]),
@@ -278,17 +323,17 @@ def generate_circulation_report_pdf(output_path_or_buf=None) -> bytes:
     story.append(Paragraph("Most Borrowed Books (Circulation Frequency)", section_heading))
     if top_books:
         tb_data = [[
-            Paragraph("Rank", cell_header),
+            Paragraph("Rank", cell_header_center),
             Paragraph("Book Title", cell_header),
             Paragraph("Author(s)", cell_header),
-            Paragraph("Times Borrowed", cell_header),
+            Paragraph("Times Borrowed", cell_header_center),
         ]]
         for idx, b in enumerate(top_books, 1):
             tb_data.append([
-                Paragraph(f"#{idx}", cell_bold),
+                Paragraph(f"#{idx}", cell_bold_center),
                 Paragraph(b.get("title",""), cell_bold),
                 Paragraph(b.get("authors","") or "—", cell_style),
-                Paragraph(f"<b>{b.get('borrow_count', 0)} times</b>", cell_style),
+                Paragraph(f"<b>{b.get('borrow_count', 0)} times</b>", cell_bold_center),
             ])
         t_tb = Table(tb_data, colWidths=[35, 237, 160, 90])
         t_tb.setStyle(TableStyle([
@@ -298,6 +343,7 @@ def generate_circulation_report_pdf(output_path_or_buf=None) -> bytes:
             ('TOPPADDING', (0,0), (-1,-1), 5),
             ('BOTTOMPADDING', (0,0), (-1,-1), 5),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('ALIGN', (0,0), (0,-1), 'CENTER'),
             ('ALIGN', (3,0), (3,-1), 'CENTER'),
         ]))
         story.append(t_tb)
@@ -308,19 +354,19 @@ def generate_circulation_report_pdf(output_path_or_buf=None) -> bytes:
     story.append(Paragraph("Most Active Library Patrons", section_heading))
     if top_patrons:
         tp_data = [[
-            Paragraph("Rank", cell_header),
+            Paragraph("Rank", cell_header_center),
             Paragraph("Member Name", cell_header),
-            Paragraph("Reg. Number", cell_header),
-            Paragraph("Role", cell_header),
-            Paragraph("Books Taken", cell_header),
+            Paragraph("Reg. Number", cell_header_center),
+            Paragraph("Role", cell_header_center),
+            Paragraph("Books Taken", cell_header_center),
         ]]
         for idx, p in enumerate(top_patrons, 1):
             tp_data.append([
-                Paragraph(f"#{idx}", cell_bold),
+                Paragraph(f"#{idx}", cell_bold_center),
                 Paragraph(p.get("name",""), cell_bold),
-                Paragraph(p.get("register_number","") or "—", cell_style),
-                Paragraph((p.get("patron_type","") or "").title(), cell_style),
-                Paragraph(f"<b>{p.get('borrow_count', 0)} books</b>", cell_style),
+                Paragraph(p.get("register_number","") or "—", cell_center),
+                Paragraph((p.get("patron_type","") or "").title(), cell_center),
+                Paragraph(f"<b>{p.get('borrow_count', 0)} books</b>", cell_bold_center),
             ])
         t_tp = Table(tp_data, colWidths=[35, 187, 110, 90, 100])
         t_tp.setStyle(TableStyle([
@@ -330,7 +376,8 @@ def generate_circulation_report_pdf(output_path_or_buf=None) -> bytes:
             ('TOPPADDING', (0,0), (-1,-1), 5),
             ('BOTTOMPADDING', (0,0), (-1,-1), 5),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-            ('ALIGN', (4,0), (4,-1), 'CENTER'),
+            ('ALIGN', (0,0), (0,-1), 'CENTER'),
+            ('ALIGN', (2,0), (4,-1), 'CENTER'),
         ]))
         story.append(t_tp)
 
