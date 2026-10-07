@@ -437,6 +437,18 @@ def get_book_by_barcode(barcode):
                OR UPPER(account_number) = UPPER(?)
         """, (f"BK{clean}", stripped_bk, stripped_bk)).fetchone()
 
+    # Fallback: match by account_number, exact title, or title/author LIKE
+    if not row:
+        row = conn.execute("""
+            SELECT * FROM books
+            WHERE UPPER(account_number) = UPPER(?)
+               OR UPPER(title) = UPPER(?)
+               OR UPPER(title) LIKE UPPER(?)
+               OR UPPER(authors) LIKE UPPER(?)
+            ORDER BY CASE WHEN UPPER(account_number) = UPPER(?) THEN 1 WHEN UPPER(title) = UPPER(?) THEN 2 ELSE 3 END, title
+            LIMIT 1
+        """, (clean, ident, f"%{ident}%", f"%{ident}%", clean, ident)).fetchone()
+
     conn.close()
     return _format_book_dict(dict(row)) if row else None
 
@@ -448,18 +460,30 @@ def get_book_by_id(book_id):
     return _format_book_dict(dict(row)) if row else None
 
 
-def search_books(query="", status_filter=None):
+def search_books(query="", status_filter=None, limit=None):
     conn = get_connection()
-    q = f"%{query}%"
-    sql = """
-        SELECT * FROM books
-        WHERE (title LIKE ? OR authors LIKE ? OR barcode LIKE ? OR account_number LIKE ?)
-    """
-    params = [q, q, q, q]
+    query = (query or "").strip()
+    words = query.split()
+
+    if words:
+        clauses = []
+        params = []
+        for w in words:
+            clauses.append("(title LIKE ? OR authors LIKE ? OR barcode LIKE ? OR account_number LIKE ?)")
+            params.extend([f"%{w}%", f"%{w}%", f"%{w}%", f"%{w}%"])
+        where_sql = " AND ".join(clauses)
+    else:
+        where_sql = "1=1"
+        params = []
+
+    sql = f"SELECT * FROM books WHERE {where_sql}"
     if status_filter:
         sql += " AND status=?"
         params.append(status_filter)
     sql += " ORDER BY title"
+    if limit:
+        sql += " LIMIT ?"
+        params.append(limit)
     rows = conn.execute(sql, params).fetchall()
     conn.close()
     return [_format_book_dict(dict(r)) for r in rows]
@@ -600,6 +624,17 @@ def get_patron_by_barcode(barcode):
             WHERE mobile = ? OR email = ? OR UPPER(email) = UPPER(?)
         """, (clean, ident, ident)).fetchone()
 
+    # 4. Fallback: match on full name or name LIKE or mobile LIKE
+    if not row:
+        row = conn.execute("""
+            SELECT * FROM patrons
+            WHERE UPPER(name) = UPPER(?)
+               OR UPPER(name) LIKE UPPER(?)
+               OR mobile LIKE ?
+            ORDER BY CASE WHEN UPPER(name) = UPPER(?) THEN 1 ELSE 2 END, name
+            LIMIT 1
+        """, (ident, f"%{ident}%", f"%{clean}%", ident)).fetchone()
+
     conn.close()
     return dict(row) if row else None
 
@@ -611,14 +646,23 @@ def get_patron_by_id(patron_id):
     return dict(row) if row else None
 
 
-def search_patrons(query="", patron_type=None):
+def search_patrons(query="", patron_type=None, limit=None):
     conn = get_connection()
-    q = f"%{query}%"
-    sql = """
-        SELECT * FROM patrons
-        WHERE (name LIKE ? OR register_number LIKE ? OR barcode LIKE ? OR mobile LIKE ?)
-    """
-    params = [q, q, q, q]
+    query = (query or "").strip()
+    words = query.split()
+
+    if words:
+        clauses = []
+        params = []
+        for w in words:
+            clauses.append("(name LIKE ? OR register_number LIKE ? OR barcode LIKE ? OR mobile LIKE ?)")
+            params.extend([f"%{w}%", f"%{w}%", f"%{w}%", f"%{w}%"])
+        where_sql = " AND ".join(clauses)
+    else:
+        where_sql = "1=1"
+        params = []
+
+    sql = f"SELECT * FROM patrons WHERE {where_sql}"
     if patron_type:
         if patron_type == 'research_scholar':
             sql += " AND patron_type='research_scholar'"
@@ -630,6 +674,9 @@ def search_patrons(query="", patron_type=None):
             sql += " AND patron_type=?"
             params.append(patron_type)
     sql += " ORDER BY name"
+    if limit:
+        sql += " LIMIT ?"
+        params.append(limit)
     rows = conn.execute(sql, params).fetchall()
     conn.close()
     return [dict(r) for r in rows]

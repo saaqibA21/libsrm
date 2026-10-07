@@ -357,6 +357,42 @@ def scan_patron(barcode):
     return jsonify({"found": True, "patron": patron, "active_books": active_books})
 
 
+@app.route("/api/patron/details/<int:patron_id>")
+def api_patron_details(patron_id):
+    if not require_staff():
+        return jsonify({"found": False, "message": "Unauthorized"}), 403
+    patron = get_patron_by_id(patron_id)
+    if not patron:
+        return jsonify({"found": False, "message": "Patron not found"}), 404
+    active_books = get_patron_active_books(patron["id"])
+    today = datetime.now().strftime("%Y-%m-%d")
+    for b in active_books:
+        b["overdue"] = b["due_date"] < today
+    return jsonify({"found": True, "patron": patron, "active_books": active_books})
+
+
+@app.route("/api/search/patrons")
+def api_search_patrons():
+    if not require_staff():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+    q = request.args.get("q", "").strip()
+    if not q:
+        return jsonify({"success": True, "results": []})
+    results = search_patrons(q, limit=15)
+    return jsonify({"success": True, "results": results})
+
+
+@app.route("/api/search/books")
+def api_search_books():
+    if not require_staff():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+    q = request.args.get("q", "").strip()
+    if not q:
+        return jsonify({"success": True, "results": []})
+    results = search_books(q, limit=15)
+    return jsonify({"success": True, "results": results})
+
+
 @app.route("/api/issue", methods=["POST"])
 def api_issue():
     if not require_staff():

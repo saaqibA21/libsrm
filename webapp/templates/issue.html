@@ -3,8 +3,71 @@
 {% block page_title %}Issue Books (Multi-Book Lending){% endblock %}
 {% block content %}
 
+<style>
+.live-suggestions-dropdown {
+ position: absolute;
+ top: calc(100% + 4px);
+ left: 0;
+ right: 0;
+ background: var(--card-bg, #ffffff);
+ border: 1px solid var(--border, #cbd5e1);
+ border-radius: 12px;
+ box-shadow: 0 12px 28px rgba(0, 0, 0, 0.16);
+ max-height: 290px;
+ overflow-y: auto;
+ z-index: 1050;
+ padding: 6px;
+}
+.suggestion-item {
+ padding: 9px 12px;
+ border-radius: 8px;
+ cursor: pointer;
+ transition: background 0.12s ease, border-color 0.12s ease;
+ border: 1px solid transparent;
+ margin-bottom: 3px;
+ display: block;
+}
+.suggestion-item:last-child {
+ margin-bottom: 0;
+}
+.suggestion-item:hover,
+.suggestion-item.highlighted {
+ background: rgba(72, 99, 78, 0.12);
+ border-color: rgba(72, 99, 78, 0.3);
+}
+.suggestion-item-title {
+ font-weight: 600;
+ font-size: 13.5px;
+ color: var(--text, #1e293b);
+ display: flex;
+ align-items: center;
+ gap: 6px;
+}
+.suggestion-item-meta {
+ font-size: 11.5px;
+ color: var(--muted, #64748b);
+ margin-top: 4px;
+ display: flex;
+ flex-wrap: wrap;
+ gap: 12px;
+ align-items: center;
+}
+.suggestion-item-meta span {
+ display: inline-flex;
+ align-items: center;
+ gap: 4px;
+}
+.suggestion-empty,
+.suggestion-loading {
+ padding: 14px;
+ text-align: center;
+ color: var(--muted, #64748b);
+ font-size: 13px;
+}
+</style>
+
 <p class="text-muted" style="margin-bottom:20px;font-size:13.5px;">
- Fast multi-book checkout: Scan or search the <strong>Patron Barcode</strong> first, then scan multiple <strong>Book Barcodes</strong> one after another into the queue, and click <strong>Issue</strong>.
+ Fast multi-book checkout: Search or scan <strong>Patron</strong> (by Name, Mobile, Reg No, or Barcode), then search or scan <strong>Books</strong> (by Title, Author, Acc No, or Barcode) into the queue, and click <strong>Issue</strong>.
 </p>
 
 <div class="two-col">
@@ -16,15 +79,20 @@
  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
  <div class="card-title" style="margin-bottom:0;">
  <span style="background:var(--primary);color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;margin-right:6px;">1</span>
- Scan / Search Patron Barcode
+ Find Patron (Name / Mobile / Reg No / Barcode)
  </div>
  <span id="patronBadge" class="badge badge-info" style="display:none;"><i class="fa fa-user-check"></i> Patron Selected</span>
  </div>
- <div class="scan-box">
+ <div class="search-input-wrapper" style="position:relative;">
+ <div class="scan-box" style="display:flex; gap:8px; align-items:center;">
+ <div style="position:relative; flex:1;">
  <i class="fa fa-id-card scan-icon"></i>
- <input type="text" id="patronBarcode" placeholder="Scan Patron Barcode or Register No. (Press Enter)…" autofocus autocomplete="off">
- <button type="button" class="btn btn-primary btn-sm" onclick="openCameraScanner('patron')" style="margin-right:4px;" title="Scan QR directly from student phone screen"><i class="fa fa-camera"></i> Camera</button>
- <button type="button" class="btn btn-outline btn-sm" onclick="scanPatron()" style="margin-right:4px;">Find</button>
+ <input type="text" id="patronBarcode" placeholder="Type Name, Mobile No, Reg No, or Scan Barcode…" autofocus autocomplete="off" style="width:100%; padding-left:45px;">
+ </div>
+ <button type="button" class="btn btn-primary btn-sm" onclick="openCameraScanner('patron')" style="flex-shrink:0;" title="Scan QR directly from student phone screen"><i class="fa fa-camera"></i> Camera</button>
+ <button type="button" class="btn btn-outline btn-sm" onclick="scanPatron()" style="flex-shrink:0;">Find</button>
+ </div>
+ <div id="patronSuggestions" class="live-suggestions-dropdown" style="display:none;"></div>
  </div>
  <div class="scan-status" id="patronStatus"></div>
  </div>
@@ -34,15 +102,20 @@
  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
  <div class="card-title" style="margin-bottom:0;">
  <span style="background:var(--primary);color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;margin-right:6px;">2</span>
- Scan Book Barcodes to Add to Queue
+ Find Books to Issue (Title / Author / Acc No / Barcode)
  </div>
  <span class="badge badge-success" id="queueCountBadge">0 Books Queued</span>
  </div>
- <div class="scan-box">
+ <div class="search-input-wrapper" style="position:relative;">
+ <div class="scan-box" style="display:flex; gap:8px; align-items:center;">
+ <div style="position:relative; flex:1;">
  <i class="fa fa-barcode scan-icon"></i>
- <input type="text" id="bookBarcode" placeholder="Scan Book Barcode or Acc No. and press Enter…" autocomplete="off">
- <button type="button" class="btn btn-outline btn-sm" onclick="openCameraScanner('book')" style="margin-right:4px;" title="Scan book with camera"><i class="fa fa-camera"></i></button>
- <button type="button" class="btn btn-success btn-sm" onclick="scanBook()" style="margin-right:4px;"><i class="fa fa-plus"></i> Add</button>
+ <input type="text" id="bookBarcode" placeholder="Type Title, Author, Acc No, or Scan Barcode…" autocomplete="off" style="width:100%; padding-left:45px;">
+ </div>
+ <button type="button" class="btn btn-outline btn-sm" onclick="openCameraScanner('book')" style="flex-shrink:0;" title="Scan book with camera"><i class="fa fa-camera"></i></button>
+ <button type="button" class="btn btn-success btn-sm" onclick="scanBook()" style="flex-shrink:0;"><i class="fa fa-plus"></i> Add</button>
+ </div>
+ <div id="bookSuggestions" class="live-suggestions-dropdown" style="display:none;"></div>
  </div>
  <div class="scan-status" id="bookStatus"></div>
 
@@ -188,81 +261,351 @@ let queuedBooks = []; // Array of book objects {id, barcode, title, account_numb
 
 const patronInput = document.getElementById('patronBarcode');
 const bookInput = document.getElementById('bookBarcode');
+const patronDropdown = document.getElementById('patronSuggestions');
+const bookDropdown = document.getElementById('bookSuggestions');
 
-patronInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); scanPatron(); } });
-bookInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); scanBook(); } });
+let patronTimer = null;
+let bookTimer = null;
+let patronResultsList = [];
+let patronSelectedIndex = -1;
+let bookResultsList = [];
+let bookSelectedIndex = -1;
 
-// Quick scanner handler
-let patronTimer, bookTimer;
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function hidePatronDropdown() {
+  if (patronDropdown) {
+    patronDropdown.style.display = 'none';
+    patronDropdown.innerHTML = '';
+  }
+  patronResultsList = [];
+  patronSelectedIndex = -1;
+}
+
+function hideBookDropdown() {
+  if (bookDropdown) {
+    bookDropdown.style.display = 'none';
+    bookDropdown.innerHTML = '';
+  }
+  bookResultsList = [];
+  bookSelectedIndex = -1;
+}
+
+function scrollHighlightedIntoView(container) {
+  const highlighted = container.querySelector('.suggestion-item.highlighted');
+  if (highlighted) {
+    highlighted.scrollIntoView({ block: 'nearest' });
+  }
+}
+
+// ── Patron Live Autocomplete (Search by Name, Mobile, Reg No, Barcode) ──
 patronInput.addEventListener('input', () => {
- clearTimeout(patronTimer);
- patronTimer = setTimeout(() => {
- if (patronInput.value.trim().length >= 6) scanPatron();
- }, 400);
+  clearTimeout(patronTimer);
+  const q = patronInput.value.trim();
+  if (q.length < 2) {
+    hidePatronDropdown();
+    return;
+  }
+  patronTimer = setTimeout(async () => {
+    try {
+      patronDropdown.innerHTML = '<div class="suggestion-loading"><i class="fa fa-spinner fa-spin"></i> Searching patrons…</div>';
+      patronDropdown.style.display = 'block';
+      const res = await fetch(`/api/search/patrons?q=${encodeURIComponent(q)}`).then(r => r.json());
+      if (!res.success || !res.results || res.results.length === 0) {
+        patronDropdown.innerHTML = `<div class="suggestion-empty"><i class="fa fa-user-slash"></i> No patrons found for "${escapeHtml(q)}"</div>`;
+        patronResultsList = [];
+        return;
+      }
+      patronResultsList = res.results;
+      patronSelectedIndex = -1;
+      renderPatronSuggestions();
+    } catch (err) {
+      patronDropdown.innerHTML = '<div class="suggestion-empty text-danger"><i class="fa fa-circle-exclamation"></i> Search error</div>';
+    }
+  }, 200);
+});
+
+function renderPatronSuggestions() {
+  patronDropdown.innerHTML = patronResultsList.map((p, idx) => {
+    const isScholar = p.patron_type === 'research_scholar' || (p.year && p.year.toUpperCase() === 'RS');
+    const typeLabel = isScholar ? 'Research Scholar' : (p.patron_type ? p.patron_type.charAt(0).toUpperCase() + p.patron_type.slice(1) : 'Student');
+    const badgeStyle = isScholar ? 'background:#8b5cf6;color:#fff;' : (p.patron_type === 'teacher' ? 'background:#f59e0b;color:#fff;' : 'background:var(--primary);color:#fff;');
+    
+    return `
+      <div class="suggestion-item ${idx === patronSelectedIndex ? 'highlighted' : ''}" data-idx="${idx}" onmousedown="selectPatronItem(${idx})">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
+          <div class="suggestion-item-title">
+            <i class="fa fa-user" style="color:var(--primary); font-size:12px;"></i>
+            <strong>${escapeHtml(p.name)}</strong>
+          </div>
+          <span style="font-size:10px; font-weight:700; padding:2px 7px; border-radius:4px; ${badgeStyle}">${typeLabel}</span>
+        </div>
+        <div class="suggestion-item-meta">
+          <span><i class="fa fa-id-card"></i> <code>${escapeHtml(p.register_number || p.barcode)}</code></span>
+          ${p.mobile ? `<span><i class="fa fa-phone"></i> ${escapeHtml(p.mobile)}</span>` : ''}
+          ${p.section ? `<span><i class="fa fa-graduation-cap"></i> ${p.year ? 'Yr ' + escapeHtml(p.year) + ' · ' : ''}Sec ${escapeHtml(p.section)}</span>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+  patronDropdown.style.display = 'block';
+}
+
+async function selectPatronItem(index) {
+  if (index < 0 || index >= patronResultsList.length) return;
+  const p = patronResultsList[index];
+  hidePatronDropdown();
+
+  setStatus('patronStatus', 'Loading patron details…', '');
+  try {
+    const data = await fetch(`/api/patron/details/${p.id}`).then(r => r.json());
+    if (data.found) {
+      patronData = data.patron;
+      fillPatronDetails(data.patron, data.active_books || []);
+      document.getElementById('patronBadge').style.display = 'inline-flex';
+      setStatus('patronStatus', `Identified: ${data.patron.name} (${data.patron.register_number || data.patron.barcode})`, 'ok');
+      patronInput.value = `${data.patron.name} (${data.patron.register_number || data.patron.barcode})`;
+      recalculateDueDate();
+      updateIssueButton();
+      bookInput.focus();
+    } else {
+      setStatus('patronStatus', 'Patron details not found', 'err');
+    }
+  } catch (err) {
+    setStatus('patronStatus', 'Failed to load patron details', 'err');
+  }
+}
+
+patronInput.addEventListener('keydown', e => {
+  if (patronDropdown.style.display !== 'none' && patronResultsList.length > 0) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      patronSelectedIndex = (patronSelectedIndex + 1) % patronResultsList.length;
+      renderPatronSuggestions();
+      scrollHighlightedIntoView(patronDropdown);
+      return;
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      patronSelectedIndex = (patronSelectedIndex - 1 + patronResultsList.length) % patronResultsList.length;
+      renderPatronSuggestions();
+      scrollHighlightedIntoView(patronDropdown);
+      return;
+    } else if (e.key === 'Enter') {
+      if (patronSelectedIndex >= 0) {
+        e.preventDefault();
+        selectPatronItem(patronSelectedIndex);
+        return;
+      }
+    } else if (e.key === 'Escape') {
+      hidePatronDropdown();
+      return;
+    }
+  }
+
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    hidePatronDropdown();
+    scanPatron();
+  }
+});
+
+// ── Book Live Autocomplete (Search by Title, Author, Acc No, Barcode) ──
+bookInput.addEventListener('input', () => {
+  clearTimeout(bookTimer);
+  const q = bookInput.value.trim();
+  if (q.length < 2) {
+    hideBookDropdown();
+    return;
+  }
+  bookTimer = setTimeout(async () => {
+    try {
+      bookDropdown.innerHTML = '<div class="suggestion-loading"><i class="fa fa-spinner fa-spin"></i> Searching books…</div>';
+      bookDropdown.style.display = 'block';
+      const res = await fetch(`/api/search/books?q=${encodeURIComponent(q)}`).then(r => r.json());
+      if (!res.success || !res.results || res.results.length === 0) {
+        bookDropdown.innerHTML = `<div class="suggestion-empty"><i class="fa fa-book-open"></i> No books found for "${escapeHtml(q)}"</div>`;
+        bookResultsList = [];
+        return;
+      }
+      bookResultsList = res.results;
+      bookSelectedIndex = -1;
+      renderBookSuggestions();
+    } catch (err) {
+      bookDropdown.innerHTML = '<div class="suggestion-empty text-danger"><i class="fa fa-circle-exclamation"></i> Search error</div>';
+    }
+  }, 200);
+});
+
+function renderBookSuggestions() {
+  bookDropdown.innerHTML = bookResultsList.map((b, idx) => {
+    const isAvail = b.status === 'available';
+    const statusBadge = isAvail
+      ? '<span style="font-size:10px; font-weight:700; color:#16a34a; background:rgba(22,163,74,0.12); padding:2px 7px; border-radius:4px;"><i class="fa fa-check"></i> Available</span>'
+      : '<span style="font-size:10px; font-weight:700; color:#dc2626; background:rgba(220,38,38,0.12); padding:2px 7px; border-radius:4px;"><i class="fa fa-clock"></i> Issued</span>';
+
+    return `
+      <div class="suggestion-item ${idx === bookSelectedIndex ? 'highlighted' : ''}" data-idx="${idx}" onmousedown="selectBookItem(${idx})">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:3px;">
+          <div class="suggestion-item-title" style="flex:1;">
+            <i class="fa fa-book" style="color:var(--primary); font-size:12px; margin-top:2px;"></i>
+            <strong>${escapeHtml(b.title)}</strong>
+          </div>
+          <div style="flex-shrink:0;">${statusBadge}</div>
+        </div>
+        <div class="suggestion-item-meta">
+          ${b.authors ? `<span><i class="fa fa-user-pen"></i> ${escapeHtml(b.authors)}</span>` : ''}
+          <span><i class="fa fa-hashtag"></i> Acc No: <strong>${escapeHtml(b.account_number || '—')}</strong></span>
+          <span><i class="fa fa-barcode"></i> <code>${escapeHtml(b.barcode)}</code></span>
+        </div>
+      </div>
+    `;
+  }).join('');
+  bookDropdown.style.display = 'block';
+}
+
+function selectBookItem(index) {
+  if (index < 0 || index >= bookResultsList.length) return;
+  const b = bookResultsList[index];
+  hideBookDropdown();
+
+  fillBookDetails(b);
+
+  if (b.status !== 'available') {
+    setStatus('bookStatus', `Cannot add: Book "${b.title.substring(0,35)}" is currently ISSUED!`, 'warn');
+    return;
+  }
+
+  // Check if already in queue
+  if (queuedBooks.some(qb => qb.id === b.id || qb.barcode.toLowerCase() === b.barcode.toLowerCase() || (qb.account_number && qb.account_number === b.account_number))) {
+    setStatus('bookStatus', 'Book is already added to the checkout queue!', 'warn');
+    bookInput.value = '';
+    return;
+  }
+
+  // Add to queue
+  queuedBooks.push(b);
+  renderQueue();
+  setStatus('bookStatus', `Added: "${b.title.substring(0,35)}"`, 'ok');
+  bookInput.value = '';
+  bookInput.focus();
+  updateIssueButton();
+}
+
+bookInput.addEventListener('keydown', e => {
+  if (bookDropdown.style.display !== 'none' && bookResultsList.length > 0) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      bookSelectedIndex = (bookSelectedIndex + 1) % bookResultsList.length;
+      renderBookSuggestions();
+      scrollHighlightedIntoView(bookDropdown);
+      return;
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      bookSelectedIndex = (bookSelectedIndex - 1 + bookResultsList.length) % bookResultsList.length;
+      renderBookSuggestions();
+      scrollHighlightedIntoView(bookDropdown);
+      return;
+    } else if (e.key === 'Enter') {
+      if (bookSelectedIndex >= 0) {
+        e.preventDefault();
+        selectBookItem(bookSelectedIndex);
+        return;
+      }
+    } else if (e.key === 'Escape') {
+      hideBookDropdown();
+      return;
+    }
+  }
+
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    hideBookDropdown();
+    scanBook();
+  }
+});
+
+// Dismiss dropdowns when clicking outside
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#patronBarcode') && !e.target.closest('#patronSuggestions')) {
+    hidePatronDropdown();
+  }
+  if (!e.target.closest('#bookBarcode') && !e.target.closest('#bookSuggestions')) {
+    hideBookDropdown();
+  }
 });
 
 async function scanPatron() {
- const barcode = patronInput.value.trim();
- if (!barcode) return;
- setStatus('patronStatus', 'Searching patron…', '');
- 
- try {
- const data = await fetch(`/api/scan/patron/${encodeURIComponent(barcode)}`).then(r => r.json());
- if (!data.found) {
- setStatus('patronStatus', data.message || 'Patron not found', 'err');
- clearPatronDetails();
- updateIssueButton();
- return;
- }
- patronData = data.patron;
- fillPatronDetails(data.patron, data.active_books || []);
- document.getElementById('patronBadge').style.display = 'inline-flex';
- setStatus('patronStatus', `Identified: ${data.patron.name} (${data.patron.register_number || data.patron.barcode})`, 'ok');
- recalculateDueDate();
- updateIssueButton();
- bookInput.focus();
- } catch (err) {
- setStatus('patronStatus', 'Failed to scan patron', 'err');
- }
+  hidePatronDropdown();
+  const barcode = patronInput.value.trim();
+  if (!barcode) return;
+  setStatus('patronStatus', 'Searching patron…', '');
+  
+  try {
+    const data = await fetch(`/api/scan/patron/${encodeURIComponent(barcode)}`).then(r => r.json());
+    if (!data.found) {
+      setStatus('patronStatus', data.message || 'Patron not found', 'err');
+      clearPatronDetails();
+      updateIssueButton();
+      return;
+    }
+    patronData = data.patron;
+    fillPatronDetails(data.patron, data.active_books || []);
+    document.getElementById('patronBadge').style.display = 'inline-flex';
+    setStatus('patronStatus', `Identified: ${data.patron.name} (${data.patron.register_number || data.patron.barcode})`, 'ok');
+    recalculateDueDate();
+    updateIssueButton();
+    bookInput.focus();
+  } catch (err) {
+    setStatus('patronStatus', 'Failed to scan patron', 'err');
+  }
 }
 
 async function scanBook() {
- const barcode = bookInput.value.trim();
- if (!barcode) return;
+  hideBookDropdown();
+  const barcode = bookInput.value.trim();
+  if (!barcode) return;
 
- // Check if already in queue
- if (queuedBooks.some(b => b.barcode.toLowerCase() === barcode.toLowerCase() || (b.account_number && b.account_number === barcode))) {
- setStatus('bookStatus', 'Book is already added to the checkout queue!', 'warn');
- bookInput.value = '';
- return;
- }
+  // Check if already in queue
+  if (queuedBooks.some(b => b.barcode.toLowerCase() === barcode.toLowerCase() || (b.account_number && b.account_number === barcode))) {
+    setStatus('bookStatus', 'Book is already added to the checkout queue!', 'warn');
+    bookInput.value = '';
+    return;
+  }
 
- setStatus('bookStatus', 'Checking book…', '');
- try {
- const data = await fetch(`/api/scan/book/${encodeURIComponent(barcode)}`).then(r => r.json());
- if (!data.found) {
- setStatus('bookStatus', data.message || `Book '${barcode}' not found`, 'err');
- return;
- }
+  setStatus('bookStatus', 'Checking book…', '');
+  try {
+    const data = await fetch(`/api/scan/book/${encodeURIComponent(barcode)}`).then(r => r.json());
+    if (!data.found) {
+      setStatus('bookStatus', data.message || `Book '${barcode}' not found`, 'err');
+      return;
+    }
 
- const b = data.book;
- fillBookDetails(b);
+    const b = data.book;
+    fillBookDetails(b);
 
- if (b.status !== 'available') {
- setStatus('bookStatus', `Cannot add: Book "${b.title.substring(0,35)}" is currently ISSUED!`, 'warn');
- return;
- }
+    if (b.status !== 'available') {
+      setStatus('bookStatus', `Cannot add: Book "${b.title.substring(0,35)}" is currently ISSUED!`, 'warn');
+      return;
+    }
 
- // Add to queue
- queuedBooks.push(b);
- renderQueue();
- setStatus('bookStatus', `Added: "${b.title.substring(0,35)}"`, 'ok');
- bookInput.value = '';
- bookInput.focus();
- updateIssueButton();
- } catch (err) {
- setStatus('bookStatus', 'Error scanning book', 'err');
- }
+    // Add to queue
+    queuedBooks.push(b);
+    renderQueue();
+    setStatus('bookStatus', `Added: "${b.title.substring(0,35)}"`, 'ok');
+    bookInput.value = '';
+    bookInput.focus();
+    updateIssueButton();
+  } catch (err) {
+    setStatus('bookStatus', 'Error scanning book', 'err');
+  }
 }
 
 function removeBookFromQueue(index) {
@@ -568,19 +911,21 @@ function recalculateDueDate() {
 }
 
 function clearAll() {
- patronData = null;
- queuedBooks = [];
- patronInput.value = '';
- bookInput.value = '';
- clearPatronDetails();
- clearBookDetails();
- renderQueue();
- updateIssueButton();
- initDates();
- document.getElementById('resultBox').style.display = 'none';
- setStatus('patronStatus', '', '');
- setStatus('bookStatus', '', '');
- patronInput.focus();
+  hidePatronDropdown();
+  hideBookDropdown();
+  patronData = null;
+  queuedBooks = [];
+  patronInput.value = '';
+  bookInput.value = '';
+  clearPatronDetails();
+  clearBookDetails();
+  renderQueue();
+  updateIssueButton();
+  initDates();
+  document.getElementById('resultBox').style.display = 'none';
+  setStatus('patronStatus', '', '');
+  setStatus('bookStatus', '', '');
+  patronInput.focus();
 }
 
 initDates();
