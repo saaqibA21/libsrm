@@ -1117,6 +1117,45 @@ def export_reports_csv():
     )
 
 
+@app.route("/reports/datewise_pdf")
+def export_reports_datewise_pdf():
+    if not require_staff():
+        return redirect(url_for("staff_login", next=request.path))
+    from_date = request.args.get("from_date", "").strip()
+    to_date = request.args.get("to_date", "").strip()
+    date_type = request.args.get("date_type", "issue_date").strip()
+    q = request.args.get("q", "").strip()
+    status = request.args.get("status", "all").strip()
+
+    txns, summary = search_transactions_by_date(
+        from_date=from_date,
+        to_date=to_date,
+        date_type=date_type,
+        query=q,
+        status=status,
+        limit=5000
+    )
+
+    from library_app.utils.report_pdf import generate_datewise_circulation_report_pdf
+    pdf_bytes = generate_datewise_circulation_report_pdf(
+        transactions=txns,
+        summary=summary,
+        from_date=from_date,
+        to_date=to_date,
+        date_type=date_type,
+        status=status,
+        query=q
+    )
+    filename = f"Circulation_Report_{from_date or 'start'}_to_{to_date or 'today'}.pdf"
+    return send_file(
+        io.BytesIO(pdf_bytes),
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=filename
+    )
+
+
+
 @app.route("/api/send_overdue_emails", methods=["POST"])
 def send_overdue_emails():
     if not require_staff():

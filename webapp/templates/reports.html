@@ -406,6 +406,9 @@
  <button type="button" class="btn btn-outline btn-sm" onclick="exportCirculationCSV()" title="Export current filtered data to CSV" style="white-space:nowrap;">
  <i class="fa fa-file-excel" style="color:#166534;"></i> Export CSV
  </button>
+ <button type="button" class="btn btn-outline btn-sm" onclick="exportCirculationPDF()" title="Download current filtered circulation report as PDF" style="white-space:nowrap;">
+ <i class="fa fa-file-pdf" style="color:#b91c1c;"></i> Download PDF
+ </button>
  </div>
  </div>
 
@@ -1100,6 +1103,23 @@ function exportCirculationCSV() {
  q: q
  });
  window.location.href = `/reports/export_csv?${params.toString()}`;
+}
+
+function exportCirculationPDF() {
+ const fromDate = document.getElementById('circFromDate').value;
+ const toDate = document.getElementById('circToDate').value;
+ const dateType = document.getElementById('circDateType').value;
+ const status = document.getElementById('circStatus').value;
+ const q = document.getElementById('circKeyword').value.trim();
+
+ const params = new URLSearchParams({
+ from_date: fromDate,
+ to_date: toDate,
+ date_type: dateType,
+ status: status,
+ q: q
+ });
+ window.location.href = `/reports/datewise_pdf?${params.toString()}`;
 }
 
 async function sendDailyReportNow() {
