@@ -33,6 +33,19 @@ def _find_srm_logo() -> str | None:
     return None
 
 
+def _find_staff_photo(filename: str) -> str | None:
+    """Locate staff photo image on disk."""
+    candidates = [
+        os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "webapp", "static", "images", filename)),
+        os.path.normpath(os.path.join(os.getcwd(), "webapp", "static", "images", filename)),
+        os.path.abspath(f"webapp/static/images/{filename}"),
+    ]
+    for c in candidates:
+        if os.path.isfile(c):
+            return c
+    return None
+
+
 def generate_circulation_report_pdf(output_path_or_buf=None) -> bytes:
     """Generate a comprehensive editorial PDF report of library circulation and analytics."""
     buf = io.BytesIO() if output_path_or_buf is None else (
@@ -382,18 +395,35 @@ def generate_circulation_report_pdf(output_path_or_buf=None) -> bytes:
         story.append(t_tp)
 
     # ── Institutional In-Charge Endorsement ──
-    story.append(Spacer(1, 20))
+    story.append(Spacer(1, 18))
+    saravanan_photo = _find_staff_photo("dr_saravanan_headshot.jpg") or _find_staff_photo("dr_saravanan.jpg")
+    gomathy_photo = _find_staff_photo("gomathy_lakshmi_headshot.jpg") or _find_staff_photo("gomathy_lakshmi.jpg")
+
+    img_saravanan = Image(saravanan_photo, width=40, height=46) if saravanan_photo else ""
+    img_gomathy = Image(gomathy_photo, width=40, height=46) if gomathy_photo else ""
+
+    p_saravanan = Paragraph(
+        "<b>Dr. K. Saravanan</b><br/><font size='7.5' color='#4A5D4E'>Associate Professor &amp; Library In-Charge<br/>Department of Electrical &amp; Electronics Engineering<br/>Email: saravank3@srmist.edu.in</font>",
+        cell_style
+    )
+    p_gomathy = Paragraph(
+        "<b>Ms. Gomathy Lakshmi K</b><br/><font size='7.5' color='#4A5D4E'>Teaching Assistant &amp; Library In-Charge<br/>Department of Electrical &amp; Electronics Engineering<br/>SRM Institute of Science and Technology</font>",
+        cell_style
+    )
+
     sig_data = [
-        [
-            Paragraph("<b>Dr. K. Saravanan</b><br/><font size='7.5' color='#4A5D4E'>Associate Professor &amp; Library In-Charge<br/>Department of Electrical &amp; Electronics Engineering<br/>Email: saravank3@srmist.edu.in</font>", cell_style),
-            Paragraph("<b>Ms. Gomathy Lakshmi K</b><br/><font size='7.5' color='#4A5D4E'>Teaching Assistant &amp; Library In-Charge<br/>Department of Electrical &amp; Electronics Engineering<br/>SRM Institute of Science and Technology</font>", cell_style),
-        ]
+        [img_saravanan, p_saravanan, "", img_gomathy, p_gomathy]
     ]
-    t_sig = Table(sig_data, colWidths=[260, 262])
+    t_sig = Table(sig_data, colWidths=[46, 208, 14, 46, 208])
     t_sig.setStyle(TableStyle([
         ('LINEABOVE', (0,0), (-1,-1), 1, colors.HexColor('#CBD5E1')),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('TOPPADDING', (0,0), (-1,-1), 8),
         ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+        ('LEFTPADDING', (0,0), (-1,-1), 0),
+        ('RIGHTPADDING', (0,0), (-1,-1), 0),
+        ('RIGHTPADDING', (0,0), (0,0), 6),
+        ('RIGHTPADDING', (3,0), (3,0), 6),
     ]))
     story.append(KeepTogether(t_sig))
 

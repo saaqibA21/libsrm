@@ -183,13 +183,27 @@ def send_daily_report_email(recipient: str = None, force: bool = False) -> tuple
 
           <!-- Signatures -->
           <div style="border-top:1px solid #E5E7EB; padding-top:18px; margin-top:24px;">
-            <p style="margin:0 0 4px; font-size:12px; font-weight:700; color:#111827;">Library In-Charges:</p>
-            <p style="margin:0; font-size:12px; color:#4B5563; line-height:1.5;">
-              <strong>Dr. K. Saravanan</strong>, Associate Professor &amp; Library In-Charge<br>
-              <strong>Ms. Gomathy Lakshmi K</strong>, Teaching Assistant &amp; Library In-Charge<br>
-              Department of Electrical &amp; Electronics Engineering<br>
-              SRM Institute of Science and Technology
-            </p>
+            <p style="margin:0 0 10px; font-size:11.5px; font-weight:700; color:#111827; text-transform:uppercase; letter-spacing:0.5px;">Library In-Charges &amp; Oversight:</p>
+            <table style="width:100%; border-collapse:collapse;">
+              <tr>
+                <td style="width:42px; vertical-align:middle; padding-right:10px;">
+                  <img src="https://eeelibrary.org/static/images/dr_saravanan_headshot.jpg" alt="Dr. K. Saravanan" width="40" height="46" style="border-radius:6px; object-fit:cover; display:block; border:1px solid #D1E0CE;">
+                </td>
+                <td style="vertical-align:middle; font-size:12px; line-height:1.45; color:#374151; padding-right:16px;">
+                  <strong>Dr. K. Saravanan</strong><br>
+                  <span style="color:#166534; font-size:11px; font-weight:600;">Associate Professor &amp; Library In-Charge</span><br>
+                  <span style="color:#6B7280; font-size:11px;">Email: saravank3@srmist.edu.in</span>
+                </td>
+                <td style="width:42px; vertical-align:middle; padding-right:10px;">
+                  <img src="https://eeelibrary.org/static/images/gomathy_lakshmi_headshot.jpg" alt="Ms. Gomathy Lakshmi K" width="40" height="46" style="border-radius:6px; object-fit:cover; display:block; border:1px solid #D1E0CE;">
+                </td>
+                <td style="vertical-align:middle; font-size:12px; line-height:1.45; color:#374151;">
+                  <strong>Ms. Gomathy Lakshmi K</strong><br>
+                  <span style="color:#166534; font-size:11px; font-weight:600;">Teaching Assistant &amp; Library In-Charge</span><br>
+                  <span style="color:#6B7280; font-size:11px;">SRM Institute of Science and Technology</span>
+                </td>
+              </tr>
+            </table>
           </div>
         </div>
 
