@@ -643,7 +643,7 @@ def generate_datewise_circulation_report_pdf(
 
     # ── Circulation Records Table ──
     table_data = [[
-        Paragraph("ID", cell_header),
+        Paragraph("S.No", cell_header),
         Paragraph("Borrower Name", cell_header),
         Paragraph("Reg. / Staff No", cell_header),
         Paragraph("Role / Class", cell_header),
@@ -657,7 +657,7 @@ def generate_datewise_circulation_report_pdf(
     ]]
 
     if transactions:
-        for t in transactions:
+        for idx, t in enumerate(transactions, 1):
             st = t.get('status', '')
             if st == 'returned':
                 st_p = Paragraph('Returned', cell_success_center)
@@ -675,7 +675,7 @@ def generate_datewise_circulation_report_pdf(
 
             acc_str = f" / {t.get('book_acc')}" if t.get('book_acc') else ""
             table_data.append([
-                Paragraph(str(t.get('id', '')), cell_center),
+                Paragraph(str(idx), cell_center),
                 Paragraph(t.get('patron_name', ''), cell_bold),
                 Paragraph(t.get('patron_reg', '') or "—", cell_center),
                 Paragraph(role_str, cell_center),

@@ -441,7 +441,7 @@
  <table>
  <thead>
  <tr>
- <th>#</th>
+ <th style="width:50px; text-align:center;">S.No</th>
  <th>Patron</th>
  <th>Reg. / Staff No</th>
  <th>Book Title</th>
@@ -456,7 +456,7 @@
  <tbody id="circHistoryTbody">
  {% for txn in history %}
  <tr>
- <td class="text-muted text-sm">{{ txn.id }}</td>
+ <td class="text-muted text-sm" style="text-align:center; font-weight:600;">{{ loop.index }}</td>
  <td style="font-weight:600">
  {{ txn.patron_name }}
  {% if txn.patron_designation %}
@@ -1018,7 +1018,7 @@ async function searchCirculationRecords() {
  }
 
  let rowsHtml = '';
- res.transactions.forEach(t => {
+ res.transactions.forEach((t, idx) => {
  let statusBadge = '';
  if (t.status === 'returned') {
  statusBadge = '<span class="badge badge-success">Returned</span>';
@@ -1043,7 +1043,7 @@ async function searchCirculationRecords() {
 
  rowsHtml += `
  <tr>
- <td class="text-muted text-sm">${t.id}</td>
+ <td class="text-muted text-sm" style="text-align:center; font-weight:600;">${idx + 1}</td>
  <td style="font-weight:600">
  ${t.patron_name}
  ${desigHtml}
