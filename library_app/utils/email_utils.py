@@ -81,9 +81,9 @@ def send_email_brevo(api_key: str, to_addr: str, subject: str, body_html: str,
     if not sender_email or not sender_email.strip():
         try:
             from library_app.database import get_setting
-            sender_email = get_setting("brevo_sender_email", "") or "saaqibheroindia@gmail.com"
+            sender_email = get_setting("brevo_sender_email", "") or get_setting("email_from", "") or "srmktreeedeptlibrary@gmail.com"
         except Exception:
-            sender_email = "saaqibheroindia@gmail.com"
+            sender_email = "srmktreeedeptlibrary@gmail.com"
 
     if not reply_to or not reply_to.strip():
         try:
@@ -187,7 +187,7 @@ def send_email(to_addr: str, subject: str, body_html: str,
             pass
 
         if not sender_email or not sender_email.strip():
-            sender_email = "saaqibheroindia@gmail.com"
+            sender_email = get_setting("email_from", "") or "srmktreeedeptlibrary@gmail.com"
 
         return send_email_brevo(
             api_key=str(brevo_api_key).strip(),

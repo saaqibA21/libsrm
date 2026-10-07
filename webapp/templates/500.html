@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Internal Server Notice (500) — SRM EEE Library{% endblock %}
+{% block page_title %}500 Server Error{% endblock %}
+{% block content %}
+
+<div style="max-width: 520px; margin: 40px auto; padding: 0 16px;">
+  <div class="card" style="border-radius: 24px; padding: 40px 32px; text-align: center; box-shadow: var(--shadow-md);">
+    <div style="width: 80px; height: 80px; margin: 0 auto 18px; border-radius: 50%; background: #FEE2E2; display: flex; align-items: center; justify-content: center; border: 2px solid #FECACA;">
+      <i class="fa fa-triangle-exclamation" style="font-size: 36px; color: #DC2626;"></i>
+    </div>
+
+    <div style="display: inline-block; background: #FEE2E2; border: 1px solid #FCA5A5; color: #991B1B; font-size: 11.5px; font-weight: 700; padding: 3px 12px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px;">
+      Error 500 • Internal Server Error
+    </div>
+
+    <h2 class="serif-heading" style="font-size: 24px; color: var(--text); margin-bottom: 8px;">
+      Something Went Wrong
+    </h2>
+    <p style="font-size: 13.5px; color: var(--muted); line-height: 1.6; margin-bottom: 24px;">
+      The system encountered an unexpected internal condition while processing your request. Our automated monitoring has recorded this notice.
+    </p>
+
+    <div style="display: flex; flex-direction: column; gap: 10px; max-width: 320px; margin: 0 auto 20px;">
+      <a href="{{ url_for('public_catalog') }}" class="btn btn-primary" style="justify-content: center; padding: 12px;">
+        <i class="fa fa-house"></i> Return to Main Catalog
+      </a>
+      <button onclick="window.location.reload()" class="btn btn-secondary" style="justify-content: center; padding: 12px;">
+        <i class="fa fa-rotate-right"></i> Refresh / Try Again
+      </button>
+    </div>
+
+    <div style="border-top: 1px solid var(--border-subtle); padding-top: 16px; font-size: 12px; color: var(--muted);">
+      SRM EEE Department Library Desk • If the issue persists, please notify the circulation counter.
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -155,7 +155,10 @@ def public_catalog():
     """Public homepage — search catalog with live availability and expected return dates."""
     q = request.args.get("q", "").strip()
     status = request.args.get("status", "")
-    page = int(request.args.get("page", 1))
+    try:
+        page = max(1, int(request.args.get("page", 1)))
+    except (ValueError, TypeError):
+        page = 1
     per_page = 30
     offset = (page - 1) * per_page
 
@@ -480,11 +483,16 @@ def edit_book_route(book_id):
 def delete_book_route(book_id):
     if not require_staff():
         return jsonify({"success": False, "message": "Unauthorized"}), 403
-    book = get_book_by_id(book_id)
-    if book and book["status"] == "issued":
-        return jsonify({"success": False, "message": "Cannot delete a currently issued book"})
-    delete_book(book_id)
-    return jsonify({"success": True, "message": "Book deleted"})
+    try:
+        book = get_book_by_id(book_id)
+        if not book:
+            return jsonify({"success": False, "message": "Book not found"}), 404
+        if book.get("status") == "issued":
+            return jsonify({"success": False, "message": "Cannot delete book: It is currently issued to a patron. Please return it first."}), 400
+        delete_book(book_id)
+        return jsonify({"success": True, "message": "Book deleted successfully"})
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Could not delete book: {e}"}), 400
 
 
 @app.route("/books/get/<int:book_id>")
@@ -665,8 +673,17 @@ def edit_patron_route(pid):
 def delete_patron_route(pid):
     if not require_staff():
         return jsonify({"success": False, "message": "Unauthorized"}), 403
-    delete_patron(pid)
-    return jsonify({"success": True})
+    try:
+        patron = get_patron_by_id(pid)
+        if not patron:
+            return jsonify({"success": False, "message": "Patron not found"}), 404
+        active_loans = get_patron_active_books(pid)
+        if active_loans:
+            return jsonify({"success": False, "message": f"Cannot delete patron: {len(active_loans)} unreturned book(s) currently issued. Return all books first."}), 400
+        delete_patron(pid)
+        return jsonify({"success": True, "message": "Patron deleted successfully"})
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Could not delete patron: {e}"}), 400
 
 
 @app.route("/patrons/get/<int:pid>")
@@ -911,14 +928,22 @@ def reports_page():
     today = datetime.now()
 
     for txn in overdue:
-        due = datetime.strptime(txn["due_date"], "%Y-%m-%d")
-        txn["overdue_days"] = max(0, (today - due).days)
-        txn["calculated_fine"] = txn["overdue_days"] * fine_rate
-        txn["fine"] = 0.0 if txn.get("fine_paid") else txn["calculated_fine"]
+        try:
+            due = datetime.strptime(str(txn.get("due_date", "")), "%Y-%m-%d")
+            txn["overdue_days"] = max(0, (today - due).days)
+            txn["calculated_fine"] = txn["overdue_days"] * fine_rate
+            txn["fine"] = 0.0 if txn.get("fine_paid") else txn["calculated_fine"]
+        except Exception:
+            txn["overdue_days"] = 0
+            txn["calculated_fine"] = 0.0
+            txn["fine"] = 0.0
 
     for txn in active:
-        due = datetime.strptime(txn["due_date"], "%Y-%m-%d")
-        txn["days_left"] = (due - today).days
+        try:
+            due = datetime.strptime(str(txn.get("due_date", "")), "%Y-%m-%d")
+            txn["days_left"] = (due - today).days
+        except Exception:
+            txn["days_left"] = 0
 
     return render_template(
         "reports.html",
@@ -959,7 +984,7 @@ def api_reports_send_daily_report():
     if ok:
         return jsonify({"success": True, "message": msg, "recipient": recipient})
     else:
-        return jsonify({"success": False, "message": msg}), 500
+        return jsonify({"success": False, "message": msg}), 200
 
 
 @app.route("/api/reports/daily_report_status", methods=["GET"])
@@ -1015,7 +1040,10 @@ def api_reports_circulation_search():
     date_type = request.args.get("date_type", "issue_date").strip()
     q = request.args.get("q", "").strip()
     status = request.args.get("status", "all").strip()
-    limit = int(request.args.get("limit", "500"))
+    try:
+        limit = max(1, min(5000, int(request.args.get("limit", "500"))))
+    except (ValueError, TypeError):
+        limit = 500
 
     txns, summary = search_transactions_by_date(
         from_date=from_date,
@@ -1529,7 +1557,7 @@ def api_no_due_send_email():
             "message": f"Official No Due Certificate successfully emailed to {recipient}!"
         })
     else:
-        return jsonify({"success": False, "message": f"Email delivery failed: {err}"}), 500
+        return jsonify({"success": False, "message": f"Email delivery failed: {err}"}), 200
 
 
 @app.route("/api/no_due/bulk_summary", methods=["GET"])
@@ -1737,6 +1765,54 @@ def api_no_due_bulk_send_batch():
         "quota_error_msg": quota_error_msg,
         "results": results
     })
+
+
+# ─── Error Handlers (404, 500, 403, and Uncaught Exceptions) ──────────────────
+
+@app.errorhandler(404)
+def handle_404(e):
+    if request.path.startswith("/api/"):
+        return jsonify({
+            "success": False,
+            "error": "Not Found",
+            "message": f"API endpoint '{request.path}' was not found on this server."
+        }), 404
+    return render_template("404.html"), 404
+
+
+@app.errorhandler(403)
+def handle_403(e):
+    if request.path.startswith("/api/"):
+        return jsonify({
+            "success": False,
+            "error": "Forbidden",
+            "message": "Staff login required to access this resource."
+        }), 403
+    return redirect(url_for("staff_login", next=request.path))
+
+
+@app.errorhandler(500)
+def handle_500(e):
+    if request.path.startswith("/api/"):
+        return jsonify({
+            "success": False,
+            "error": "Internal Server Error",
+            "message": "An unexpected internal server error occurred. Please contact the administrator or try again."
+        }), 500
+    return render_template("500.html"), 500
+
+
+@app.errorhandler(Exception)
+def handle_unexpected_exception(e):
+    import traceback
+    traceback.print_exc()
+    if request.path.startswith("/api/"):
+        return jsonify({
+            "success": False,
+            "error": "Internal Server Error",
+            "message": str(e)
+        }), 500
+    return render_template("500.html"), 500
 
 
 if __name__ == "__main__":

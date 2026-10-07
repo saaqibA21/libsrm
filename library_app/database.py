@@ -204,7 +204,7 @@ def initialize_db():
         "email_user": "srmktreeedeptlibrary@gmail.com",
         "email_password": "",
         "email_from": "srmktreeedeptlibrary@gmail.com",
-        "brevo_sender_email": "saaqibheroindia@gmail.com",
+        "brevo_sender_email": "srmktreeedeptlibrary@gmail.com",
         "email_reply_to": "srmktreeedeptlibrary@gmail.com",
         "daily_report_recipient_email": "saravank3@srmist.edu.in, srmktreeedeptlibrary@gmail.com",
         "github_backup_token": "",
@@ -229,6 +229,12 @@ def initialize_db():
         SET value = 'srmktreeedeptlibrary@gmail.com'
         WHERE key IN ('email_user', 'email_from', 'email_reply_to')
           AND value IN ('srmeeelibraray@gmail.com', 'srmeeelibrary@gmail.com')
+    """)
+    c.execute("""
+        UPDATE settings
+        SET value = 'srmktreeedeptlibrary@gmail.com'
+        WHERE key = 'brevo_sender_email'
+          AND (value = 'saaqibheroindia@gmail.com' OR value IS NULL OR value = '')
     """)
     c.execute("""
         UPDATE settings
@@ -743,14 +749,19 @@ def return_book(transaction_id, return_date=None, return_time=None):
             ret_date_obj = now_dt
             return_date = ret_date_obj.strftime("%Y-%m-%d")
 
-        due_date = datetime.strptime(txn["due_date"], "%Y-%m-%d")
+        try:
+            due_date = datetime.strptime(str(txn["due_date"]), "%Y-%m-%d")
+        except Exception:
+            due_date = ret_date_obj
 
         fine = 0.0
         if ret_date_obj > due_date:
             overdue_days = (ret_date_obj - due_date).days
-            fine_per_day = float(conn.execute(
-                "SELECT value FROM settings WHERE key='fine_per_day'"
-            ).fetchone()["value"])
+            try:
+                row_fine = conn.execute("SELECT value FROM settings WHERE key='fine_per_day'").fetchone()
+                fine_per_day = float(row_fine["value"]) if row_fine else 2.0
+            except Exception:
+                fine_per_day = 2.0
             fine = overdue_days * fine_per_day
 
         conn.execute("""
