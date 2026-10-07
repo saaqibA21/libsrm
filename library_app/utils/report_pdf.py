@@ -415,39 +415,6 @@ def generate_circulation_report_pdf(output_path_or_buf=None) -> bytes:
         ]))
         story.append(t_tp)
 
-    # ── Institutional In-Charge Endorsement ──
-    story.append(Spacer(1, 18))
-    saravanan_photo = _find_staff_photo("dr_saravanan_headshot.jpg") or _find_staff_photo("dr_saravanan.jpg")
-    gomathy_photo = _find_staff_photo("gomathy_lakshmi_headshot.jpg") or _find_staff_photo("gomathy_lakshmi.jpg")
-
-    img_saravanan = Image(saravanan_photo, width=40, height=46) if saravanan_photo else ""
-    img_gomathy = Image(gomathy_photo, width=40, height=46) if gomathy_photo else ""
-
-    p_saravanan = Paragraph(
-        "<b>Dr. K. Saravanan</b><br/><font size='7.5' color='#4A5D4E'>Associate Professor &amp; Library In-Charge<br/>Department of Electrical &amp; Electronics Engineering<br/>Email: saravank3@srmist.edu.in</font>",
-        cell_style
-    )
-    p_gomathy = Paragraph(
-        "<b>Ms. Gomathy Lakshmi K</b><br/><font size='7.5' color='#4A5D4E'>Teaching Assistant &amp; Library In-Charge<br/>Department of Electrical &amp; Electronics Engineering<br/>SRM Institute of Science and Technology</font>",
-        cell_style
-    )
-
-    sig_data = [
-        [img_saravanan, p_saravanan, "", img_gomathy, p_gomathy]
-    ]
-    t_sig = Table(sig_data, colWidths=[46, 208, 14, 46, 208])
-    t_sig.setStyle(TableStyle([
-        ('LINEABOVE', (0,0), (-1,-1), 1, colors.HexColor('#CBD5E1')),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('TOPPADDING', (0,0), (-1,-1), 8),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
-        ('LEFTPADDING', (0,0), (-1,-1), 0),
-        ('RIGHTPADDING', (0,0), (-1,-1), 0),
-        ('RIGHTPADDING', (0,0), (0,0), 6),
-        ('RIGHTPADDING', (3,0), (3,0), 6),
-    ]))
-    story.append(KeepTogether(t_sig))
-
     # ── Footer ──
     story.append(Spacer(1, 16))
     footer_text = "SRMIST Kattankulathur — Department of EEE Library Management System • Confidential Institutional Report"
@@ -702,39 +669,6 @@ def generate_datewise_circulation_report_pdf(
         story.append(t_ledger)
     else:
         story.append(Paragraph("<i>No circulation records match the selected date range and filter criteria.</i>", cell_style))
-
-    # ── Institutional In-Charge Endorsement ──
-    story.append(Spacer(1, 14))
-    saravanan_photo = _find_staff_photo("dr_saravanan_headshot.jpg") or _find_staff_photo("dr_saravanan.jpg")
-    gomathy_photo = _find_staff_photo("gomathy_lakshmi_headshot.jpg") or _find_staff_photo("gomathy_lakshmi.jpg")
-
-    img_saravanan = Image(saravanan_photo, width=38, height=44) if saravanan_photo else ""
-    img_gomathy = Image(gomathy_photo, width=38, height=44) if gomathy_photo else ""
-
-    p_saravanan = Paragraph(
-        "<b>Dr. K. Saravanan</b><br/><font size='7' color='#4A5D4E'>Associate Professor &amp; Library In-Charge<br/>Department of Electrical &amp; Electronics Engineering<br/>Email: saravank3@srmist.edu.in</font>",
-        cell_style
-    )
-    p_gomathy = Paragraph(
-        "<b>Ms. Gomathy Lakshmi K</b><br/><font size='7' color='#4A5D4E'>Teaching Assistant &amp; Library In-Charge<br/>Department of Electrical &amp; Electronics Engineering<br/>SRM Institute of Science and Technology</font>",
-        cell_style
-    )
-
-    sig_data = [
-        [img_saravanan, p_saravanan, "", img_gomathy, p_gomathy]
-    ]
-    t_sig = Table(sig_data, colWidths=[42, 320, 41, 42, 320])
-    t_sig.setStyle(TableStyle([
-        ('LINEABOVE', (0,0), (-1,-1), 0.75, colors.HexColor('#CBD5E1')),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('TOPPADDING', (0,0), (-1,-1), 6),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
-        ('LEFTPADDING', (0,0), (-1,-1), 0),
-        ('RIGHTPADDING', (0,0), (-1,-1), 0),
-        ('RIGHTPADDING', (0,0), (0,0), 6),
-        ('RIGHTPADDING', (3,0), (3,0), 6),
-    ]))
-    story.append(KeepTogether(t_sig))
 
     # ── Footer ──
     story.append(Spacer(1, 10))

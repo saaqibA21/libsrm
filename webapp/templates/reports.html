@@ -561,42 +561,9 @@
  </div>
 </div>
 
-<!-- Institutional Library In-Charge Oversight & Endorsement -->
-<div class="card" style="margin-top:24px; padding:22px 26px; border-radius:18px; background:linear-gradient(135deg, #F8FAF6 0%, #FFFFFF 100%); border:1px solid #D1E0CE; box-shadow:0 4px 16px rgba(0,0,0,0.03);">
-  <div style="font-size:11px; text-transform:uppercase; letter-spacing:1px; color:#166534; font-weight:700; margin-bottom:14px; display:flex; align-items:center; gap:6px;">
-    <i class="fa fa-award"></i> Department Library In-Charge Oversight &amp; Endorsement
-  </div>
-  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:18px;">
-    <!-- Dr. K. Saravanan -->
-    <div style="display:flex; align-items:center; gap:16px; background:#FFFFFF; border:1px solid #E2EBDD; border-radius:14px; padding:14px 18px; box-shadow:0 2px 8px rgba(0,0,0,0.02);">
-      <img src="{{ url_for('static', filename='images/dr_saravanan_headshot.jpg') }}" alt="Dr. K. Saravanan" style="width:58px; height:66px; object-fit:cover; border-radius:10px; border:2px solid #E2EBDD; flex-shrink:0; box-shadow:0 2px 6px rgba(0,0,0,0.06);">
-      <div style="min-width:0;">
-        <div style="font-size:15px; font-weight:700; color:#111827;">Dr. K. Saravanan</div>
-        <div style="font-size:12.5px; font-weight:600; color:#166534; margin:1px 0;">Associate Professor &amp; Library In-Charge</div>
-        <div style="font-size:11.5px; color:#6B7280;">Dept. of Electrical &amp; Electronics Engineering</div>
-        <div style="font-size:11.5px; margin-top:4px;">
-          <a href="mailto:saravank3@srmist.edu.in" style="color:#1C3022; text-decoration:none; font-weight:600;"><i class="fa fa-envelope" style="color:#166534;"></i> saravank3@srmist.edu.in</a>
-        </div>
-      </div>
-    </div>
-    <!-- Ms. Gomathy Lakshmi K -->
-    <div style="display:flex; align-items:center; gap:16px; background:#FFFFFF; border:1px solid #E2EBDD; border-radius:14px; padding:14px 18px; box-shadow:0 2px 8px rgba(0,0,0,0.02);">
-      <img src="{{ url_for('static', filename='images/gomathy_lakshmi_headshot.jpg') }}" alt="Ms. Gomathy Lakshmi K" style="width:58px; height:66px; object-fit:cover; border-radius:10px; border:2px solid #E2EBDD; flex-shrink:0; box-shadow:0 2px 6px rgba(0,0,0,0.06);">
-      <div style="min-width:0;">
-        <div style="font-size:15px; font-weight:700; color:#111827;">Ms. Gomathy Lakshmi K</div>
-        <div style="font-size:12.5px; font-weight:600; color:#166534; margin:1px 0;">Teaching Assistant &amp; Library In-Charge</div>
-        <div style="font-size:11.5px; color:#6B7280;">Dept. of Electrical &amp; Electronics Engineering</div>
-        <div style="font-size:11.5px; color:#6B7280; margin-top:4px;">
-          <i class="fa fa-building-columns" style="color:#166534;"></i> SRM Institute of Science and Technology
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- Book Borrowers Modal -->
 <div class="modal-overlay" id="bookBorrowersModal">
- <div class="modal" style="max-width:850px; width:94%;">
+ <div class="modal" style="max-width:1150px; width:96%;">
  <div class="modal-header">
  <div>
  <div class="badge badge-info" style="font-size:10.5px; margin-bottom:4px;"><i class="fa fa-book"></i> Book Borrowers Record</div>
@@ -608,19 +575,19 @@
  <div id="bookBorrowersMeta" style="font-size:12.5px; color:var(--text);"></div>
  <div id="bookBorrowersCount" class="badge badge-purple" style="font-size:11.5px;"></div>
  </div>
- <div class="table-wrap" style="max-height:420px; overflow-y:auto;">
+ <div class="table-wrap" style="max-height:500px; overflow-y:auto;">
  <table>
  <thead>
  <tr>
- <th>#</th>
- <th>Borrower Name</th>
- <th>Reg. / ID</th>
- <th>Type</th>
- <th>Issue Date</th>
- <th>Due Date</th>
- <th>Return Date</th>
- <th>Fine</th>
- <th>Status</th>
+ <th style="width:45px; text-align:center;">#</th>
+ <th style="min-width:180px;">Borrower Name</th>
+ <th style="white-space:nowrap;">Reg. / ID</th>
+ <th style="text-align:center; white-space:nowrap;">Type</th>
+ <th style="white-space:nowrap; text-align:center;">Issue Date</th>
+ <th style="white-space:nowrap; text-align:center;">Due Date</th>
+ <th style="white-space:nowrap; text-align:center;">Return Date</th>
+ <th style="white-space:nowrap; text-align:right;">Fine</th>
+ <th style="white-space:nowrap; text-align:center;">Status</th>
  </tr>
  </thead>
  <tbody id="bookBorrowersTbody">
@@ -764,26 +731,26 @@ async function showBookBorrowers(bookId, bookTitle) {
 
  rows += `
  <tr style="${isIssued ? 'background:rgba(245, 158, 11, 0.04);' : ''}">
- <td class="text-sm text-muted">${idx + 1}</td>
- <td style="font-weight:600; color:var(--text);">
+ <td class="text-sm text-muted" style="text-align:center; font-weight:600; width:45px;">${idx + 1}</td>
+ <td style="font-weight:600; color:var(--text); min-width:180px;">
  ${escapeHtml(t.borrower_name || 'Unknown')}
  ${t.borrower_year ? `<div class="text-muted" style="font-size:11px; font-weight:normal;">Yr ${escapeHtml(t.borrower_year)} ${escapeHtml(t.borrower_section || '')}</div>` : ''}
  </td>
- <td class="text-sm">${escapeHtml(t.borrower_reg || '—')}</td>
- <td>${ptypeBadge}</td>
- <td class="text-sm">
- ${escapeHtml(t.issue_date || '—')}
+ <td class="text-sm" style="white-space:nowrap;">${escapeHtml(t.borrower_reg || '—')}</td>
+ <td style="text-align:center; white-space:nowrap;">${ptypeBadge}</td>
+ <td class="text-sm" style="white-space:nowrap; text-align:center;">
+ <div style="font-weight:500;">${escapeHtml(t.issue_date || '—')}</div>
  ${t.issue_time ? `<div class="text-muted" style="font-size:10.5px;">${escapeHtml(t.issue_time)}</div>` : ''}
  </td>
- <td class="text-sm text-muted">${escapeHtml(t.due_date || '—')}</td>
- <td class="text-sm">
+ <td class="text-sm text-muted" style="white-space:nowrap; text-align:center;">${escapeHtml(t.due_date || '—')}</td>
+ <td class="text-sm" style="white-space:nowrap; text-align:center;">
  ${t.return_date ? `
- <div>${escapeHtml(t.return_date)}</div>
+ <div style="font-weight:500;">${escapeHtml(t.return_date)}</div>
  ${t.return_time ? `<div class="text-muted" style="font-size:10.5px;">${escapeHtml(t.return_time)}</div>` : ''}
  ` : '<span class="text-muted">—</span>'}
  </td>
- <td class="text-sm">${fineText}</td>
- <td>${statusBadge}</td>
+ <td class="text-sm" style="white-space:nowrap; text-align:right;">${fineText}</td>
+ <td style="text-align:center; white-space:nowrap;">${statusBadge}</td>
  </tr>
  `;
  });

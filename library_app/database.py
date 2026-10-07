@@ -818,7 +818,7 @@ def get_all_active_transactions():
         JOIN books b ON t.book_id = b.id
         JOIN patrons p ON t.patron_id = p.id
         WHERE t.status='issued'
-        ORDER BY t.due_date
+        ORDER BY t.issue_date DESC, t.id DESC
     """).fetchall()
     conn.close()
     return [dict(r) for r in rows]
@@ -836,7 +836,7 @@ def get_overdue_transactions():
         JOIN books b ON t.book_id = b.id
         JOIN patrons p ON t.patron_id = p.id
         WHERE t.status='issued' AND t.due_date < ?
-        ORDER BY t.due_date
+        ORDER BY t.issue_date DESC, t.id DESC
     """, (today,)).fetchall()
     conn.close()
     return [dict(r) for r in rows]
@@ -851,7 +851,7 @@ def get_transaction_history(limit=200):
         FROM transactions t
         JOIN books b ON t.book_id = b.id
         JOIN patrons p ON t.patron_id = p.id
-        ORDER BY t.id DESC
+        ORDER BY t.issue_date DESC, t.id DESC
         LIMIT ?
     """, (limit,)).fetchall()
     conn.close()
@@ -1124,7 +1124,7 @@ def get_book_borrowers(book_id):
         FROM transactions t
         LEFT JOIN patrons p ON t.patron_id = p.id
         WHERE t.book_id = ?
-        ORDER BY t.id DESC
+        ORDER BY t.issue_date DESC, t.id DESC
     """, (book_id,)).fetchall()
     conn.close()
     return [dict(r) for r in rows]
