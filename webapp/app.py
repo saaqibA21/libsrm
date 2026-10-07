@@ -1642,6 +1642,19 @@ def api_no_due_reset_bulk_status():
     return jsonify({"success": True, "message": "All patron email clearance statuses have been reset."})
 
 
+@app.route("/api/circulation/reset_test_data", methods=["POST"])
+def api_circulation_reset_test_data():
+    if not require_staff():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+    from library_app.database import clear_all_circulation_data
+    clear_all_circulation_data()
+    return jsonify({
+        "success": True,
+        "message": "All test circulation records, overdue items, and checkout history have been cleared. All books are back on shelf as Available."
+    })
+
+
+
 @app.route("/api/no_due/campaign/status", methods=["GET"])
 def api_no_due_campaign_status():
     if not require_staff():

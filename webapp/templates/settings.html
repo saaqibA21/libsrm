@@ -208,6 +208,9 @@
  <a href="/api/backup/database" class="btn btn-outline" style="font-size:12px;">
  <i class="fa fa-download"></i> Download Full Database Backup (.db)
  </a>
+ <button type="button" class="btn btn-outline" onclick="resetTestCirculationData()" style="font-size:12px; color:var(--danger); border-color:var(--danger); margin-left:8px;" title="Reset test checkouts, overdues, and set all books to Available">
+ <i class="fa fa-trash-can"></i> Clear Test Circulation Data
+ </button>
  </div>
  </div>
 </div>{% endblock %}
@@ -389,6 +392,21 @@ async function sendOverdueNoticesNow() {
       btn.disabled = false;
       btn.innerHTML = '<i class="fa fa-paper-plane"></i> Send Overdue Notices Now';
     }
+  }
+}
+
+async function resetTestCirculationData() {
+  if (!confirm('⚠️ Are you sure you want to clear all test circulation data?\n\nThis will remove all borrowed, overdue, and returned transaction history, and return all books to Available on shelf.\n\nAll catalog books and patrons will be safely preserved.')) return;
+  try {
+    const res = await postJSON('/api/circulation/reset_test_data', {});
+    if (res && res.success) {
+      showToast(res.message, 'success');
+      setTimeout(() => window.location.reload(), 1500);
+    } else {
+      showToast((res && res.message) || 'Error clearing circulation data', 'error');
+    }
+  } catch (err) {
+    showToast('Network error: ' + err.message, 'error');
   }
 }
 </script>{% endblock %}

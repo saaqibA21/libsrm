@@ -1571,3 +1571,31 @@ def get_no_due_bulk_summary():
 
 
 
+
+
+def clear_all_circulation_data():
+    """
+    Clears all test circulation transactions, overdue records, and resets all books to available.
+    Preserves all catalog books (2,118) and registered patrons (786) intact.
+    """
+    conn = get_connection()
+    conn.execute("DELETE FROM transactions")
+    conn.execute("UPDATE books SET status='available'")
+    try:
+        conn.execute("DELETE FROM overdue_dispatches")
+    except Exception:
+        pass
+    try:
+        conn.execute("UPDATE sqlite_sequence SET seq=0 WHERE name='transactions'")
+    except Exception:
+        pass
+    conn.commit()
+    conn.close()
+
+    try:
+        conn2 = get_connection()
+        conn2.execute("VACUUM")
+        conn2.close()
+    except Exception:
+        pass
+    return True
