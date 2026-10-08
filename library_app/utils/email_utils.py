@@ -629,10 +629,9 @@ def build_overdue_email(patron_name: str, books: list[dict],
 
           <!-- Signatures -->
           <div style="border-top: 1px solid #E5E7EB; padding-top: 18px;">
-            <p style="margin: 0 0 4px; font-size: 12px; font-weight: 700; color: #111827;">Library In-Charges:</p>
+            <p style="margin: 0 0 4px; font-size: 12px; font-weight: 700; color: #111827;">Library In-Charge:</p>
             <p style="margin: 0; font-size: 12px; color: #4B5563; line-height: 1.5;">
               <strong>Dr. K. Saravanan</strong>, Associate Professor &amp; Library In-Charge<br>
-              <strong>Ms. Gomathy Lakshmi K</strong>, Teaching Assistant &amp; Library In-Charge<br>
               Department of Electrical &amp; Electronics Engineering<br>
               SRM Institute of Science and Technology
             </p>

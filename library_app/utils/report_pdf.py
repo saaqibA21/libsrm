@@ -415,10 +415,57 @@ def generate_circulation_report_pdf(output_path_or_buf=None) -> bytes:
         ]))
         story.append(t_tp)
 
-    # ── Footer ──
-    story.append(Spacer(1, 16))
+    # ── Faculty In-Charge Official Endorsement ──
+    story.append(Spacer(1, 14))
+    saravanan_img_path = _find_staff_photo("dr_saravanan_headshot.jpg")
+    photo_flowable = None
+    if saravanan_img_path and os.path.exists(saravanan_img_path):
+        try:
+            photo_flowable = Image(saravanan_img_path, width=42, height=52)
+        except Exception:
+            photo_flowable = None
+
+    endorse_title_style = ParagraphStyle(
+        'EndorseTitle',
+        parent=styles['Normal'],
+        fontName='Times-Bold',
+        fontSize=10,
+        leading=13,
+        textColor=colors.HexColor('#1C3022')
+    )
+    endorse_sub_style = ParagraphStyle(
+        'EndorseSub',
+        parent=styles['Normal'],
+        fontName='Times-Roman',
+        fontSize=8.5,
+        leading=11.5,
+        textColor=colors.HexColor('#374151')
+    )
+
+    sig_cell = [
+        Paragraph("<b>Dr. K. Saravanan</b>", endorse_title_style),
+        Paragraph("Associate Professor &amp; Library In-Charge<br/>Department of Electrical &amp; Electronics Engineering<br/>SRM Institute of Science and Technology, Kattankulathur", endorse_sub_style)
+    ]
+
+    if photo_flowable:
+        endorse_table = Table([[photo_flowable, sig_cell]], colWidths=[50, 470])
+        endorse_table.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('LEFTPADDING', (0,0), (-1,-1), 0),
+            ('RIGHTPADDING', (0,0), (-1,-1), 0),
+            ('TOPPADDING', (0,0), (-1,-1), 2),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 2),
+        ]))
+    else:
+        endorse_table = Table([[sig_cell]], colWidths=[520])
+
     footer_text = "SRMIST Kattankulathur — Department of EEE Library Management System • Confidential Institutional Report"
-    story.append(Paragraph(footer_text, meta_style))
+    story.append(KeepTogether([
+        HRFlowable(width="100%", thickness=0.75, color=colors.HexColor('#D1E0CE'), spaceAfter=8, spaceBefore=4),
+        endorse_table,
+        Spacer(1, 10),
+        Paragraph(footer_text, meta_style)
+    ]))
 
     doc.build(story)
     
@@ -670,10 +717,57 @@ def generate_datewise_circulation_report_pdf(
     else:
         story.append(Paragraph("<i>No circulation records match the selected date range and filter criteria.</i>", cell_style))
 
-    # ── Footer ──
+    # ── Faculty In-Charge Official Endorsement ──
     story.append(Spacer(1, 10))
+    saravanan_img_path = _find_staff_photo("dr_saravanan_headshot.jpg")
+    photo_flowable = None
+    if saravanan_img_path and os.path.exists(saravanan_img_path):
+        try:
+            photo_flowable = Image(saravanan_img_path, width=38, height=46)
+        except Exception:
+            photo_flowable = None
+
+    endorse_title_style = ParagraphStyle(
+        'DatewiseEndorseTitle',
+        parent=styles['Normal'],
+        fontName='Times-Bold',
+        fontSize=9.5,
+        leading=12,
+        textColor=colors.HexColor('#1C3022')
+    )
+    endorse_sub_style = ParagraphStyle(
+        'DatewiseEndorseSub',
+        parent=styles['Normal'],
+        fontName='Times-Roman',
+        fontSize=8,
+        leading=11,
+        textColor=colors.HexColor('#374151')
+    )
+
+    sig_cell = [
+        Paragraph("<b>Dr. K. Saravanan</b>", endorse_title_style),
+        Paragraph("Associate Professor &amp; Library In-Charge • Department of Electrical &amp; Electronics Engineering, SRMIST Kattankulathur", endorse_sub_style)
+    ]
+
+    if photo_flowable:
+        endorse_table = Table([[photo_flowable, sig_cell]], colWidths=[46, 715])
+        endorse_table.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('LEFTPADDING', (0,0), (-1,-1), 0),
+            ('RIGHTPADDING', (0,0), (-1,-1), 0),
+            ('TOPPADDING', (0,0), (-1,-1), 2),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 2),
+        ]))
+    else:
+        endorse_table = Table([[sig_cell]], colWidths=[765])
+
     footer_text = "SRMIST Kattankulathur — Department of EEE Library Management System • Confidential Date-Wise Circulation Ledger"
-    story.append(Paragraph(footer_text, meta_style))
+    story.append(KeepTogether([
+        HRFlowable(width="100%", thickness=0.75, color=colors.HexColor('#D1E0CE'), spaceAfter=6, spaceBefore=4),
+        endorse_table,
+        Spacer(1, 6),
+        Paragraph(footer_text, meta_style)
+    ]))
 
     doc.build(story)
 
