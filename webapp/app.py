@@ -37,6 +37,19 @@ app.secret_key = "srm-eee-library-secure-key-2026"
 initialize_db()
 
 
+def trigger_background_github_sync(action_name="Circulation update"):
+    """Trigger non-blocking background sync of database to GitHub."""
+    import threading
+    from library_app.utils.github_backup import push_database_to_github
+    def _sync():
+        try:
+            now_str = datetime.now().strftime("%d-%b-%Y %I:%M %p IST")
+            push_database_to_github(commit_message=f"Auto-Sync: {action_name} ({now_str})")
+        except Exception as e:
+            print(f"[Auto-Sync Error] {e}")
+    threading.Thread(target=_sync, daemon=True).start()
+
+
 @app.template_filter("format_edition")
 def format_edition_filter(val):
     return normalize_edition(val)
@@ -435,6 +448,9 @@ def api_issue():
         else:
             errors.append(msg)
 
+    if issued_count > 0:
+        trigger_background_github_sync(f"Issued {issued_count} book(s)")
+
     if issued_count == len(book_ids):
         due_str = f" Due date: {due_dates[0]}" if due_dates else ""
         return jsonify({
@@ -466,6 +482,7 @@ def api_return():
     return_time = (data.get("return_time") or "").strip() or None
     success, result = return_book(transaction_id, return_date=return_date, return_time=return_time)
     if success:
+        trigger_background_github_sync("Book returned")
         fine = float(result)
         time_display = f" at {return_time}" if return_time else ""
         return jsonify({
