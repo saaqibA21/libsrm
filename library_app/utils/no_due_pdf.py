@@ -1,5 +1,6 @@
 import os
 import io
+import re
 from datetime import datetime
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.pdfgen import canvas
@@ -108,20 +109,58 @@ def generate_no_due_certificate_pdf(patron: dict, cert_date: str = None, cert_id
     c.line(title_x, title_y - 4, title_x + title_w, title_y - 4)
 
     # 4. Certificate Body Text
-    name = (patron.get("name") or "STUDENT").strip().upper()
     reg_no = (patron.get("register_number") or patron.get("barcode") or "").strip().upper()
     ptype = (patron.get("patron_type") or "student").lower()
     is_staff = ptype in ("teacher", "faculty", "staff")
     is_scholar = ptype in ("research_scholar", "scholar")
 
-    salutation = "Mr./Ms." if (not is_staff and not is_scholar) else ("Dr./Mr./Ms.")
+    raw_name = (patron.get("name") or "Student").strip()
+
+    # Detect if name starts with an existing prefix (Dr., Mr., Ms., Mrs.)
+    m = re.match(r'^(Dr\.|Dr|Doctor|Mr\.|Mr|Ms\.|Ms|Mrs\.|Mrs)\s+', raw_name, re.IGNORECASE)
+    existing_prefix = m.group(1) if m else None
+    if m:
+        remaining_name = raw_name[m.end():].strip()
+    else:
+        remaining_name = raw_name
+
+    # Proper Title Case formatter that preserves initials (e.g. A. Dominic Savio, E Mahizhnan)
+    tokens = remaining_name.split()
+    formatted_tokens = []
+    for t in tokens:
+        if '.' in t:
+            parts = [p.capitalize() for p in t.split('.')]
+            formatted_tokens.append('.'.join(parts))
+        else:
+            formatted_tokens.append(t.capitalize())
+    clean_name = ' '.join(formatted_tokens) if formatted_tokens else "Student"
+
+    # Salutation / Prefix logic
+    if existing_prefix:
+        pref_lower = existing_prefix.lower().replace('.', '')
+        if pref_lower in ('dr', 'doctor'):
+            salutation = "Dr."
+        elif pref_lower == 'mr':
+            salutation = "Mr."
+        elif pref_lower in ('ms', 'mrs'):
+            salutation = "Ms."
+        else:
+            salutation = existing_prefix.capitalize()
+    else:
+        if is_staff or is_scholar:
+            if "dr" in raw_name.lower():
+                salutation = "Dr."
+            else:
+                salutation = "Mr./Ms."
+        else:
+            salutation = "Mr. / Miss"
+
+    name = clean_name
     role_label = "Research Scholar" if is_scholar else ("Staff" if is_staff else "Student")
 
     # Department / Class string
-    if is_scholar:
-        dept_str = patron.get("designation") or "Research Scholar, Department of Electrical and Electronics Engineering"
-    elif is_staff:
-        dept_str = patron.get("designation") or "Electrical and Electronics Engineering"
+    if is_scholar or is_staff:
+        dept_str = "Electrical and Electronics Engineering"
     else:
         year = patron.get("year", "")
         sec = patron.get("section", "")
@@ -136,17 +175,18 @@ def generate_no_due_certificate_pdf(patron: dict, cert_date: str = None, cert_id
     body_y = h - 235
     line_spacing = 38
 
-    # Line 1: This is to certify that Mr./Ms. [NAME]
+    # Line 1: This is to certify that [salutation] [NAME]
     c.setFont("Helvetica", 14)
     c.setFillColor(TEXT_BLACK)
-    c.drawString(58, body_y, f"This is to certify that {salutation}")
+    certify_text = f"This is to certify that {salutation}"
+    c.drawString(58, body_y, certify_text)
 
-    name_start_x = 58 + c.stringWidth(f"This is to certify that {salutation} ", "Helvetica", 14)
+    name_start_x = 58 + c.stringWidth(certify_text + " ", "Helvetica", 14)
     c.setFont("Helvetica-Bold", 15)
     c.setFillColor(SRM_BLUE)
     c.drawString(name_start_x, body_y, name)
 
-    # Decorative solid underline for student name
+    # Decorative solid underline for certified name
     name_w = c.stringWidth(name, "Helvetica-Bold", 15)
     c.setStrokeColor(SRM_BLUE)
     c.setLineWidth(1.2)
@@ -184,11 +224,11 @@ def generate_no_due_certificate_pdf(patron: dict, cert_date: str = None, cert_id
     c.setFillColor(TEXT_BLACK)
     c.drawString(dept_end_x, body_y, "Department")
 
-    # Line 3: has returned all the books and non-books borrowed from the Library. He/she owes
+    # Line 3: has returned all the books borrowed from the Library. He/she owes
     body_y -= line_spacing
     c.setFont("Helvetica", 14)
     c.setFillColor(TEXT_BLACK)
-    c.drawString(58, body_y, "has returned all the books and non-books borrowed from the Library. He/she owes")
+    c.drawString(58, body_y, "has returned all the books borrowed from the Library. He/she owes")
 
     # Line 4: no due to the Library.
     body_y -= 26

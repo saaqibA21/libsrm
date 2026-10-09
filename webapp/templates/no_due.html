@@ -332,7 +332,7 @@
       <!-- Body Content -->
       <div style="font-size: 15px; line-height: 2.3; color: #111827; margin-bottom: 24px;">
         <div>
-          This is to certify that Mr./Ms. <strong id="modalCertName" style="color: #1A365D; text-decoration: underline; font-size: 16px; margin: 0 4px;">—</strong>
+          This is to certify that <span id="modalCertPrefix">Mr. / Miss</span> <strong id="modalCertName" style="color: #1A365D; text-decoration: underline; font-size: 16px; margin: 0 4px;">—</strong>
         </div>
         <div>
           Library Member ID <strong id="modalCertReg" style="color: #1A365D; text-decoration: underline; margin: 0 4px;">—</strong>
@@ -340,7 +340,7 @@
           <span id="modalCertRole">Student</span> of <strong id="modalCertDept" style="color: #1A365D; text-decoration: underline; margin: 0 4px;">—</strong> Department
         </div>
         <div>
-          has returned all the books and non-books borrowed from the Library. He/she owes no due to the Library.
+          has returned all the books borrowed from the Library. He/she owes no due to the Library.
         </div>
       </div>
 
@@ -677,26 +677,77 @@ function renderResults(data) {
   container.style.display = 'block';
 }
 
+function formatPatronCertName(patron) {
+  const rawName = (patron.name || 'Student').trim();
+  const ptype = (patron.patron_type || 'student').toLowerCase();
+  const isStaff = ptype === 'teacher' || ptype === 'faculty' || ptype === 'staff';
+  const isScholar = ptype === 'research_scholar' || ptype === 'scholar';
+
+  const prefixMatch = rawName.match(/^(Dr\.|Dr|Doctor|Mr\.|Mr|Ms\.|Ms|Mrs\.|Mrs)\s+/i);
+  let prefix = '';
+  let cleanName = rawName;
+  if (prefixMatch) {
+    prefix = prefixMatch[1];
+    cleanName = rawName.substring(prefixMatch[0].length).trim();
+  }
+
+  // Proper Title Case for cleanName while preserving initials (e.g. A. Dominic Savio)
+  const tokens = cleanName.split(/\s+/);
+  const formattedTokens = tokens.map(t => {
+    if (t.includes('.')) {
+      return t.split('.').map(part => part ? part.charAt(0).toUpperCase() + part.slice(1).toLowerCase() : '').join('.');
+    }
+    return t ? t.charAt(0).toUpperCase() + t.slice(1).toLowerCase() : '';
+  });
+  const titleName = formattedTokens.join(' ') || 'Student';
+
+  let salutation = 'Mr. / Miss';
+  if (prefix) {
+    const prefClean = prefix.toLowerCase().replace('.', '');
+    if (prefClean === 'dr' || prefClean === 'doctor') {
+      salutation = 'Dr.';
+    } else if (prefClean === 'mr') {
+      salutation = 'Mr.';
+    } else if (prefClean === 'ms' || prefClean === 'mrs') {
+      salutation = 'Ms.';
+    } else {
+      salutation = prefix;
+    }
+  } else if (isStaff || isScholar) {
+    if (rawName.toLowerCase().includes('dr')) {
+      salutation = 'Dr.';
+    } else {
+      salutation = 'Mr./Ms.';
+    }
+  } else {
+    salutation = 'Mr. / Miss';
+  }
+
+  return { salutation, cleanName: titleName };
+}
+
 function openCertPreviewModal() {
   if (!currentPatron || !currentCertData) return;
   const p = currentPatron;
   const d = currentCertData;
 
-  const isStaff = (p.patron_type || '').toLowerCase() === 'teacher' || (p.patron_type || '').toLowerCase() === 'faculty';
+  const isStaff = (p.patron_type || '').toLowerCase() === 'teacher' || (p.patron_type || '').toLowerCase() === 'faculty' || (p.patron_type || '').toLowerCase() === 'staff';
   const isScholar = (p.patron_type || '').toLowerCase() === 'research_scholar' || (p.patron_type || '').toLowerCase() === 'scholar';
   let deptText = '';
-  if (isScholar) {
-    deptText = p.designation || 'Research Scholar, Department of Electrical and Electronics Engineering';
-  } else if (isStaff) {
-    deptText = p.designation || 'Electrical and Electronics Engineering';
+  if (isScholar || isStaff) {
+    deptText = 'Electrical and Electronics Engineering';
   } else {
-    deptText = `EEE ${p.year ? '(Year ' + p.year + (p.section ? ' - Section ' + p.section : '') + ')' : ''}`;
+    const yStr = p.year ? `(Year ${p.year}${p.section ? ' - Section ' + p.section : ''})` : '';
+    deptText = `EEE ${yStr}`.trim() || 'Electrical and Electronics Engineering';
   }
+
+  const { salutation, cleanName } = formatPatronCertName(p);
 
   document.getElementById('modalCertId').textContent = d.certificate_id;
   document.getElementById('modalCertDate').textContent = d.issue_date;
   document.getElementById('modalCertDate2').textContent = d.issue_date;
-  document.getElementById('modalCertName').textContent = p.name.toUpperCase();
+  document.getElementById('modalCertPrefix').textContent = salutation;
+  document.getElementById('modalCertName').textContent = cleanName;
   document.getElementById('modalCertReg').textContent = (p.register_number || p.barcode).toUpperCase();
   document.getElementById('modalCertRole').textContent = isScholar ? 'Research Scholar' : (isStaff ? 'Staff' : 'Student');
   document.getElementById('modalCertDept').textContent = deptText;
