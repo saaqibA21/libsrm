@@ -364,17 +364,40 @@ def _format_book_dict(d):
     return d
 
 
+def normalize_account_number(acc):
+    """
+    Normalizes account / accession number:
+    1. Strips leading and trailing whitespace.
+    2. Strips leading zeros (e.g. '0123' -> '123', '0OLD1' -> 'OLD1').
+    3. Converts to uppercase so 'old1', 'Old1', 'OLD1' are treated as identical.
+    """
+    if not acc:
+        return ""
+    val = str(acc).strip()
+    val = val.lstrip("0").strip()
+    return val.upper()
+
+
 # ─── Books ─────────────────────────────────────────────────────────────────────
 
 def add_book(barcode, title, publisher="", authors="", edition="", account_number=""):
     edition = normalize_edition(edition)
+    account_number = normalize_account_number(account_number)
+    if not account_number:
+        return False, "Account number is mandatory and cannot start with 0"
+
     conn = get_connection()
+    # Check if a book with the same account number already exists (case-insensitive)
+    existing_acc = conn.execute("SELECT barcode, title FROM books WHERE UPPER(account_number) = ?", (account_number,)).fetchone()
+    if existing_acc:
+        conn.close()
+        return False, f"Account number '{account_number}' already exists for book '{existing_acc[1]}' ({existing_acc[0]})"
+
     if not barcode:
-        clean_acc = (account_number or "").strip()
-        if clean_acc:
-            barcode = f"BK{clean_acc}"
-        else:
-            barcode = f"BK{int(datetime.now().timestamp() * 1000)}"
+        barcode = f"BK{account_number}"
+    else:
+        barcode = barcode.strip().upper()
+
     try:
         conn.execute("""
             INSERT INTO books (barcode, account_number, title, publisher, authors, edition)
@@ -383,20 +406,33 @@ def add_book(barcode, title, publisher="", authors="", edition="", account_numbe
         conn.commit()
         return True, f"Book added successfully! Barcode: {barcode}"
     except sqlite3.IntegrityError:
-        return False, "Barcode already exists"
+        return False, f"Barcode '{barcode}' already exists"
     finally:
         conn.close()
 
 
 def update_book(book_id, title, publisher, authors, edition, account_number):
     edition = normalize_edition(edition)
+    account_number = normalize_account_number(account_number)
+    if not account_number:
+        return False, "Account number is mandatory and cannot start with 0"
+
     conn = get_connection()
+    existing_acc = conn.execute(
+        "SELECT barcode, title FROM books WHERE UPPER(account_number) = ? AND id != ?",
+        (account_number, book_id)
+    ).fetchone()
+    if existing_acc:
+        conn.close()
+        return False, f"Account number '{account_number}' is already used by '{existing_acc[1]}'"
+
     conn.execute("""
         UPDATE books SET title=?, publisher=?, authors=?, edition=?, account_number=?
         WHERE id=?
     """, (title, publisher, authors, edition, account_number, book_id))
     conn.commit()
     conn.close()
+    return True, "Book updated successfully"
 
 
 def delete_book(book_id):
@@ -409,7 +445,7 @@ def delete_book(book_id):
 def get_book_by_barcode(barcode):
     """
     Lookup a book by barcode or accession / account number.
-    Handles case-insensitivity, spaces, and 'BK' prefix variations.
+    Handles case-insensitivity, spaces, leading zeroes, and 'BK' prefix variations.
     """
     if not barcode:
         return None
@@ -419,6 +455,7 @@ def get_book_by_barcode(barcode):
 
     conn = get_connection()
     clean = ident.replace(" ", "").replace("-", "")
+    clean_no_zero = clean.lstrip("0") or clean
 
     row = conn.execute("""
         SELECT * FROM books
@@ -426,28 +463,37 @@ def get_book_by_barcode(barcode):
            OR UPPER(account_number) = UPPER(?)
            OR UPPER(barcode) = UPPER(?)
            OR UPPER(account_number) = UPPER(?)
-    """, (ident, ident, clean, clean)).fetchone()
+           OR UPPER(account_number) = UPPER(?)
+           OR UPPER(barcode) = UPPER(?)
+    """, (ident, ident, clean, clean, clean_no_zero, f"BK{clean_no_zero}")).fetchone()
 
     if not row:
         stripped_bk = clean[2:] if clean.upper().startswith("BK") else clean
+        stripped_bk_no_zero = stripped_bk.lstrip("0") or stripped_bk
         row = conn.execute("""
             SELECT * FROM books
             WHERE UPPER(barcode) = UPPER(?)
                OR UPPER(barcode) = UPPER(?)
                OR UPPER(account_number) = UPPER(?)
-        """, (f"BK{clean}", stripped_bk, stripped_bk)).fetchone()
+               OR UPPER(account_number) = UPPER(?)
+        """, (f"BK{clean}", stripped_bk, stripped_bk, stripped_bk_no_zero)).fetchone()
 
     # Fallback: match by account_number, exact title, or title/author LIKE
     if not row:
         row = conn.execute("""
             SELECT * FROM books
             WHERE UPPER(account_number) = UPPER(?)
+               OR UPPER(account_number) = UPPER(?)
                OR UPPER(title) = UPPER(?)
                OR UPPER(title) LIKE UPPER(?)
                OR UPPER(authors) LIKE UPPER(?)
-            ORDER BY CASE WHEN UPPER(account_number) = UPPER(?) THEN 1 WHEN UPPER(title) = UPPER(?) THEN 2 ELSE 3 END, title
+            ORDER BY CASE 
+                WHEN UPPER(account_number) = UPPER(?) OR UPPER(account_number) = UPPER(?) THEN 1 
+                WHEN UPPER(title) = UPPER(?) THEN 2 
+                ELSE 3 
+            END, title
             LIMIT 1
-        """, (clean, ident, f"%{ident}%", f"%{ident}%", clean, ident)).fetchone()
+        """, (clean, clean_no_zero, ident, f"%{ident}%", f"%{ident}%", clean, clean_no_zero, ident)).fetchone()
 
     conn.close()
     return _format_book_dict(dict(row)) if row else None
@@ -469,8 +515,13 @@ def search_books(query="", status_filter=None, limit=None):
         clauses = []
         params = []
         for w in words:
-            clauses.append("(title LIKE ? OR authors LIKE ? OR barcode LIKE ? OR account_number LIKE ?)")
-            params.extend([f"%{w}%", f"%{w}%", f"%{w}%", f"%{w}%"])
+            w_no_zero = w.lstrip("0")
+            if w_no_zero and w_no_zero != w:
+                clauses.append("(title LIKE ? OR authors LIKE ? OR barcode LIKE ? OR account_number LIKE ? OR account_number LIKE ?)")
+                params.extend([f"%{w}%", f"%{w}%", f"%{w}%", f"%{w}%", f"%{w_no_zero}%"])
+            else:
+                clauses.append("(title LIKE ? OR authors LIKE ? OR barcode LIKE ? OR account_number LIKE ?)")
+                params.extend([f"%{w}%", f"%{w}%", f"%{w}%", f"%{w}%"])
         where_sql = " AND ".join(clauses)
     else:
         where_sql = "1=1"
@@ -1239,8 +1290,17 @@ def mark_fine_paid(transaction_id, paid=1):
 
 def search_books_with_availability(query="", status_filter=None, limit=60, offset=0):
     conn = get_connection()
-    q = f"%{query.strip()}%"
-    sql = """
+    q_str = query.strip()
+    q = f"%{q_str}%"
+    q_no_zero = q_str.lstrip("0")
+    if q_no_zero and q_no_zero != q_str:
+        q_nz_param = f"%{q_no_zero}%"
+        where_match = "(b.title LIKE ? OR b.authors LIKE ? OR b.barcode LIKE ? OR b.account_number LIKE ? OR b.account_number LIKE ? OR b.publisher LIKE ?)"
+        params = [q, q, q, q, q_nz_param, q]
+    else:
+        where_match = "(b.title LIKE ? OR b.authors LIKE ? OR b.barcode LIKE ? OR b.account_number LIKE ? OR b.publisher LIKE ?)"
+        params = [q, q, q, q, q]
+    sql = f"""
         SELECT b.*, 
                t.id as active_transaction_id,
                t.issue_date,
@@ -1250,9 +1310,8 @@ def search_books_with_availability(query="", status_filter=None, limit=60, offse
         FROM books b
         LEFT JOIN transactions t ON b.id = t.book_id AND t.status = 'issued'
         LEFT JOIN patrons p ON t.patron_id = p.id
-        WHERE (b.title LIKE ? OR b.authors LIKE ? OR b.barcode LIKE ? OR b.account_number LIKE ? OR b.publisher LIKE ?)
+        WHERE {where_match}
     """
-    params = [q, q, q, q, q]
     if status_filter == "available":
         sql += " AND b.status = 'available'"
     elif status_filter == "issued":

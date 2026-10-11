@@ -178,7 +178,7 @@
  <!-- Issue Action Buttons -->
  <div class="card" style="padding:16px;">
  <button class="btn btn-success btn-lg" id="issueBtn" disabled onclick="doIssue()" style="width:100%;justify-content:center;padding:14px;font-size:16px;">
- <i class="fa fa-upload"></i> <span id="issueBtnText">ISSUE BOOKS</span>
+ <i class="fa fa-save"></i> <span id="issueBtnText">SAVE &amp; ISSUE BOOKS</span>
  </button>
  <button class="btn btn-outline" onclick="clearAll()" style="width:100%;justify-content:center;margin-top:10px;">
  <i class="fa fa-rotate-left"></i> Clear / New Transaction
@@ -649,98 +649,130 @@ function renderQueue() {
  `).join('');
 }
 
-function updateIssueButton() {
- const btn = document.getElementById('issueBtn');
- const btnText = document.getElementById('issueBtnText');
+function closeThisTab() {
+  try {
+    window.close();
+  } catch (e) {}
 
- if (patronData && queuedBooks.length > 0) {
- btn.disabled = false;
- const count = queuedBooks.length;
- btnText.textContent = `ISSUE ${count} BOOK${count > 1 ? 'S' : ''} TO ${patronData.name.toUpperCase()}`;
- } else {
- btn.disabled = true;
- if (!patronData) {
- btnText.textContent = 'ISSUE BOOKS (Scan Patron First)';
- } else {
- btnText.textContent = `ISSUE BOOKS (Scan Books for ${patronData.name})`;
- }
- }
+  setTimeout(() => {
+    if (!window.closed) {
+      if (window.opener) {
+        window.close();
+      } else if (document.referrer && document.referrer.includes(window.location.host)) {
+        window.location.href = document.referrer;
+      } else {
+        window.location.href = '/dashboard';
+      }
+    }
+  }, 350);
+}
+
+function updateIssueButton() {
+  const btn = document.getElementById('issueBtn');
+  const btnText = document.getElementById('issueBtnText');
+
+  if (patronData && queuedBooks.length > 0) {
+    btn.disabled = false;
+    const count = queuedBooks.length;
+    btnText.textContent = `SAVE & ISSUE ${count} BOOK${count > 1 ? 'S' : ''} TO ${patronData.name.toUpperCase()}`;
+  } else {
+    btn.disabled = true;
+    if (!patronData) {
+      btnText.textContent = 'SAVE & ISSUE BOOKS (Scan Patron First)';
+    } else {
+      btnText.textContent = `SAVE & ISSUE BOOKS (Scan Books for ${patronData.name})`;
+    }
+  }
 }
 
 async function doIssue() {
- if (!patronData || queuedBooks.length === 0) return;
+  if (!patronData || queuedBooks.length === 0) return;
 
- const btn = document.getElementById('issueBtn');
- btn.disabled = true;
- btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Processing Issue…';
+  const btn = document.getElementById('issueBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Saving & Issuing...';
 
- // If in real-time mode, sync to exact second of issue
- if (!isManualIssueTime) {
- const now = new Date();
- const timeInput = document.getElementById('issueTime');
- if (timeInput) timeInput.value = getLocalTimeString(now, true);
- }
- if (!isManualIssueDate) {
- const dateInput = document.getElementById('issueDate');
- if (dateInput) dateInput.value = getLocalDateString(new Date());
- }
+  // If in real-time mode, sync to exact second of issue
+  if (!isManualIssueTime) {
+    const now = new Date();
+    const timeInput = document.getElementById('issueTime');
+    if (timeInput) timeInput.value = getLocalTimeString(now, true);
+  }
+  if (!isManualIssueDate) {
+    const dateInput = document.getElementById('issueDate');
+    if (dateInput) dateInput.value = getLocalDateString(new Date());
+  }
 
- const bookIds = queuedBooks.map(b => b.id);
- const payload = {
- patron_id: patronData.id,
- patron_type: patronData.patron_type,
- book_ids: bookIds,
- issue_date: document.getElementById('issueDate').value,
- issue_time: document.getElementById('issueTime') ? document.getElementById('issueTime').value : '',
- due_date: document.getElementById('dueDate').value
- };
+  const bookIds = queuedBooks.map(b => b.id);
+  const payload = {
+    patron_id: patronData.id,
+    patron_type: patronData.patron_type,
+    book_ids: bookIds,
+    issue_date: document.getElementById('issueDate').value,
+    issue_time: document.getElementById('issueTime') ? document.getElementById('issueTime').value : '',
+    due_date: document.getElementById('dueDate').value
+  };
 
- try {
- const res = await postJSON('/api/issue', payload);
- const box = document.getElementById('resultBox');
- box.style.display = 'block';
+  try {
+    const res = await postJSON('/api/issue', payload);
+    const box = document.getElementById('resultBox');
+    box.style.display = 'block';
 
- if (res.success) {
- box.style.border = '1px solid var(--success)';
- box.style.background = 'rgba(22, 101, 52, 0.05)';
- box.innerHTML = `
- <div style="color:var(--success);font-size:16px;font-weight:700;">
- <i class="fa fa-circle-check"></i> ${res.message}
- </div>
- <div style="margin-top:8px;font-size:13.5px;">
- Issued to: <strong>${patronData.name}</strong> (${patronData.register_number || patronData.barcode})
- </div>
- <div style="margin-top:4px;color:var(--muted);font-size:12.5px;">
- Issue Recorded: <strong>${document.getElementById('issueDate').value}${document.getElementById('issueTime') && document.getElementById('issueTime').value ? ' at ' + document.getElementById('issueTime').value : ''}</strong> | Total books: <strong>${res.issued_count || bookIds.length}</strong>
- </div>
- `;
- showToast(`Successfully issued ${res.issued_count || bookIds.length} book(s)!`, 'success');
- 
- // Clear book queue
- queuedBooks = [];
- renderQueue();
- 
- // Refresh patron details to update their active books count
- setTimeout(async () => {
- if (patronData) {
- const fresh = await fetch(`/api/scan/patron/${encodeURIComponent(patronData.barcode)}`).then(r => r.json());
- if (fresh.found) fillPatronDetails(fresh.patron, fresh.active_books || []);
- }
- }, 500);
+    if (res.success) {
+      box.style.border = '1px solid var(--success)';
+      box.style.background = 'rgba(22, 101, 52, 0.05)';
+      box.innerHTML = `
+        <div style="color:var(--success);font-size:16px;font-weight:700;">
+          <i class="fa fa-circle-check"></i> ${res.message}
+        </div>
+        <div style="margin-top:8px;font-size:13.5px;">
+          Issued to: <strong>${patronData.name}</strong> (${patronData.register_number || patronData.barcode})
+        </div>
+        <div style="margin-top:4px;color:var(--muted);font-size:12.5px;">
+          Issue Recorded: <strong>${document.getElementById('issueDate').value}${document.getElementById('issueTime') && document.getElementById('issueTime').value ? ' at ' + document.getElementById('issueTime').value : ''}</strong> | Total books: <strong>${res.issued_count || bookIds.length}</strong>
+        </div>
+        <div style="margin-top:14px;padding:12px 14px;background:#ECFDF5;border:1.5px solid #10B981;border-radius:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+          <span style="color:#065F46;font-size:13px;font-weight:700;">
+            <i class="fa fa-spinner fa-spin"></i> Issue saved successfully. Closing tab in 1 second...
+          </span>
+          <button type="button" class="btn btn-outline btn-sm" onclick="closeThisTab()" style="font-weight:700;">
+            <i class="fa fa-times"></i> Close Tab Now
+          </button>
+        </div>
+      `;
+      showToast(`Successfully issued ${res.issued_count || bookIds.length} book(s)! Closing tab...`, 'success');
+      
+      // Clear book queue
+      queuedBooks = [];
+      renderQueue();
+      
+      // Refresh patron details to update their active books count
+      setTimeout(async () => {
+        if (patronData) {
+          const fresh = await fetch(`/api/scan/patron/${encodeURIComponent(patronData.barcode)}`).then(r => r.json());
+          if (fresh.found) fillPatronDetails(fresh.patron, fresh.active_books || []);
+        }
+      }, 400);
 
- } else {
- box.style.border = '1px solid var(--danger)';
- box.style.background = 'rgba(153, 27, 27, 0.05)';
- box.innerHTML = `<div style="color:var(--danger);font-weight:700;"><i class="fa fa-circle-xmark"></i> ${res.message}</div>`;
- showToast(res.message, 'error');
- }
- } catch (err) {
- showToast('Failed to connect to server', 'error');
- } finally {
- btn.innerHTML = '<i class="fa fa-upload"></i> <span id="issueBtnText">ISSUE BOOKS</span>';
- updateIssueButton();
- }
+      // Automatically close tab after 1.1 seconds
+      setTimeout(() => {
+        closeThisTab();
+      }, 1100);
+
+    } else {
+      box.style.border = '1px solid var(--danger)';
+      box.style.background = 'rgba(153, 27, 27, 0.05)';
+      box.innerHTML = `<div style="color:var(--danger);font-weight:700;"><i class="fa fa-circle-xmark"></i> ${res.message}</div>`;
+      showToast(res.message, 'error');
+    }
+  } catch (err) {
+    showToast('Failed to connect to server', 'error');
+  } finally {
+    btn.innerHTML = '<i class="fa fa-save"></i> <span id="issueBtnText">SAVE &amp; ISSUE BOOKS</span>';
+    updateIssueButton();
+  }
 }
+
 
 function fillBookDetails(b) {
  document.getElementById('d-title').textContent = b.title || '—';

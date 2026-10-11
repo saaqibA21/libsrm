@@ -55,7 +55,7 @@ class BookDialog(QDialog):
         self.edition_edit.setPlaceholderText("e.g. 3rd or NIL")
 
         form.addRow("Barcode *", self.barcode_edit)
-        form.addRow("Account No.", self.accnum_edit)
+        form.addRow("Account No. *", self.accnum_edit)
         form.addRow("Title *", self.title_edit)
         form.addRow("Publisher", self.publisher_edit)
         form.addRow("Authors", self.authors_edit)
@@ -79,6 +79,10 @@ class BookDialog(QDialog):
         self.edition_edit.setText(book.get("edition", ""))
 
     def _validate_and_accept(self):
+        acc = self.accnum_edit.text().strip().lstrip("0").upper()
+        if not acc:
+            QMessageBox.warning(self, "Validation", "Account Number is mandatory and cannot start with 0.")
+            return
         if not self.barcode_edit.text().strip():
             QMessageBox.warning(self, "Validation", "Barcode is required.")
             return
@@ -89,8 +93,8 @@ class BookDialog(QDialog):
 
     def get_data(self):
         return {
-            "barcode": self.barcode_edit.text().strip(),
-            "account_number": self.accnum_edit.text().strip(),
+            "barcode": self.barcode_edit.text().strip().upper(),
+            "account_number": self.accnum_edit.text().strip().lstrip("0").upper(),
             "title": self.title_edit.text().strip(),
             "publisher": self.publisher_edit.text().strip(),
             "authors": self.authors_edit.text().strip(),

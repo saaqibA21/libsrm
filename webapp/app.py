@@ -13,6 +13,7 @@ import socket
 from library_app.database import (
     initialize_db, get_setting, set_setting, get_all_settings,
     add_book, update_book, delete_book, get_book_by_barcode, get_book_by_id,
+    normalize_account_number,
     search_books, get_all_books, count_books,
     search_books_with_availability, count_search_books, get_book_with_full_details,
     add_patron, update_patron, delete_patron, get_patron_by_barcode,
@@ -511,14 +512,21 @@ def add_book_route():
     if not require_staff():
         return jsonify({"success": False, "message": "Unauthorized"}), 403
     d = request.form
+    raw_acc = d.get("account_number", "").strip()
+    acc = normalize_account_number(raw_acc)
+    if not acc:
+        return jsonify({"success": False, "message": "Account Number is mandatory and cannot start with 0"}), 400
+
     success, msg = add_book(
         barcode=d.get("barcode", "").strip(),
         title=d.get("title", "").strip(),
         publisher=d.get("publisher", "").strip(),
         authors=d.get("authors", "").strip(),
         edition=d.get("edition", "").strip(),
-        account_number=d.get("account_number", "").strip(),
+        account_number=acc,
     )
+    if success:
+        trigger_background_github_sync(f"Added book '{d.get('title', '').strip()}' (Acc: {acc})")
     return jsonify({"success": success, "message": msg})
 
 
@@ -527,9 +535,23 @@ def edit_book_route(book_id):
     if not require_staff():
         return jsonify({"success": False, "message": "Unauthorized"}), 403
     d = request.form
-    update_book(book_id, d.get("title"), d.get("publisher"),
-                d.get("authors"), d.get("edition"), d.get("account_number"))
-    return jsonify({"success": True, "message": "Book updated"})
+    raw_acc = d.get("account_number", "").strip()
+    acc = normalize_account_number(raw_acc)
+    if not acc:
+        return jsonify({"success": False, "message": "Account Number is mandatory and cannot start with 0"}), 400
+
+    success, msg = update_book(
+        book_id,
+        d.get("title", "").strip(),
+        d.get("publisher", "").strip(),
+        d.get("authors", "").strip(),
+        d.get("edition", "").strip(),
+        acc
+    )
+    if not success:
+        return jsonify({"success": False, "message": msg}), 400
+    trigger_background_github_sync(f"Updated book #{book_id} (Acc: {acc})")
+    return jsonify({"success": True, "message": msg or "Book updated successfully"})
 
 
 @app.route("/books/delete/<int:book_id>", methods=["POST"])

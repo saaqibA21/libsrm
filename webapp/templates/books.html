@@ -127,8 +127,8 @@
  <input class="form-control" id="f-barcode" placeholder="Leave blank to auto-generate (e.g. BK…)">
  </div>
  <div class="form-group">
- <label>Account No.</label>
- <input class="form-control" id="f-accnum" placeholder="e.g. 131853">
+ <label>Account No. <span style="color:var(--danger)">*</span> <small style="color:var(--muted);font-weight:normal;">(Mandatory, cannot start with 0)</small></label>
+ <input class="form-control" id="f-accnum" placeholder="e.g. 131853 or OLD1" required autocomplete="off">
  </div>
  </div>
  <div class="form-group"><label>Title *</label><input class="form-control" id="f-title" placeholder="Book title"></div>
@@ -373,13 +373,24 @@ function openAddBook() {
 async function saveBook() {
  const id = document.getElementById('editBookId').value;
  const fd = new FormData();
+ let acc = document.getElementById('f-accnum').value.replace(/^0+/, '').trim().toUpperCase();
+ if (!acc) {
+  showToast('Account Number is mandatory and cannot start with 0', 'error');
+  document.getElementById('f-accnum').focus();
+  return;
+ }
+ const title = document.getElementById('f-title').value.trim();
+ if (!title) {
+  showToast('Title is required', 'error');
+  document.getElementById('f-title').focus();
+  return;
+ }
  fd.append('barcode', document.getElementById('f-barcode').value.trim());
- fd.append('account_number', document.getElementById('f-accnum').value.trim());
- fd.append('title', document.getElementById('f-title').value.trim());
+ fd.append('account_number', acc);
+ fd.append('title', title);
  fd.append('authors', document.getElementById('f-authors').value.trim());
  fd.append('publisher', document.getElementById('f-publisher').value.trim());
  fd.append('edition', document.getElementById('f-edition').value.trim());
- if (!fd.get('title')) { showToast('Title is required', 'error'); return; }
  const url = id ? `/books/edit/${id}` : '/books/add';
  const res = await postForm(url, fd);
  if (res.success) { showToast(res.message, 'success'); closeModal('addBookModal'); setTimeout(()=>location.reload(), 800); }
@@ -498,4 +509,19 @@ function printSingleLabel() {
  `);
  printWin.document.close();
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+ const accInput = document.getElementById('f-accnum');
+ if (accInput) {
+  accInput.addEventListener('input', function() {
+   let clean = this.value.replace(/^0+/, '').toUpperCase();
+   if (this.value !== clean) {
+    this.value = clean;
+   }
+  });
+  accInput.addEventListener('blur', function() {
+   this.value = this.value.replace(/^0+/, '').trim().toUpperCase();
+  });
+ }
+});
 </script>{% endblock %}
