@@ -653,18 +653,6 @@ function closeThisTab() {
   try {
     window.close();
   } catch (e) {}
-
-  setTimeout(() => {
-    if (!window.closed) {
-      if (window.opener) {
-        window.close();
-      } else if (document.referrer && document.referrer.includes(window.location.host)) {
-        window.location.href = document.referrer;
-      } else {
-        window.location.href = '/dashboard';
-      }
-    }
-  }, 350);
 }
 
 function updateIssueButton() {
@@ -733,18 +721,27 @@ async function doIssue() {
         </div>
         <div style="margin-top:14px;padding:12px 14px;background:#ECFDF5;border:1.5px solid #10B981;border-radius:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
           <span style="color:#065F46;font-size:13px;font-weight:700;">
-            <i class="fa fa-spinner fa-spin"></i> Issue saved successfully. Closing tab in 1 second...
+            <i class="fa fa-circle-check"></i> Books issued and recorded successfully!
           </span>
-          <button type="button" class="btn btn-outline btn-sm" onclick="closeThisTab()" style="font-weight:700;">
-            <i class="fa fa-times"></i> Close Tab Now
-          </button>
+          <div style="display:flex;gap:8px;">
+            <button type="button" class="btn btn-outline btn-sm" onclick="clearAll()" style="font-weight:700;background:#fff;">
+              <i class="fa fa-user-plus"></i> New Patron Transaction
+            </button>
+          </div>
         </div>
       `;
-      showToast(`Successfully issued ${res.issued_count || bookIds.length} book(s)! Closing tab...`, 'success');
+      showToast(`Successfully issued ${res.issued_count || bookIds.length} book(s)!`, 'success');
       
       // Clear book queue
       queuedBooks = [];
       renderQueue();
+
+      // Clear book input & focus it so user can keep issuing
+      const bInput = document.getElementById('bookBarcode');
+      if (bInput) {
+        bInput.value = '';
+        bInput.focus();
+      }
       
       // Refresh patron details to update their active books count
       setTimeout(async () => {
@@ -753,11 +750,6 @@ async function doIssue() {
           if (fresh.found) fillPatronDetails(fresh.patron, fresh.active_books || []);
         }
       }, 400);
-
-      // Automatically close tab after 1.1 seconds
-      setTimeout(() => {
-        closeThisTab();
-      }, 1100);
 
     } else {
       box.style.border = '1px solid var(--danger)';
