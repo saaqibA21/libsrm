@@ -129,6 +129,9 @@
  <div class="form-group">
  <label>Account No. <span style="color:var(--danger)">*</span> <small style="color:var(--muted);font-weight:normal;">(Mandatory, cannot start with 0)</small></label>
  <input class="form-control" id="f-accnum" placeholder="e.g. 131853 or OLD1" required autocomplete="off">
+ <div id="accnumErrorMsg" style="display:none; color:#DC2626; font-size:12px; font-weight:700; margin-top:5px;">
+  <i class="fa fa-circle-exclamation"></i> Account Number is mandatory and cannot start with 0
+ </div>
  </div>
  </div>
  <div class="form-group"><label>Title *</label><input class="form-control" id="f-title" placeholder="Book title"></div>
@@ -362,7 +365,12 @@ function openAddBook() {
  document.getElementById('f-barcode').value = '';
  document.getElementById('f-barcode').readOnly = false;
  document.getElementById('f-barcode').placeholder = 'Leave blank to auto-generate (e.g. BK…)';
- document.getElementById('f-accnum').value = '';
+ const accEl = document.getElementById('f-accnum');
+ accEl.value = '';
+ accEl.style.borderColor = '';
+ accEl.style.boxShadow = '';
+ const errEl = document.getElementById('accnumErrorMsg');
+ if (errEl) errEl.style.display = 'none';
  document.getElementById('f-title').value = '';
  document.getElementById('f-authors').value = '';
  document.getElementById('f-publisher').value = '';
@@ -373,11 +381,23 @@ function openAddBook() {
 async function saveBook() {
  const id = document.getElementById('editBookId').value;
  const fd = new FormData();
- let acc = document.getElementById('f-accnum').value.replace(/^0+/, '').trim().toUpperCase();
+ const accInput = document.getElementById('f-accnum');
+ const errDiv = document.getElementById('accnumErrorMsg');
+ let acc = accInput.value.replace(/^0+/, '').trim().toUpperCase();
  if (!acc) {
+  if (errDiv) {
+   errDiv.innerHTML = '<i class="fa fa-circle-exclamation"></i> Account Number is mandatory and cannot start with 0';
+   errDiv.style.display = 'block';
+  }
+  accInput.style.borderColor = '#DC2626';
+  accInput.style.boxShadow = '0 0 0 3px rgba(220, 38, 38, 0.2)';
+  accInput.focus();
   showToast('Account Number is mandatory and cannot start with 0', 'error');
-  document.getElementById('f-accnum').focus();
   return;
+ } else {
+  if (errDiv) errDiv.style.display = 'none';
+  accInput.style.borderColor = '';
+  accInput.style.boxShadow = '';
  }
  const title = document.getElementById('f-title').value.trim();
  if (!title) {
@@ -394,7 +414,18 @@ async function saveBook() {
  const url = id ? `/books/edit/${id}` : '/books/add';
  const res = await postForm(url, fd);
  if (res.success) { showToast(res.message, 'success'); closeModal('addBookModal'); setTimeout(()=>location.reload(), 800); }
- else showToast(res.message, 'error');
+ else {
+  if (res.message && res.message.toLowerCase().includes('account number')) {
+   if (errDiv) {
+    errDiv.innerHTML = `<i class="fa fa-circle-exclamation"></i> ${escapeHtml(res.message)}`;
+    errDiv.style.display = 'block';
+   }
+   accInput.style.borderColor = '#DC2626';
+   accInput.style.boxShadow = '0 0 0 3px rgba(220, 38, 38, 0.2)';
+   accInput.focus();
+  }
+  showToast(res.message, 'error');
+ }
 }
 
 async function editBook(id) {
@@ -403,7 +434,12 @@ async function editBook(id) {
  document.getElementById('bookModalTitle').textContent = 'Edit Book';
  document.getElementById('f-barcode').value = book.barcode || '';
  document.getElementById('f-barcode').readOnly = true;
- document.getElementById('f-accnum').value = book.account_number || '';
+ const accEl = document.getElementById('f-accnum');
+ accEl.value = book.account_number || '';
+ accEl.style.borderColor = '';
+ accEl.style.boxShadow = '';
+ const errEl = document.getElementById('accnumErrorMsg');
+ if (errEl) errEl.style.display = 'none';
  document.getElementById('f-title').value = book.title || '';
  document.getElementById('f-authors').value = book.authors || '';
  document.getElementById('f-publisher').value = book.publisher || '';
@@ -517,6 +553,12 @@ document.addEventListener('DOMContentLoaded', () => {
    let clean = this.value.replace(/^0+/, '').toUpperCase();
    if (this.value !== clean) {
     this.value = clean;
+   }
+   if (clean) {
+    const errDiv = document.getElementById('accnumErrorMsg');
+    if (errDiv) errDiv.style.display = 'none';
+    this.style.borderColor = '';
+    this.style.boxShadow = '';
    }
   });
   accInput.addEventListener('blur', function() {
