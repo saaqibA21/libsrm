@@ -241,6 +241,86 @@ def library_info():
     return render_template("info.html", settings=settings)
 
 
+@app.route("/api/feedback/send", methods=["POST"])
+def api_send_feedback():
+    """Receives feedback from patrons and forwards it directly to Dr. K. Saravanan."""
+    data = request.get_json(silent=True) or request.form
+    sender_name = (data.get("name") or "Library Patron").strip()
+    sender_email = (data.get("email") or "Not provided").strip()
+    reg_no = (data.get("reg_no") or "").strip()
+    feedback_type = (data.get("type") or "Feedback / Suggestion").strip()
+    message = (data.get("message") or "").strip()
+
+    if not message:
+        return jsonify({"success": False, "message": "Feedback message cannot be empty."}), 400
+
+    recipient = "saravank3@srmist.edu.in"
+    subject = f"[{feedback_type}] SRM EEE Library — From {sender_name}"
+
+    body_html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color:#F4F6F4; margin:0; padding:24px; color:#1C3022;">
+      <div style="max-width:600px; margin:0 auto; background:#ffffff; border-radius:16px; border:1px solid #E2E8F0; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.06);">
+        <div style="background:linear-gradient(135deg, #16291C 0%, #1e3d29 100%); padding:24px 28px; color:#ffffff;">
+          <h2 style="margin:0 0 6px; font-size:20px; font-weight:700; color:#FFFFFF;">SRM EEE Department Library</h2>
+          <div style="font-size:13px; color:#86EFAC;">New Feedback / Suggestion Received</div>
+        </div>
+        <div style="padding:24px 28px;">
+          <table style="width:100%; border-collapse:collapse; margin-bottom:20px; font-size:13.5px;">
+            <tr>
+              <td style="padding:6px 0; color:#64748B; width:120px; font-weight:600;">Type:</td>
+              <td style="padding:6px 0; color:#166534; font-weight:700;">{feedback_type}</td>
+            </tr>
+            <tr>
+              <td style="padding:6px 0; color:#64748B; font-weight:600;">Sender:</td>
+              <td style="padding:6px 0; color:#0F172A; font-weight:600;">{sender_name} {'(' + reg_no + ')' if reg_no else ''}</td>
+            </tr>
+            <tr>
+              <td style="padding:6px 0; color:#64748B; font-weight:600;">Sender Email:</td>
+              <td style="padding:6px 0; color:#0F172A;">{sender_email}</td>
+            </tr>
+            <tr>
+              <td style="padding:6px 0; color:#64748B; font-weight:600;">Submitted At:</td>
+              <td style="padding:6px 0; color:#0F172A;">{datetime.now().strftime('%d-%b-%Y %I:%M %p IST')}</td>
+            </tr>
+          </table>
+
+          <div style="background:#F8FAFC; border-left:4px solid #166534; padding:16px; border-radius:0 12px 12px 0; margin-bottom:20px;">
+            <div style="font-size:12px; font-weight:700; color:#64748B; text-transform:uppercase; margin-bottom:6px;">Message Content:</div>
+            <div style="font-size:14px; line-height:1.6; color:#1E293B; white-space:pre-wrap;">{message}</div>
+          </div>
+
+          <div style="font-size:11.5px; color:#94A3B8; border-top:1px solid #E2E8F0; padding-top:14px;">
+            This feedback was submitted via the SRM EEE Department Library Web Portal (<a href="https://eeelibrary.org" style="color:#166534;">eeelibrary.org</a>).
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+    """
+
+    from library_app.utils.email_utils import send_email
+    ok, err = send_email(
+        to_addr=f"{recipient}, srmktreeedeptlibrary@gmail.com",
+        subject=subject,
+        body_html=body_html,
+        reply_to=sender_email if "@" in sender_email else None
+    )
+
+    if ok:
+        return jsonify({
+            "success": True,
+            "message": "Thank you! Your feedback has been sent directly to Dr. K. Saravanan."
+        })
+    else:
+        return jsonify({
+            "success": False,
+            "message": f"Could not dispatch email: {err}. You can also use the Gmail Web or WhatsApp button."
+        }), 500
+
+
 # ─── Staff / Librarian Authentication ──────────────────────────────────────────
 
 @app.route("/staff/login", methods=["GET", "POST"])

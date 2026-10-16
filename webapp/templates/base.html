@@ -937,6 +937,9 @@ tbody tr:last-child {
  <a href="/gratitude" class="nav-item {% if request.path == '/gratitude' %}active{% endif %}">
  <i class="fa fa-heart" style="color:#E11D48;"></i><span>Wall of Gratitude</span>
  </a>
+ <a href="javascript:void(0)" onclick="openFeedbackModal()" class="nav-item">
+ <i class="fa fa-comment-dots" style="color:#10B981;"></i><span>Feedback</span>
+ </a>
 
  {% if is_staff %}
  <div class="nav-heading" style="margin-top:10px;">Librarian Desk</div>
@@ -1015,7 +1018,7 @@ tbody tr:last-child {
   </div>
   <div style="display: flex; align-items: center; gap: 16px; font-size: 12px; flex-wrap: wrap;">
    <a href="/info" style="color: var(--accent); text-decoration: none; font-weight: 600;"><i class="fa fa-circle-info"></i> Rules &amp; In-Charges</a>
-   <a href="mailto:Saravank3@srmist.edu.in?subject=SRM%20EEE%20Library%20-%20Feedback%20/%20Suggestion" style="color: var(--accent); text-decoration: none; font-weight: 600;"><i class="fa fa-envelope"></i> Feedback: Saravank3@srmist.edu.in</a>
+   <a href="javascript:void(0)" onclick="openFeedbackModal()" style="color: var(--accent); text-decoration: none; font-weight: 600; cursor:pointer;"><i class="fa fa-comment-dots"></i> Feedback: Saravank3@srmist.edu.in</a>
   </div>
  </footer>
  </div>
@@ -1123,7 +1126,141 @@ function toggleMobileSidebar() {
  if (sb) sb.classList.toggle('open');
  if (ov) ov.classList.toggle('active');
 }
+
+function openFeedbackModal() {
+ const form = document.getElementById('feedbackForm');
+ if (form) form.reset();
+ openModal('feedbackModal');
+ setTimeout(() => {
+  const el = document.getElementById('fbMessage');
+  if (el) el.focus();
+ }, 200);
+}
+
+async function submitFeedback(event) {
+ event.preventDefault();
+ const btn = document.getElementById('btnSubmitFeedback');
+ const msg = (document.getElementById('fbMessage').value || '').trim();
+ if (!msg) {
+  showToast('Please enter your feedback message.', 'error');
+  return;
+ }
+
+ btn.disabled = true;
+ btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Sending Feedback...';
+
+ const payload = {
+  name: document.getElementById('fbName').value.trim(),
+  reg_no: document.getElementById('fbReg').value.trim(),
+  email: document.getElementById('fbEmail').value.trim(),
+  type: document.getElementById('fbType').value,
+  message: msg
+ };
+
+ try {
+  const res = await fetch('/api/feedback/send', {
+   method: 'POST',
+   headers: { 'Content-Type': 'application/json' },
+   body: JSON.stringify(payload)
+  }).then(r => r.json());
+
+  if (res.success) {
+   showToast(res.message, 'success');
+   closeModal('feedbackModal');
+   document.getElementById('feedbackForm').reset();
+  } else {
+   showToast(res.message || 'Could not send feedback.', 'error');
+  }
+ } catch (err) {
+  showToast('Network error while submitting feedback.', 'error');
+ } finally {
+  btn.disabled = false;
+  btn.innerHTML = '<i class="fa fa-paper-plane"></i> Send Feedback Directly';
+ }
+}
 </script>
+
+<!-- Feedback & Suggestions Modal -->
+<div class="modal-overlay" id="feedbackModal">
+  <div class="modal" style="max-width: 520px; width: 100%;">
+    <div class="modal-header" style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px; margin-bottom: 16px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="width:38px; height:38px; border-radius:50%; background:#DCFCE7; color:#166534; display:flex; align-items:center; justify-content:center; font-size:16px;">
+          <i class="fa fa-comment-dots"></i>
+        </div>
+        <div>
+          <h3 class="serif-heading" style="font-size: 19px; color: #16291C; margin: 0;">Library Feedback &amp; Suggestions</h3>
+          <p style="font-size: 11.5px; color: var(--muted); margin: 2px 0 0;">Forwarded directly to Faculty In-Charge Dr. K. Saravanan</p>
+        </div>
+      </div>
+      <button type="button" class="modal-close" onclick="closeModal('feedbackModal')">✕</button>
+    </div>
+
+    <!-- Direct In-Page Submission Form -->
+    <form id="feedbackForm" onsubmit="submitFeedback(event)" style="display:flex; flex-direction:column; gap:12px;">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label style="font-size:12px; font-weight:700; margin-bottom:4px; display:block;">Your Name</label>
+          <input type="text" id="fbName" class="form-control" placeholder="e.g. John Doe / Student" style="font-size:13px; padding:8px 12px;">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label style="font-size:12px; font-weight:700; margin-bottom:4px; display:block;">Register No / Staff No</label>
+          <input type="text" id="fbReg" class="form-control" placeholder="e.g. RA2111005010001" style="font-size:13px; padding:8px 12px;">
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label style="font-size:12px; font-weight:700; margin-bottom:4px; display:block;">Your Email <span style="color:var(--muted); font-weight:normal;">(for reply)</span></label>
+          <input type="email" id="fbEmail" class="form-control" placeholder="student@srmist.edu.in" style="font-size:13px; padding:8px 12px;">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label style="font-size:12px; font-weight:700; margin-bottom:4px; display:block;">Category</label>
+          <select id="fbType" class="form-control" style="font-size:13px; padding:8px 12px;">
+            <option value="Suggestion">💡 General Suggestion</option>
+            <option value="Book Request">📚 Book / Resource Request</option>
+            <option value="Compliment">🌟 Compliment &amp; Appreciation</option>
+            <option value="Issue / Concern">⚠️ Facility / Library Concern</option>
+            <option value="Other">✉️ Other Query</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:0;">
+        <label style="font-size:12px; font-weight:700; margin-bottom:4px; display:block;">Feedback Message <span style="color:var(--danger)">*</span></label>
+        <textarea id="fbMessage" class="form-control" rows="4" placeholder="Write your feedback, book recommendation, or suggestion for the library here..." required style="font-size:13px; line-height:1.5; resize:vertical;"></textarea>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-lg" id="btnSubmitFeedback" style="justify-content:center; font-weight:700; margin-top:4px;">
+        <i class="fa fa-paper-plane"></i> Send Feedback Directly
+      </button>
+    </form>
+
+    <!-- Alternative Options Divider -->
+    <div style="display:flex; align-items:center; margin:16px 0 12px; gap:10px;">
+      <div style="flex:1; height:1px; background:var(--border);"></div>
+      <span style="font-size:11px; text-transform:uppercase; font-weight:700; color:var(--muted); letter-spacing:0.04em;">Or connect via</span>
+      <div style="flex:1; height:1px; background:var(--border);"></div>
+    </div>
+
+    <!-- Quick Buttons for Web Gmail & WhatsApp & Default Client -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+      <a href="https://mail.google.com/mail/?view=cm&fs=1&to=Saravank3@srmist.edu.in&su=SRM%20EEE%20Library%20Feedback" target="_blank" class="btn btn-outline" style="font-size:12px; justify-content:center; padding:8px 10px; font-weight:600;">
+        <i class="fa fa-envelope-open-text" style="color:#EA4335;"></i> Open Gmail Web
+      </a>
+      <a href="https://api.whatsapp.com/send?text=Hello%20Dr.%20Saravanan,%20I%20have%20feedback%20regarding%20the%20SRM%20EEE%20Department%20Library:" target="_blank" class="btn btn-outline" style="font-size:12px; justify-content:center; padding:8px 10px; font-weight:600;">
+        <i class="fa-brands fa-whatsapp" style="color:#25D366; font-size:14px;"></i> Chat on WhatsApp
+      </a>
+    </div>
+
+    <div style="margin-top:10px; text-align:center;">
+      <a href="mailto:Saravank3@srmist.edu.in?subject=SRM%20EEE%20Library%20Feedback" style="font-size:11.5px; color:var(--muted); text-decoration:none;">
+        <i class="fa fa-arrow-up-right-from-square" style="font-size:10px;"></i> Open in Default Mail Client (Outlook / Mail)
+      </a>
+    </div>
+  </div>
+</div>
+
 {% block scripts %}{% endblock %}
 </body>
 </html>
