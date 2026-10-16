@@ -331,8 +331,125 @@ def initialize_db():
           AND value = 'saravank3@srmist.edu.in'
     """)
 
+    # Donors table for Wall of Gratitude
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS donors (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            photo_url TEXT,
+            books_donated INTEGER NOT NULL DEFAULT 1,
+            category TEXT DEFAULT 'Alumni',
+            designation TEXT,
+            note TEXT,
+            donated_date TEXT,
+            created_at TEXT DEFAULT (datetime('now', 'localtime'))
+        )
+    """)
+
     conn.commit()
     conn.close()
+
+
+# ─── Donors (Wall of Gratitude) ───────────────────────────────────────────────
+
+def add_donor(name, books_donated=1, photo_url=None, category="Alumni", designation="", note="", donated_date=None):
+    if not name or not str(name).strip():
+        return False, "Donor name is required"
+    try:
+        count = int(books_donated)
+        if count < 1:
+            count = 1
+    except (ValueError, TypeError):
+        count = 1
+
+    if not donated_date:
+        import datetime
+        donated_date = datetime.date.today().isoformat()
+
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO donors (name, photo_url, books_donated, category, designation, note, donated_date)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (name.strip(), photo_url, count, (category or "Alumni").strip(), (designation or "").strip(), (note or "").strip(), donated_date))
+    donor_id = c.lastrowid
+    conn.commit()
+    conn.close()
+    return True, donor_id
+
+
+def update_donor(donor_id, name, books_donated=1, photo_url=None, category="Alumni", designation="", note="", donated_date=None):
+    if not name or not str(name).strip():
+        return False, "Donor name is required"
+    try:
+        count = int(books_donated)
+        if count < 1:
+            count = 1
+    except (ValueError, TypeError):
+        count = 1
+
+    conn = get_connection()
+    if photo_url is not None:
+        conn.execute("""
+            UPDATE donors
+            SET name=?, photo_url=?, books_donated=?, category=?, designation=?, note=?, donated_date=?
+            WHERE id=?
+        """, (name.strip(), photo_url, count, (category or "Alumni").strip(), (designation or "").strip(), (note or "").strip(), donated_date, donor_id))
+    else:
+        conn.execute("""
+            UPDATE donors
+            SET name=?, books_donated=?, category=?, designation=?, note=?, donated_date=?
+            WHERE id=?
+        """, (name.strip(), count, (category or "Alumni").strip(), (designation or "").strip(), (note or "").strip(), donated_date, donor_id))
+    conn.commit()
+    conn.close()
+    return True, "Donor updated successfully"
+
+
+def delete_donor(donor_id):
+    conn = get_connection()
+    row = conn.execute("SELECT photo_url FROM donors WHERE id=?", (donor_id,)).fetchone()
+    conn.execute("DELETE FROM donors WHERE id=?", (donor_id,))
+    conn.commit()
+    conn.close()
+    return True, (row["photo_url"] if row else None)
+
+
+def get_all_donors(sort_by="books"):
+    conn = get_connection()
+    order = "books_donated DESC, id DESC" if sort_by == "books" else "donated_date DESC, id DESC"
+    rows = conn.execute(f"SELECT * FROM donors ORDER BY {order}").fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def get_donor_by_id(donor_id):
+    conn = get_connection()
+    row = conn.execute("SELECT * FROM donors WHERE id=?", (donor_id,)).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def get_donor_stats():
+    conn = get_connection()
+    row = conn.execute("""
+        SELECT 
+            COUNT(*) as total_donors,
+            COALESCE(SUM(books_donated), 0) as total_books_donated,
+            MAX(books_donated) as max_books
+        FROM donors
+    """).fetchone()
+    top = None
+    if row and row["total_donors"] > 0:
+        top_row = conn.execute("SELECT * FROM donors ORDER BY books_donated DESC, id ASC LIMIT 1").fetchone()
+        if top_row:
+            top = dict(top_row)
+    conn.close()
+    return {
+        "total_donors": row["total_donors"] if row else 0,
+        "total_books_donated": row["total_books_donated"] if row else 0,
+        "top_donor": top
+    }
 
 
 # ─── Settings ──────────────────────────────────────────────────────────────────

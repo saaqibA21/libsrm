@@ -1,0 +1,406 @@
+{% extends "base.html" %}
+{% block title %}Wall of Gratitude — SRM EEE Library{% endblock %}
+{% block page_title %}Wall of Gratitude{% endblock %}
+
+{% block content %}
+<style>
+  .gratitude-hero {
+    background: linear-gradient(135deg, #16291C 0%, #1e3d29 55%, #153221 100%);
+    color: #fff;
+    border-radius: 20px;
+    padding: 36px 36px 32px;
+    margin-bottom: 28px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 12px 32px rgba(22, 41, 28, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .gratitude-hero::after {
+    content: '';
+    position: absolute;
+    right: -30px;
+    top: -40px;
+    width: 260px;
+    height: 260px;
+    background: radial-gradient(circle, rgba(234, 179, 8, 0.18) 0%, rgba(234, 179, 8, 0) 70%);
+    pointer-events: none;
+  }
+  .hero-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(234, 179, 8, 0.15);
+    border: 1px solid rgba(234, 179, 8, 0.35);
+    color: #FDE047;
+    padding: 5px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .stat-badge-row {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-top: 24px;
+  }
+  .hero-stat-pill {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 14px;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 170px;
+  }
+  .hero-stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(234, 179, 8, 0.2);
+    color: #FDE047;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+  .donor-card {
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.07);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .donor-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px rgba(22, 41, 28, 0.12);
+    border-color: rgba(22, 101, 52, 0.25);
+  }
+  .donor-avatar-wrap {
+    position: relative;
+    width: 88px;
+    height: 88px;
+    margin: 0 auto 16px;
+  }
+  .donor-avatar-img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #F59E0B;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+  }
+  .donor-avatar-initials {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1B4D2E 0%, #2A7244 100%);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 30px;
+    font-weight: 700;
+    border: 3px solid #F59E0B;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+  }
+  .donor-medal {
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    background: #F59E0B;
+    color: #fff;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  }
+  .donor-count-badge {
+    background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+    color: #92400E;
+    border: 1px solid #FCD34D;
+    font-weight: 800;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 10px 0;
+  }
+  .filter-pill {
+    padding: 8px 18px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .filter-pill:hover, .filter-pill.active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+    box-shadow: 0 3px 10px rgba(22, 41, 28, 0.2);
+  }
+  .note-box {
+    background: #F9FAFB;
+    border-left: 3px solid #D97706;
+    padding: 10px 14px;
+    border-radius: 0 10px 10px 0;
+    font-size: 12.5px;
+    color: #4B5563;
+    font-style: italic;
+    margin: 12px 0 6px;
+    line-height: 1.5;
+  }
+</style>
+
+<!-- Hero Section -->
+<div class="gratitude-hero">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px;">
+    <div style="max-width: 680px;">
+      <div class="hero-tag">
+        <i class="fa fa-heart"></i> SRM EEE Department Library Honor Roll
+      </div>
+      <h1 class="serif-heading" style="font-size:36px; line-height:1.15; color:#fff; margin-bottom:12px;">
+        Wall of <em>Gratitude</em>
+      </h1>
+      <p style="font-size:14.5px; line-height:1.65; color:rgba(255,255,255,0.85); margin:0;">
+        Honoring our esteemed students, distinguished faculty, proud alumni, and benevolent patrons who have generously donated textbooks and learning resources to empower future engineers.
+      </p>
+    </div>
+    {% if is_staff %}
+    <div>
+      <a href="/gratitude/manage" class="btn btn-warning btn-lg" style="box-shadow:0 6px 16px rgba(0,0,0,0.25); font-weight:700;">
+        <i class="fa fa-sliders"></i> Manage Donors & Contributions
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Stats Row -->
+  <div class="stat-badge-row">
+    <div class="hero-stat-pill">
+      <div class="hero-stat-icon"><i class="fa fa-book-bookmark"></i></div>
+      <div>
+        <div style="font-size:22px; font-weight:800; color:#fff;">{{ stats.total_books_donated }}</div>
+        <div style="font-size:11.5px; color:rgba(255,255,255,0.7); text-transform:uppercase; letter-spacing:0.04em;">Books Donated</div>
+      </div>
+    </div>
+    <div class="hero-stat-pill">
+      <div class="hero-stat-icon"><i class="fa fa-users"></i></div>
+      <div>
+        <div style="font-size:22px; font-weight:800; color:#fff;">{{ stats.total_donors }}</div>
+        <div style="font-size:11.5px; color:rgba(255,255,255,0.7); text-transform:uppercase; letter-spacing:0.04em;">Generous Donors</div>
+      </div>
+    </div>
+    {% if stats.top_donor %}
+    <div class="hero-stat-pill" style="min-width:240px;">
+      <div class="hero-stat-icon" style="background:rgba(234, 179, 8, 0.3);"><i class="fa fa-crown"></i></div>
+      <div>
+        <div style="font-size:16px; font-weight:800; color:#FDE047; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px;">
+          {{ stats.top_donor.name }}
+        </div>
+        <div style="font-size:11.5px; color:rgba(255,255,255,0.85);">Premier Contributor ({{ stats.top_donor.books_donated }} Books)</div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Controls: Filter & Search -->
+<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px; margin-bottom:24px;">
+  <!-- Category Filter Pills -->
+  <div style="display:flex; gap:8px; flex-wrap:wrap;" id="categoryFilters">
+    <button type="button" class="filter-pill active" onclick="filterCategory('all', this)">
+      <i class="fa fa-border-all"></i> All Donors ({{ donors|length }})
+    </button>
+    <button type="button" class="filter-pill" onclick="filterCategory('Alumni', this)">
+      <i class="fa fa-graduation-cap"></i> Alumni
+    </button>
+    <button type="button" class="filter-pill" onclick="filterCategory('Faculty', this)">
+      <i class="fa fa-chalkboard-user"></i> Faculty
+    </button>
+    <button type="button" class="filter-pill" onclick="filterCategory('Student', this)">
+      <i class="fa fa-user-graduate"></i> Students
+    </button>
+    <button type="button" class="filter-pill" onclick="filterCategory('Well-Wisher', this)">
+      <i class="fa fa-hand-holding-heart"></i> Well-Wishers & Guests
+    </button>
+  </div>
+
+  <!-- Search Input -->
+  <div style="position:relative; width:100%; max-width:320px;">
+    <i class="fa fa-search" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:14px;"></i>
+    <input type="text" id="donorSearch" placeholder="Search donors by name or batch..." onkeyup="filterDonors()"
+           style="width:100%; padding:10px 14px 10px 38px; border-radius:999px; border:1px solid var(--border); font-size:13.5px; background:#fff; outline:none; transition:border 0.2s;">
+  </div>
+</div>
+
+<!-- Donors Grid -->
+<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(290px, 1fr)); gap:22px;" id="donorsGrid">
+  {% for donor in donors %}
+  <div class="donor-card" data-category="{{ donor.category or 'Alumni' }}" data-name="{{ donor.name|lower }}" data-desig="{{ (donor.designation or '')|lower }}">
+    
+    <!-- Avatar -->
+    <div class="donor-avatar-wrap">
+      {% if donor.photo_url %}
+        <img src="{{ donor.photo_url }}" alt="{{ donor.name }}" class="donor-avatar-img">
+      {% else %}
+        <div class="donor-avatar-initials">
+          {{ donor.name[:2]|upper }}
+        </div>
+      {% endif %}
+      <div class="donor-medal" title="{{ donor.books_donated }} Books Contributed">
+        {% if donor.books_donated >= 25 %}
+          <i class="fa fa-crown" style="color:#FFFBEB;"></i>
+        {% elif donor.books_donated >= 10 %}
+          <i class="fa fa-award" style="color:#FFFBEB;"></i>
+        {% else %}
+          <i class="fa fa-book" style="color:#FFFBEB;"></i>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Details -->
+    <div style="text-align:center; flex:1; display:flex; flex-direction:column; align-items:center;">
+      <h3 class="serif-heading" style="font-size:19px; color:#16291C; margin:0 0 4px; font-weight:700;">
+        {{ donor.name }}
+      </h3>
+      
+      {% if donor.designation %}
+      <div style="font-size:12.5px; color:#4B5563; font-weight:500; margin-bottom:4px;">
+        {{ donor.designation }}
+      </div>
+      {% endif %}
+
+      <div>
+        <span class="badge" style="background:#EFF6FF; color:#1E40AF; font-size:11.5px; font-weight:600; padding:3px 10px; border-radius:999px;">
+          <i class="fa fa-tag" style="font-size:10px;"></i> {{ donor.category or 'Contributor' }}
+        </span>
+      </div>
+
+      <!-- Donated count pill -->
+      <div class="donor-count-badge">
+        <i class="fa fa-book-open"></i> {{ donor.books_donated }} Book{% if donor.books_donated > 1 %}s{% endif %} Donated
+      </div>
+
+      <!-- Dedication Note if any -->
+      {% if donor.note %}
+      <div class="note-box" style="width:100%; text-align:left;">
+        "{{ donor.note }}"
+      </div>
+      {% endif %}
+
+      <!-- Date -->
+      {% if donor.donated_date %}
+      <div style="margin-top:auto; padding-top:10px; font-size:11.5px; color:var(--muted); display:flex; align-items:center; gap:5px;">
+        <i class="fa fa-calendar-check" style="color:#10B981;"></i> Donated on {{ donor.donated_date }}
+      </div>
+      {% endif %}
+    </div>
+
+    {% if is_staff %}
+    <div style="margin-top:14px; padding-top:10px; border-top:1px dashed var(--border-subtle); display:flex; justify-content:flex-end;">
+      <a href="/gratitude/manage" class="btn btn-outline btn-sm" style="font-size:11.5px; padding:3px 10px;">
+        <i class="fa fa-pen-to-square"></i> Edit in Admin
+      </a>
+    </div>
+    {% endif %}
+
+  </div>
+  {% else %}
+  <!-- Empty State -->
+  <div style="grid-column:1/-1; background:#fff; border-radius:16px; border:2px dashed var(--border); padding:60px 20px; text-align:center;">
+    <div style="width:72px; height:72px; border-radius:50%; background:#FEF3C7; color:#D97706; display:flex; align-items:center; justify-content:center; font-size:32px; margin:0 auto 16px;">
+      <i class="fa fa-heart"></i>
+    </div>
+    <h3 class="serif-heading" style="font-size:22px; color:#16291C; margin-bottom:8px;">Be the First to Illuminate Minds</h3>
+    <p style="color:var(--muted); font-size:14px; max-width:480px; margin:0 auto 20px; line-height:1.6;">
+      No book donations have been recorded on the Wall of Gratitude yet. Every single book contributed helps thousands of students excel in their academic and engineering journey.
+    </p>
+    {% if is_staff %}
+    <a href="/gratitude/manage" class="btn btn-primary">
+      <i class="fa fa-plus"></i> Add the First Donor
+    </a>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<!-- CTA: Donate to the Library -->
+<div style="background:#fff; border-radius:18px; border:1px solid rgba(22, 101, 52, 0.2); padding:32px; margin-top:40px; box-shadow:0 8px 24px rgba(0,0,0,0.03); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:20px;">
+  <div style="max-width:620px;">
+    <div style="display:flex; align-items:center; gap:8px; color:var(--primary); font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:6px;">
+      <i class="fa fa-handshake-angle"></i> Department Library Initiative
+    </div>
+    <h3 class="serif-heading" style="font-size:24px; color:#16291C; margin-bottom:8px;">
+      Wish to Donate Books to the SRM EEE Library?
+    </h3>
+    <p style="color:var(--muted); font-size:13.5px; line-height:1.6; margin:0;">
+      Students after semester completion, faculty members, and alumni can donate their academic textbooks, reference guides, and competitive exam books to the departmental library. Your name and contribution will be celebrated on this Wall of Gratitude forever.
+    </p>
+  </div>
+  <div>
+    <a href="/info" class="btn btn-outline btn-lg" style="font-weight:700;">
+      <i class="fa fa-location-dot"></i> Visit Circulation Desk
+    </a>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentCategory = 'all';
+
+function filterCategory(cat, btn) {
+  currentCategory = cat;
+  document.querySelectorAll('#categoryFilters .filter-pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filterDonors();
+}
+
+function filterDonors() {
+  const q = (document.getElementById('donorSearch').value || '').toLowerCase().trim();
+  const cards = document.querySelectorAll('#donorsGrid .donor-card');
+  let visibleCount = 0;
+
+  cards.forEach(card => {
+    const cardCat = card.getAttribute('data-category') || '';
+    const name = card.getAttribute('data-name') || '';
+    const desig = card.getAttribute('data-desig') || '';
+
+    const matchesCat = (currentCategory === 'all') || (cardCat.toLowerCase() === currentCategory.toLowerCase());
+    const matchesQuery = !q || name.includes(q) || desig.includes(q) || cardCat.toLowerCase().includes(q);
+
+    if (matchesCat && matchesQuery) {
+      card.style.display = 'flex';
+      visibleCount++;
+    } else {
+      card.style.display = 'none';
+    }
+  });
+}
+</script>
+{% endblock %}

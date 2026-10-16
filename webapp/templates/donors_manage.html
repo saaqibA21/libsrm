@@ -1,0 +1,397 @@
+{% extends "base.html" %}
+{% block title %}Manage Donors — Wall of Gratitude{% endblock %}
+{% block page_title %}Manage Wall of Gratitude Donors{% endblock %}
+
+{% block content %}
+<style>
+  .donor-thumb {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #F59E0B;
+  }
+  .donor-thumb-placeholder {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1B4D2E 0%, #2A7244 100%);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 15px;
+    border: 2px solid #F59E0B;
+  }
+  .photo-preview-wrap {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    border: 3px solid #F59E0B;
+    overflow: hidden;
+    position: relative;
+    background: #F3F4F6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 12px;
+  }
+  .photo-preview-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+</style>
+
+<!-- Top Stats Bar -->
+<div class="stats-grid" style="margin-bottom:24px;">
+  <div class="stat-card">
+    <div class="icon-pill" style="background:#FFFBEB; color:#B45309;"><i class="fa fa-heart"></i></div>
+    <div class="num c-yellow" id="stat-total-donors">{{ stats.total_donors }}</div>
+    <div class="lbl">Honored Donors</div>
+  </div>
+  <div class="stat-card">
+    <div class="icon-pill" style="background:#F0FDF4; color:#166534;"><i class="fa fa-book-bookmark"></i></div>
+    <div class="num c-green" id="stat-total-books">{{ stats.total_books_donated }}</div>
+    <div class="lbl">Books Donated</div>
+  </div>
+  <div class="stat-card">
+    <div class="icon-pill" style="background:#EFF6FF; color:#1E40AF;"><i class="fa fa-crown"></i></div>
+    <div class="num c-blue" style="font-size:18px; line-height:1.2; padding-top:6px;">
+      {% if stats.top_donor %}{{ stats.top_donor.name[:20] }}{% else %}—{% endif %}
+    </div>
+    <div class="lbl">Top Donor ({{ stats.top_donor.books_donated if stats.top_donor else 0 }} Books)</div>
+  </div>
+</div>
+
+<!-- Header Action Card -->
+<div class="card" style="margin-bottom:22px; padding:20px 24px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
+    <div>
+      <h3 class="serif-heading" style="font-size:20px; color:#16291C; margin:0 0 4px;">
+        Wall of Gratitude Contributor Roster
+      </h3>
+      <p style="font-size:13px; color:var(--muted); margin:0;">
+        Add and manage individuals and organizations who have gifted books to the SRM EEE Department Library.
+      </p>
+    </div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <a href="/gratitude" class="btn btn-outline" target="_blank" style="font-weight:600;">
+        <i class="fa fa-arrow-up-right-from-square"></i> View Public Wall
+      </a>
+      <button type="button" class="btn btn-primary" onclick="openAddModal()" style="font-weight:700;">
+        <i class="fa fa-plus"></i> Add New Donor
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Donors Table Card -->
+<div class="card">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+    <div class="card-title" style="margin:0;">
+      <i class="fa fa-users" style="color:var(--primary);"></i> Donors Catalog ({{ donors|length }})
+    </div>
+    <div style="position:relative; width:280px;">
+      <i class="fa fa-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:13px;"></i>
+      <input type="text" id="adminDonorSearch" placeholder="Filter donors..." onkeyup="filterAdminDonors()"
+             style="width:100%; padding:8px 12px 8px 34px; border-radius:8px; border:1px solid var(--border); font-size:13px;">
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table id="donorsTable">
+      <thead>
+        <tr>
+          <th style="width:50px;">Photo</th>
+          <th>Donor Name</th>
+          <th>Category & Affiliation</th>
+          <th style="text-align:center;">Books Donated</th>
+          <th>Donation Date</th>
+          <th>Dedication Note</th>
+          <th style="width:110px; text-align:center;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in donors %}
+        <tr data-name="{{ d.name|lower }}" data-desig="{{ (d.designation or '')|lower }}" data-cat="{{ (d.category or '')|lower }}">
+          <td>
+            {% if d.photo_url %}
+              <img src="{{ d.photo_url }}" alt="{{ d.name }}" class="donor-thumb">
+            {% else %}
+              <div class="donor-thumb-placeholder">{{ d.name[:2]|upper }}</div>
+            {% endif %}
+          </td>
+          <td>
+            <div style="font-weight:700; color:var(--text); font-size:14px;">{{ d.name }}</div>
+          </td>
+          <td>
+            <span class="badge" style="background:#EFF6FF; color:#1E40AF; font-size:11px; font-weight:600; padding:2px 8px; border-radius:999px;">
+              {{ d.category or 'Contributor' }}
+            </span>
+            {% if d.designation %}
+              <div style="font-size:12px; color:var(--muted); margin-top:3px;">{{ d.designation }}</div>
+            {% endif %}
+          </td>
+          <td style="text-align:center;">
+            <span class="badge" style="background:#FEF3C7; color:#92400E; font-size:13px; font-weight:800; padding:4px 12px; border-radius:999px; border:1px solid #FCD34D;">
+              📚 {{ d.books_donated }}
+            </span>
+          </td>
+          <td style="font-size:12.5px; color:var(--muted);">
+            {{ d.donated_date or '—' }}
+          </td>
+          <td style="font-size:12px; color:#4B5563; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ d.note or '' }}">
+            {% if d.note %}"{{ d.note }}"{% else %}—{% endif %}
+          </td>
+          <td style="text-align:center;">
+            <div style="display:flex; gap:6px; justify-content:center;">
+              <button type="button" class="btn btn-outline btn-sm" onclick="openEditModal({{ d.id }})" title="Edit Donor" style="padding:4px 8px;">
+                <i class="fa fa-pen"></i>
+              </button>
+              <button type="button" class="btn btn-danger btn-sm" onclick="confirmDeleteDonor({{ d.id }}, '{{ d.name|e }}')" title="Delete Donor" style="padding:4px 8px;">
+                <i class="fa fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" style="text-align:center; padding:36px; color:var(--muted);">
+            No donors added yet. Click <strong>"Add New Donor"</strong> above to feature the first contributor!
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Add / Edit Donor Modal -->
+<div class="modal-backdrop" id="donorModal" style="display:none; align-items:center; justify-content:center;">
+  <div class="modal-box" style="max-width:520px; width:100%; border-radius:18px;">
+    <div class="modal-header" style="border-bottom:1px solid var(--border-subtle); padding-bottom:14px;">
+      <h3 class="serif-heading" id="modalTitle" style="font-size:20px; color:#16291C; margin:0;">
+        Add Contributor to Wall of Gratitude
+      </h3>
+      <button type="button" class="modal-close" onclick="closeModal('donorModal')">✕</button>
+    </div>
+
+    <form id="donorForm" onsubmit="saveDonor(event)" enctype="multipart/form-data" style="margin-top:16px;">
+      <input type="hidden" id="donorId" name="donor_id" value="">
+      <input type="hidden" id="removePhoto" name="remove_photo" value="0">
+
+      <!-- Photo Preview & Selector -->
+      <div style="text-align:center; margin-bottom:18px;">
+        <div class="photo-preview-wrap" id="previewWrap">
+          <img id="previewImg" src="" alt="Preview" class="photo-preview-img" style="display:none;">
+          <div id="previewPlaceholder" style="color:var(--muted); font-size:28px;">
+            <i class="fa fa-user"></i>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:center; gap:8px;">
+          <label class="btn btn-outline btn-sm" style="cursor:pointer; font-size:12px;">
+            <i class="fa fa-camera"></i> Upload Photo
+            <input type="file" id="photoInput" name="photo" accept="image/*" style="display:none;" onchange="handlePhotoChange(event)">
+          </label>
+          <button type="button" class="btn btn-outline btn-sm" id="btnRemovePhoto" onclick="removeCurrentPhoto()" style="display:none; color:#DC2626; font-size:12px;">
+            <i class="fa fa-trash"></i> Remove
+          </button>
+        </div>
+        <div style="font-size:11px; color:var(--muted); margin-top:5px;">JPG, PNG, or WebP. Square headshots recommended.</div>
+      </div>
+
+      <!-- Form Grid -->
+      <div class="form-grid" style="grid-template-columns:1fr; gap:14px;">
+        <div>
+          <label class="form-label" style="font-weight:700;">Donor Full Name <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="donorName" name="name" class="form-input" placeholder="e.g. Dr. S. K. Ramesh or Rahul Sharma" required>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div>
+            <label class="form-label" style="font-weight:700;">Books Donated <span style="color:var(--danger)">*</span></label>
+            <input type="number" id="booksDonated" name="books_donated" class="form-input" min="1" value="1" required>
+          </div>
+          <div>
+            <label class="form-label" style="font-weight:700;">Category</label>
+            <select id="donorCategory" name="category" class="form-input">
+              <option value="Alumni">Alumni</option>
+              <option value="Student">Student</option>
+              <option value="Faculty">Faculty</option>
+              <option value="Staff">Staff</option>
+              <option value="Well-Wisher">Well-Wisher / Industry</option>
+              <option value="Organization">Organization / Trust</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div>
+            <label class="form-label">Designation / Batch / Branch</label>
+            <input type="text" id="donorDesignation" name="designation" class="form-input" placeholder="e.g. B.Tech EEE 2024 or Asst. Professor">
+          </div>
+          <div>
+            <label class="form-label">Donation Date</label>
+            <input type="date" id="donatedDate" name="donated_date" class="form-input">
+          </div>
+        </div>
+
+        <div>
+          <label class="form-label">Dedication Note / Message</label>
+          <textarea id="donorNote" name="note" class="form-input" rows="2" placeholder="e.g. Donated GATE preparation and Power Electronics textbooks for 3rd year students."></textarea>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px; padding-top:14px; border-top:1px solid var(--border-subtle);">
+        <button type="button" class="btn btn-outline" onclick="closeModal('donorModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="btnSaveDonor" style="font-weight:700;">
+          <i class="fa fa-save"></i> Save Contributor
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openAddModal() {
+  document.getElementById('modalTitle').textContent = 'Add Contributor to Wall of Gratitude';
+  document.getElementById('donorForm').reset();
+  document.getElementById('donorId').value = '';
+  document.getElementById('removePhoto').value = '0';
+  document.getElementById('donatedDate').value = new Date().toISOString().split('T')[0];
+  
+  // Reset photo preview
+  document.getElementById('previewImg').style.display = 'none';
+  document.getElementById('previewImg').src = '';
+  document.getElementById('previewPlaceholder').style.display = 'block';
+  document.getElementById('btnRemovePhoto').style.display = 'none';
+
+  openModal('donorModal');
+}
+
+async function openEditModal(donorId) {
+  try {
+    const res = await fetch(`/api/donors/${donorId}`).then(r => r.json());
+    if (res.error) {
+      showToast(res.error, 'error');
+      return;
+    }
+    document.getElementById('modalTitle').textContent = 'Edit Wall of Gratitude Contributor';
+    document.getElementById('donorId').value = res.id;
+    document.getElementById('donorName').value = res.name || '';
+    document.getElementById('booksDonated').value = res.books_donated || 1;
+    document.getElementById('donorCategory').value = res.category || 'Alumni';
+    document.getElementById('donorDesignation').value = res.designation || '';
+    document.getElementById('donatedDate').value = res.donated_date || '';
+    document.getElementById('donorNote').value = res.note || '';
+    document.getElementById('removePhoto').value = '0';
+
+    if (res.photo_url) {
+      document.getElementById('previewImg').src = res.photo_url;
+      document.getElementById('previewImg').style.display = 'block';
+      document.getElementById('previewPlaceholder').style.display = 'none';
+      document.getElementById('btnRemovePhoto').style.display = 'inline-flex';
+    } else {
+      document.getElementById('previewImg').style.display = 'none';
+      document.getElementById('previewImg').src = '';
+      document.getElementById('previewPlaceholder').style.display = 'block';
+      document.getElementById('btnRemovePhoto').style.display = 'none';
+    }
+
+    openModal('donorModal');
+  } catch (err) {
+    showToast('Failed to load donor details', 'error');
+  }
+}
+
+function handlePhotoChange(event) {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      document.getElementById('previewImg').src = e.target.result;
+      document.getElementById('previewImg').style.display = 'block';
+      document.getElementById('previewPlaceholder').style.display = 'none';
+      document.getElementById('btnRemovePhoto').style.display = 'inline-flex';
+      document.getElementById('removePhoto').value = '0';
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+function removeCurrentPhoto() {
+  document.getElementById('photoInput').value = '';
+  document.getElementById('previewImg').style.display = 'none';
+  document.getElementById('previewImg').src = '';
+  document.getElementById('previewPlaceholder').style.display = 'block';
+  document.getElementById('btnRemovePhoto').style.display = 'none';
+  document.getElementById('removePhoto').value = '1';
+}
+
+async function saveDonor(event) {
+  event.preventDefault();
+  const btn = document.getElementById('btnSaveDonor');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Saving...';
+
+  const form = document.getElementById('donorForm');
+  const fd = new FormData(form);
+  const donorId = document.getElementById('donorId').value;
+  const url = donorId ? `/api/donors/update/${donorId}` : '/api/donors/add';
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      body: fd
+    }).then(r => r.json());
+
+    if (res.success) {
+      showToast(res.message, 'success');
+      closeModal('donorModal');
+      setTimeout(() => location.reload(), 700);
+    } else {
+      showToast(res.message || 'Failed to save donor', 'error');
+    }
+  } catch (err) {
+    showToast('Network error while saving donor', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa fa-save"></i> Save Contributor';
+  }
+}
+
+async function confirmDeleteDonor(donorId, donorName) {
+  if (!confirm(`Are you sure you want to remove "${donorName}" from the Wall of Gratitude?`)) return;
+  try {
+    const res = await fetch(`/api/donors/delete/${donorId}`, { method: 'POST' }).then(r => r.json());
+    if (res.success) {
+      showToast(res.message, 'success');
+      setTimeout(() => location.reload(), 600);
+    } else {
+      showToast(res.message || 'Failed to delete donor', 'error');
+    }
+  } catch (err) {
+    showToast('Failed to connect to server', 'error');
+  }
+}
+
+function filterAdminDonors() {
+  const q = (document.getElementById('adminDonorSearch').value || '').toLowerCase().trim();
+  const rows = document.querySelectorAll('#donorsTable tbody tr');
+  rows.forEach(tr => {
+    const name = tr.getAttribute('data-name') || '';
+    const desig = tr.getAttribute('data-desig') || '';
+    const cat = tr.getAttribute('data-cat') || '';
+    if (!q || name.includes(q) || desig.includes(q) || cat.includes(q)) {
+      tr.style.display = '';
+    } else {
+      tr.style.display = 'none';
+    }
+  });
+}
+</script>
+{% endblock %}

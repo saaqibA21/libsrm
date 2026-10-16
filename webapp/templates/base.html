@@ -934,6 +934,9 @@ tbody tr:last-child {
  <a href="/info" class="nav-item {% if request.path == '/info' %}active{% endif %}">
  <i class="fa fa-circle-info"></i><span>Rules & In-Charges</span>
  </a>
+ <a href="/gratitude" class="nav-item {% if request.path == '/gratitude' %}active{% endif %}">
+ <i class="fa fa-heart" style="color:#E11D48;"></i><span>Wall of Gratitude</span>
+ </a>
 
  {% if is_staff %}
  <div class="nav-heading" style="margin-top:10px;">Librarian Desk</div>
@@ -951,6 +954,9 @@ tbody tr:last-child {
  </a>
  <a href="/patrons" class="nav-item {% if request.path == '/patrons' %}active{% endif %}">
  <i class="fa fa-users"></i><span>Manage Patrons</span>
+ </a>
+ <a href="/gratitude/manage" class="nav-item {% if request.path == '/gratitude/manage' %}active{% endif %}">
+ <i class="fa fa-hand-holding-heart" style="color:#D97706;"></i><span>Manage Donors</span>
  </a>
  <a href="/reports" class="nav-item {% if request.path == '/reports' %}active{% endif %}">
  <i class="fa fa-chart-pie"></i><span>Reports & Overdue</span>

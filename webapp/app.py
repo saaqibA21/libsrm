@@ -26,7 +26,8 @@ from library_app.database import (
     mark_fine_paid, search_book_borrow_stats, search_patron_borrow_stats,
     search_transactions_by_date, normalize_edition, get_book_borrowers,
     check_patron_no_due_status, get_all_cleared_patrons, get_no_due_bulk_summary,
-    mark_patron_no_due_emailed, reset_all_no_due_email_status
+    mark_patron_no_due_emailed, reset_all_no_due_email_status,
+    add_donor, update_donor, delete_donor, get_all_donors, get_donor_by_id, get_donor_stats
 )
 from library_app.utils.excel_importer import (
     import_books_from_excel, import_students_from_excel, import_staff_from_excel
@@ -34,6 +35,8 @@ from library_app.utils.excel_importer import (
 
 app = Flask(__name__)
 app.secret_key = "srm-eee-library-secure-key-2026"
+DONOR_UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "static", "uploads", "donors")
+os.makedirs(DONOR_UPLOAD_FOLDER, exist_ok=True)
 
 initialize_db()
 
@@ -1887,6 +1890,169 @@ def api_no_due_bulk_send_batch():
         "quota_error_msg": quota_error_msg,
         "results": results
     })
+
+
+# ─── Wall of Gratitude (Book Donors) ─────────────────────────────────────────
+
+@app.route("/gratitude")
+def wall_of_gratitude():
+    sort = request.args.get("sort", "books")
+    donors = get_all_donors(sort_by=sort)
+    stats = get_donor_stats()
+    return render_template(
+        "gratitude.html",
+        donors=donors,
+        stats=stats,
+        is_staff=require_staff(),
+        current_sort=sort
+    )
+
+
+@app.route("/gratitude/manage")
+def manage_donors():
+    if not require_staff():
+        return redirect(url_for("staff_login", next=request.path))
+    donors = get_all_donors(sort_by="books")
+    stats = get_donor_stats()
+    return render_template(
+        "donors_manage.html",
+        donors=donors,
+        stats=stats,
+        is_staff=True
+    )
+
+
+@app.route("/api/donors/add", methods=["POST"])
+def add_donor_route():
+    if not require_staff():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+    name = request.form.get("name", "").strip()
+    if not name:
+        return jsonify({"success": False, "message": "Donor name is required"}), 400
+    
+    books_donated = request.form.get("books_donated", 1)
+    category = request.form.get("category", "Alumni").strip()
+    designation = request.form.get("designation", "").strip()
+    note = request.form.get("note", "").strip()
+    donated_date = request.form.get("donated_date", "").strip() or None
+    
+    photo_file = request.files.get("photo")
+    photo_url = None
+    if photo_file and photo_file.filename:
+        ext = photo_file.filename.rsplit(".", 1)[-1].lower() if "." in photo_file.filename else ""
+        if ext in {"png", "jpg", "jpeg", "webp", "gif"}:
+            import uuid
+            fname = f"donor_{uuid.uuid4().hex[:10]}.{ext}"
+            fpath = os.path.join(DONOR_UPLOAD_FOLDER, fname)
+            photo_file.save(fpath)
+            photo_url = f"/static/uploads/donors/{fname}"
+
+    ok, donor_id = add_donor(
+        name=name,
+        books_donated=books_donated,
+        photo_url=photo_url,
+        category=category,
+        designation=designation,
+        note=note,
+        donated_date=donated_date
+    )
+    if ok:
+        trigger_background_github_sync(f"Added donor '{name}' ({books_donated} books)")
+        return jsonify({
+            "success": True,
+            "message": f"Successfully added {name} to the Wall of Gratitude!",
+            "donor_id": donor_id
+        })
+    return jsonify({"success": False, "message": str(donor_id)}), 400
+
+
+@app.route("/api/donors/update/<int:donor_id>", methods=["POST"])
+def update_donor_route(donor_id):
+    if not require_staff():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+    donor = get_donor_by_id(donor_id)
+    if not donor:
+        return jsonify({"success": False, "message": "Donor not found"}), 404
+        
+    name = request.form.get("name", "").strip()
+    if not name:
+        return jsonify({"success": False, "message": "Donor name is required"}), 400
+    
+    books_donated = request.form.get("books_donated", 1)
+    category = request.form.get("category", "Alumni").strip()
+    designation = request.form.get("designation", "").strip()
+    note = request.form.get("note", "").strip()
+    donated_date = request.form.get("donated_date", "").strip() or donor.get("donated_date")
+    
+    photo_file = request.files.get("photo")
+    photo_url = None  # None means keep existing
+    remove_photo = request.form.get("remove_photo") == "1"
+    
+    if remove_photo:
+        if donor.get("photo_url") and donor["photo_url"].startswith("/static/uploads/donors/"):
+            old_path = os.path.join(app.root_path, donor["photo_url"].lstrip("/"))
+            if os.path.exists(old_path):
+                try: os.remove(old_path)
+                except Exception: pass
+        photo_url = ""
+    elif photo_file and photo_file.filename:
+        ext = photo_file.filename.rsplit(".", 1)[-1].lower() if "." in photo_file.filename else ""
+        if ext in {"png", "jpg", "jpeg", "webp", "gif"}:
+            import uuid
+            if donor.get("photo_url") and donor["photo_url"].startswith("/static/uploads/donors/"):
+                old_path = os.path.join(app.root_path, donor["photo_url"].lstrip("/"))
+                if os.path.exists(old_path):
+                    try: os.remove(old_path)
+                    except Exception: pass
+            fname = f"donor_{donor_id}_{uuid.uuid4().hex[:8]}.{ext}"
+            fpath = os.path.join(DONOR_UPLOAD_FOLDER, fname)
+            photo_file.save(fpath)
+            photo_url = f"/static/uploads/donors/{fname}"
+
+    ok, msg = update_donor(
+        donor_id=donor_id,
+        name=name,
+        books_donated=books_donated,
+        photo_url=photo_url,
+        category=category,
+        designation=designation,
+        note=note,
+        donated_date=donated_date
+    )
+    if ok:
+        trigger_background_github_sync(f"Updated donor #{donor_id} '{name}'")
+        return jsonify({"success": True, "message": "Donor details updated successfully"})
+    return jsonify({"success": False, "message": msg}), 400
+
+
+@app.route("/api/donors/delete/<int:donor_id>", methods=["POST"])
+def delete_donor_route(donor_id):
+    if not require_staff():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+    donor = get_donor_by_id(donor_id)
+    if not donor:
+        return jsonify({"success": False, "message": "Donor not found"}), 404
+        
+    photo_url = donor.get("photo_url")
+    if photo_url and photo_url.startswith("/static/uploads/donors/"):
+        old_path = os.path.join(app.root_path, photo_url.lstrip("/"))
+        if os.path.exists(old_path):
+            try: os.remove(old_path)
+            except Exception: pass
+            
+    delete_donor(donor_id)
+    trigger_background_github_sync(f"Deleted donor #{donor_id} '{donor.get('name')}'")
+    return jsonify({"success": True, "message": f"Donor '{donor['name']}' removed successfully"})
+
+
+@app.route("/api/donors/<int:donor_id>")
+def get_donor_json(donor_id):
+    if not require_staff():
+        return jsonify({"error": "Unauthorized"}), 403
+    donor = get_donor_by_id(donor_id)
+    if not donor:
+        return jsonify({"error": "Donor not found"}), 404
+    return jsonify(donor)
 
 
 # ─── Error Handlers (404, 500, 403, and Uncaught Exceptions) ──────────────────
