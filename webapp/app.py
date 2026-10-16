@@ -267,6 +267,18 @@ def staff_logout():
     return redirect(url_for("public_catalog"))
 
 
+@app.route("/api/staff/verify-pin", methods=["POST"])
+def api_verify_pin():
+    """Verify staff PIN asynchronously for in-page actions."""
+    stored_pin = get_setting("staff_pin", "1234")
+    data = request.get_json(silent=True) or request.form
+    pin = str(data.get("pin", "")).strip()
+    if pin == stored_pin:
+        session["is_staff"] = True
+        return jsonify({"success": True, "message": "PIN verified successfully"})
+    return jsonify({"success": False, "message": "Incorrect PIN. Please try again."}), 401
+
+
 def require_staff():
     """Helper to check staff session."""
     return session.get("is_staff", False)
@@ -1911,7 +1923,8 @@ def wall_of_gratitude():
 @app.route("/gratitude/manage")
 def manage_donors():
     if not require_staff():
-        return redirect(url_for("staff_login", next=request.path))
+        next_target = request.full_path if request.query_string else request.path
+        return redirect(url_for("staff_login", next=next_target))
     donors = get_all_donors(sort_by="books")
     stats = get_donor_stats()
     return render_template(
