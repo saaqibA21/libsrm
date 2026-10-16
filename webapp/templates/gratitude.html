@@ -191,9 +191,12 @@
       </p>
     </div>
     {% if is_staff %}
-    <div>
-      <a href="/gratitude/manage" class="btn btn-warning btn-lg" style="box-shadow:0 6px 16px rgba(0,0,0,0.25); font-weight:700;">
-        <i class="fa fa-sliders"></i> Manage Donors & Contributions
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <a href="/gratitude/manage?add=1" class="btn btn-warning btn-lg" style="box-shadow:0 6px 16px rgba(0,0,0,0.25); font-weight:700;">
+        <i class="fa fa-plus"></i> Add New Donor
+      </a>
+      <a href="/gratitude/manage" class="btn btn-outline btn-lg" style="background:rgba(255,255,255,0.1); color:#fff; border-color:rgba(255,255,255,0.3); font-weight:600;">
+        <i class="fa fa-sliders"></i> Manage
       </a>
     </div>
     {% endif %}
@@ -341,7 +344,7 @@
       No book donations have been recorded on the Wall of Gratitude yet. Every single book contributed helps thousands of students excel in their academic and engineering journey.
     </p>
     {% if is_staff %}
-    <a href="/gratitude/manage" class="btn btn-primary">
+    <a href="/gratitude/manage?add=1" class="btn btn-primary">
       <i class="fa fa-plus"></i> Add the First Donor
     </a>
     {% endif %}

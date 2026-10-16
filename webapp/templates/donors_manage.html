@@ -158,8 +158,12 @@
         </tr>
         {% else %}
         <tr>
-          <td colspan="7" style="text-align:center; padding:36px; color:var(--muted);">
-            No donors added yet. Click <strong>"Add New Donor"</strong> above to feature the first contributor!
+          <td colspan="7" style="text-align:center; padding:40px 20px; color:var(--muted);">
+            <div style="font-size:15px; font-weight:600; color:var(--text); margin-bottom:6px;">No donors recorded yet</div>
+            <p style="font-size:13px; margin:0 0 14px;">Be the first to feature a generous contributor on the Wall of Gratitude.</p>
+            <button type="button" class="btn btn-primary" onclick="openAddModal()">
+              <i class="fa fa-plus"></i> Add New Donor Now
+            </button>
           </td>
         </tr>
         {% endfor %}
@@ -169,16 +173,16 @@
 </div>
 
 <!-- Add / Edit Donor Modal -->
-<div class="modal-backdrop" id="donorModal" style="display:none; align-items:center; justify-content:center;">
-  <div class="modal-box" style="max-width:520px; width:100%; border-radius:18px;">
-    <div class="modal-header" style="border-bottom:1px solid var(--border-subtle); padding-bottom:14px;">
+<div class="modal-overlay" id="donorModal" style="display:none;">
+  <div class="modal" style="max-width:540px; width:100%;">
+    <div class="modal-header" style="border-bottom:1px solid var(--border-subtle); padding-bottom:14px; margin-bottom:16px;">
       <h3 class="serif-heading" id="modalTitle" style="font-size:20px; color:#16291C; margin:0;">
         Add Contributor to Wall of Gratitude
       </h3>
-      <button type="button" class="modal-close" onclick="closeModal('donorModal')">✕</button>
+      <button type="button" class="modal-close" onclick="closeDonorModal()">✕</button>
     </div>
 
-    <form id="donorForm" onsubmit="saveDonor(event)" enctype="multipart/form-data" style="margin-top:16px;">
+    <form id="donorForm" onsubmit="saveDonor(event)" enctype="multipart/form-data">
       <input type="hidden" id="donorId" name="donor_id" value="">
       <input type="hidden" id="removePhoto" name="remove_photo" value="0">
 
@@ -203,20 +207,20 @@
       </div>
 
       <!-- Form Grid -->
-      <div class="form-grid" style="grid-template-columns:1fr; gap:14px;">
-        <div>
-          <label class="form-label" style="font-weight:700;">Donor Full Name <span style="color:var(--danger)">*</span></label>
-          <input type="text" id="donorName" name="name" class="form-input" placeholder="e.g. Dr. S. K. Ramesh or Rahul Sharma" required>
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label style="font-weight:700; margin-bottom:5px; display:block;">Donor Full Name <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="donorName" name="name" class="form-control" placeholder="e.g. Dr. S. K. Ramesh or Rahul Sharma" required>
         </div>
 
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-          <div>
-            <label class="form-label" style="font-weight:700;">Books Donated <span style="color:var(--danger)">*</span></label>
-            <input type="number" id="booksDonated" name="books_donated" class="form-input" min="1" value="1" required>
+          <div class="form-group" style="margin-bottom:0;">
+            <label style="font-weight:700; margin-bottom:5px; display:block;">Books Donated <span style="color:var(--danger)">*</span></label>
+            <input type="number" id="booksDonated" name="books_donated" class="form-control" min="1" value="1" required>
           </div>
-          <div>
-            <label class="form-label" style="font-weight:700;">Category</label>
-            <select id="donorCategory" name="category" class="form-input">
+          <div class="form-group" style="margin-bottom:0;">
+            <label style="font-weight:700; margin-bottom:5px; display:block;">Category</label>
+            <select id="donorCategory" name="category" class="form-control">
               <option value="Alumni">Alumni</option>
               <option value="Student">Student</option>
               <option value="Faculty">Faculty</option>
@@ -228,24 +232,24 @@
         </div>
 
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-          <div>
-            <label class="form-label">Designation / Batch / Branch</label>
-            <input type="text" id="donorDesignation" name="designation" class="form-input" placeholder="e.g. B.Tech EEE 2024 or Asst. Professor">
+          <div class="form-group" style="margin-bottom:0;">
+            <label style="margin-bottom:5px; display:block;">Designation / Batch / Branch</label>
+            <input type="text" id="donorDesignation" name="designation" class="form-control" placeholder="e.g. B.Tech EEE 2024 or Asst. Professor">
           </div>
-          <div>
-            <label class="form-label">Donation Date</label>
-            <input type="date" id="donatedDate" name="donated_date" class="form-input">
+          <div class="form-group" style="margin-bottom:0;">
+            <label style="margin-bottom:5px; display:block;">Donation Date</label>
+            <input type="date" id="donatedDate" name="donated_date" class="form-control">
           </div>
         </div>
 
-        <div>
-          <label class="form-label">Dedication Note / Message</label>
-          <textarea id="donorNote" name="note" class="form-input" rows="2" placeholder="e.g. Donated GATE preparation and Power Electronics textbooks for 3rd year students."></textarea>
+        <div class="form-group" style="margin-bottom:0;">
+          <label style="margin-bottom:5px; display:block;">Dedication Note / Message</label>
+          <textarea id="donorNote" name="note" class="form-control" rows="2" placeholder="e.g. Donated GATE preparation and Power Electronics textbooks for 3rd year students."></textarea>
         </div>
       </div>
 
       <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px; padding-top:14px; border-top:1px solid var(--border-subtle);">
-        <button type="button" class="btn btn-outline" onclick="closeModal('donorModal')">Cancel</button>
+        <button type="button" class="btn btn-outline" onclick="closeDonorModal()">Cancel</button>
         <button type="submit" class="btn btn-primary" id="btnSaveDonor" style="font-weight:700;">
           <i class="fa fa-save"></i> Save Contributor
         </button>
@@ -270,7 +274,22 @@ function openAddModal() {
   document.getElementById('previewPlaceholder').style.display = 'block';
   document.getElementById('btnRemovePhoto').style.display = 'none';
 
-  openModal('donorModal');
+  const m = document.getElementById('donorModal');
+  if (m) {
+    if (m.parentNode !== document.body) {
+      document.body.appendChild(m);
+    }
+    m.classList.add('show');
+    m.style.display = 'flex';
+  }
+}
+
+function closeDonorModal() {
+  const m = document.getElementById('donorModal');
+  if (m) {
+    m.classList.remove('show');
+    m.style.display = 'none';
+  }
 }
 
 async function openEditModal(donorId) {
@@ -302,7 +321,14 @@ async function openEditModal(donorId) {
       document.getElementById('btnRemovePhoto').style.display = 'none';
     }
 
-    openModal('donorModal');
+    const m = document.getElementById('donorModal');
+    if (m) {
+      if (m.parentNode !== document.body) {
+        document.body.appendChild(m);
+      }
+      m.classList.add('show');
+      m.style.display = 'flex';
+    }
   } catch (err) {
     showToast('Failed to load donor details', 'error');
   }
@@ -351,7 +377,7 @@ async function saveDonor(event) {
 
     if (res.success) {
       showToast(res.message, 'success');
-      closeModal('donorModal');
+      closeDonorModal();
       setTimeout(() => location.reload(), 700);
     } else {
       showToast(res.message || 'Failed to save donor', 'error');
@@ -393,5 +419,12 @@ function filterAdminDonors() {
     }
   });
 }
+
+window.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('add') === '1' || window.location.hash === '#add') {
+    setTimeout(openAddModal, 150);
+  }
+});
 </script>
 {% endblock %}
