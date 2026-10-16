@@ -13,7 +13,7 @@ from PySide6.QtGui import QFont, QColor
 
 from ..database import (add_patron, update_patron, delete_patron,
                         get_all_patrons, search_patrons, get_patron_by_id,
-                        get_patron_history, count_patrons)
+                        get_patron_history, count_patrons, get_patron_active_books)
 from ..utils.styles import PRIMARY, DANGER, SUCCESS, WARNING, ACCENT, TEXT_SECONDARY, BG_CARD
 from ..utils.barcode_utils import generate_barcode_pdf
 from ..utils.excel_importer import import_students_from_excel, import_staff_from_excel
@@ -368,14 +368,28 @@ class PatronsScreen(QWidget):
             QMessageBox.information(self, "Select", "Please select a patron first.")
             return
         patron = get_patron_by_id(pid)
+        if not patron:
+            return
+        active = get_patron_active_books(pid)
+        if active:
+            msg = (f"Patron '{patron['name']}' currently has {len(active)} active borrowed book(s).\n"
+                   f"Deleting this patron will restore those books to available inventory.\n\n"
+                   f"Do you want to proceed?")
+        else:
+            msg = f"Delete patron: {patron['name']}?"
+
         reply = QMessageBox.question(
             self, "Confirm Delete",
-            f"Delete patron: {patron['name']}?",
+            msg,
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         if reply == QMessageBox.StandardButton.Yes:
-            delete_patron(pid)
-            self.refresh()
+            try:
+                delete_patron(pid)
+                self.refresh()
+                QMessageBox.information(self, "Deleted", "Patron deleted successfully.")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Could not delete patron: {e}")
 
     def _view_history(self):
         pid = self._get_selected_patron_id()

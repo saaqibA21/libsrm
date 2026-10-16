@@ -80,7 +80,7 @@ def initialize_db():
             sent_at TEXT DEFAULT (datetime('now', 'localtime')),
             status TEXT DEFAULT 'sent',
             error_message TEXT,
-            FOREIGN KEY (patron_id) REFERENCES patrons(id)
+            FOREIGN KEY (patron_id) REFERENCES patrons(id) ON DELETE CASCADE
         )
     """)
 
@@ -95,7 +95,7 @@ def initialize_db():
             sent_at TEXT DEFAULT (datetime('now', 'localtime')),
             status TEXT DEFAULT 'sent',
             error_message TEXT,
-            FOREIGN KEY (patron_id) REFERENCES patrons(id)
+            FOREIGN KEY (patron_id) REFERENCES patrons(id) ON DELETE CASCADE
         )
     """)
 
@@ -114,8 +114,8 @@ def initialize_db():
             fine_paid INTEGER DEFAULT 0,
             notes TEXT,
             status TEXT DEFAULT 'issued',
-            FOREIGN KEY (book_id) REFERENCES books(id),
-            FOREIGN KEY (patron_id) REFERENCES patrons(id)
+            FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
+            FOREIGN KEY (patron_id) REFERENCES patrons(id) ON DELETE CASCADE
         )
     """)
 
@@ -128,6 +128,94 @@ def initialize_db():
         c.execute("ALTER TABLE transactions ADD COLUMN return_time TEXT")
     except Exception:
         pass
+
+    # Schema migration: ensure ON DELETE CASCADE is active on transactions, no_due_dispatches, overdue_dispatches
+    try:
+        def _has_cascade(tbl):
+            fks = c.execute(f"PRAGMA foreign_key_list('{tbl}')").fetchall()
+            return len(fks) > 0 and all(len(fk) > 6 and fk[6] == 'CASCADE' for fk in fks)
+
+        if not _has_cascade('no_due_dispatches'):
+            c.execute("PRAGMA foreign_keys = OFF")
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS no_due_dispatches_mig (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    patron_id INTEGER NOT NULL,
+                    cert_id TEXT,
+                    sent_to_email TEXT,
+                    sent_at TEXT DEFAULT (datetime('now', 'localtime')),
+                    status TEXT DEFAULT 'sent',
+                    error_message TEXT,
+                    FOREIGN KEY (patron_id) REFERENCES patrons(id) ON DELETE CASCADE
+                )
+            """)
+            c.execute("INSERT INTO no_due_dispatches_mig SELECT id, patron_id, cert_id, sent_to_email, sent_at, status, error_message FROM no_due_dispatches")
+            c.execute("DROP TABLE no_due_dispatches")
+            c.execute("ALTER TABLE no_due_dispatches_mig RENAME TO no_due_dispatches")
+            conn.commit()
+            c.execute("PRAGMA foreign_keys = ON")
+
+        if not _has_cascade('overdue_dispatches'):
+            c.execute("PRAGMA foreign_keys = OFF")
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS overdue_dispatches_mig (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    patron_id INTEGER NOT NULL,
+                    patron_email TEXT,
+                    books_count INTEGER DEFAULT 1,
+                    total_fine REAL DEFAULT 0.0,
+                    sent_at TEXT DEFAULT (datetime('now', 'localtime')),
+                    status TEXT DEFAULT 'sent',
+                    error_message TEXT,
+                    FOREIGN KEY (patron_id) REFERENCES patrons(id) ON DELETE CASCADE
+                )
+            """)
+            c.execute("INSERT INTO overdue_dispatches_mig SELECT id, patron_id, patron_email, books_count, total_fine, sent_at, status, error_message FROM overdue_dispatches")
+            c.execute("DROP TABLE overdue_dispatches")
+            c.execute("ALTER TABLE overdue_dispatches_mig RENAME TO overdue_dispatches")
+            conn.commit()
+            c.execute("PRAGMA foreign_keys = ON")
+
+        if not _has_cascade('transactions'):
+            c.execute("PRAGMA foreign_keys = OFF")
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS transactions_mig (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    book_id INTEGER NOT NULL,
+                    patron_id INTEGER NOT NULL,
+                    issue_date TEXT NOT NULL,
+                    issue_time TEXT,
+                    due_date TEXT NOT NULL,
+                    return_date TEXT,
+                    return_time TEXT,
+                    fine_amount REAL DEFAULT 0.0,
+                    fine_paid INTEGER DEFAULT 0,
+                    notes TEXT,
+                    status TEXT DEFAULT 'issued',
+                    FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
+                    FOREIGN KEY (patron_id) REFERENCES patrons(id) ON DELETE CASCADE
+                )
+            """)
+            c.execute("""
+                INSERT INTO transactions_mig (
+                    id, book_id, patron_id, issue_date, issue_time,
+                    due_date, return_date, return_time, fine_amount,
+                    fine_paid, notes, status
+                )
+                SELECT id, book_id, patron_id, issue_date, issue_time,
+                       due_date, return_date, return_time, fine_amount,
+                       fine_paid, notes, status
+                FROM transactions
+            """)
+            c.execute("DROP TABLE transactions")
+            c.execute("ALTER TABLE transactions_mig RENAME TO transactions")
+            conn.commit()
+            c.execute("PRAGMA foreign_keys = ON")
+    except Exception as _cascade_err:
+        try:
+            c.execute("PRAGMA foreign_keys = ON")
+        except Exception:
+            pass
 
     # Schema migration: replace 'TF Details' / 'NT Details' in patrons.section with their designation
     try:
@@ -437,9 +525,12 @@ def update_book(book_id, title, publisher, authors, edition, account_number):
 
 def delete_book(book_id):
     conn = get_connection()
-    conn.execute("DELETE FROM books WHERE id=?", (book_id,))
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute("DELETE FROM transactions WHERE book_id=?", (book_id,))
+        conn.execute("DELETE FROM books WHERE id=?", (book_id,))
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def get_book_by_barcode(barcode):
@@ -620,9 +711,23 @@ def update_patron(patron_id, name, patron_type, year="", section="", mobile="", 
 
 def delete_patron(patron_id):
     conn = get_connection()
-    conn.execute("DELETE FROM patrons WHERE id=?", (patron_id,))
-    conn.commit()
-    conn.close()
+    try:
+        # If this patron holds any books that were issued, restore those books to 'available'
+        conn.execute("""
+            UPDATE books SET status='available' 
+            WHERE id IN (
+                SELECT book_id FROM transactions 
+                WHERE patron_id=? AND (return_date IS NULL OR status='issued')
+            )
+        """, (patron_id,))
+        # Explicitly remove foreign-key referencing records across all tables
+        conn.execute("DELETE FROM transactions WHERE patron_id=?", (patron_id,))
+        conn.execute("DELETE FROM no_due_dispatches WHERE patron_id=?", (patron_id,))
+        conn.execute("DELETE FROM overdue_dispatches WHERE patron_id=?", (patron_id,))
+        conn.execute("DELETE FROM patrons WHERE id=?", (patron_id,))
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def get_patron_by_barcode(barcode):

@@ -562,8 +562,6 @@ def delete_book_route(book_id):
         book = get_book_by_id(book_id)
         if not book:
             return jsonify({"success": False, "message": "Book not found"}), 404
-        if book.get("status") == "issued":
-            return jsonify({"success": False, "message": "Cannot delete book: It is currently issued to a patron. Please return it first."}), 400
         delete_book(book_id)
         return jsonify({"success": True, "message": "Book deleted successfully"})
     except Exception as e:
@@ -752,9 +750,6 @@ def delete_patron_route(pid):
         patron = get_patron_by_id(pid)
         if not patron:
             return jsonify({"success": False, "message": "Patron not found"}), 404
-        active_loans = get_patron_active_books(pid)
-        if active_loans:
-            return jsonify({"success": False, "message": f"Cannot delete patron: {len(active_loans)} unreturned book(s) currently issued. Return all books first."}), 400
         delete_patron(pid)
         return jsonify({"success": True, "message": "Patron deleted successfully"})
     except Exception as e:

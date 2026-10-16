@@ -277,15 +277,28 @@ class BooksScreen(QWidget):
             QMessageBox.information(self, "Select", "Please select a book first.")
             return
         book = get_book_by_id(book_id)
-        if book and book.get("status") == "issued":
-            QMessageBox.warning(self, "Cannot Delete", "Cannot delete a book that is currently issued.")
+        if not book:
             return
-        reply = QMessageBox.question(self, "Confirm Delete",
-                                     f"Delete book: {book['title']}?",
-                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-        if reply == QMessageBox.StandardButton.Yes:
+        if book.get("status") == "issued":
+            reply = QMessageBox.question(
+                self, "Book Currently Issued",
+                f"Book '{book['title']}' is currently marked as issued.\nDeleting this book will also remove its loan record.\n\nDo you want to proceed?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+        else:
+            reply = QMessageBox.question(self, "Confirm Delete",
+                                         f"Delete book: {book['title']}?",
+                                         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+        try:
             delete_book(book_id)
             self.refresh()
+            QMessageBox.information(self, "Deleted", "Book deleted successfully.")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Could not delete book: {e}")
 
     def _context_menu(self, pos):
         from PySide6.QtWidgets import QMenu
