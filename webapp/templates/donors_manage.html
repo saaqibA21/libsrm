@@ -216,7 +216,12 @@
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div class="form-group" style="margin-bottom:0;">
             <label style="font-weight:700; margin-bottom:5px; display:block;">Books Donated <span style="color:var(--danger)">*</span></label>
-            <input type="number" id="booksDonated" name="books_donated" class="form-control" min="1" value="1" required>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <input type="number" id="booksDonated" name="books_donated" class="form-control" min="1" value="1" required style="font-weight:700; font-size:15px;">
+              <button type="button" class="btn btn-outline btn-sm" onclick="adjustBooks(1)" title="Add 1 book" style="padding:6px 10px; font-weight:700;">+1</button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="adjustBooks(5)" title="Add 5 books" style="padding:6px 10px; font-weight:700;">+5</button>
+            </div>
+            <div style="font-size:11px; color:var(--muted); margin-top:4px;">Increase count when more books are donated.</div>
           </div>
           <div class="form-group" style="margin-bottom:0;">
             <label style="font-weight:700; margin-bottom:5px; display:block;">Category</label>
@@ -261,6 +266,15 @@
 
 {% block scripts %}
 <script>
+function adjustBooks(amount) {
+  const el = document.getElementById('booksDonated');
+  if (el) {
+    let val = parseInt(el.value, 10) || 1;
+    val = Math.max(1, val + amount);
+    el.value = val;
+  }
+}
+
 function openAddModal() {
   try {
     const title = document.getElementById('modalTitle');
