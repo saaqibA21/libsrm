@@ -317,7 +317,7 @@ def api_send_feedback():
     else:
         return jsonify({
             "success": False,
-            "message": f"Could not dispatch email: {err}. You can also use the Gmail Web or WhatsApp button."
+            "message": f"Could not dispatch email: {err}. You can also use the Gmail Web button below."
         }), 500
 
 
