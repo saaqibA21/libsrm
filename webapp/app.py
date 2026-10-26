@@ -59,6 +59,22 @@ def format_edition_filter(val):
     return normalize_edition(val)
 
 
+@app.template_filter("donor_initials")
+def donor_initials_filter(name):
+    """Generate clean 2-letter initials, intelligently skipping Dr./Prof./Mr./Mrs./Ms."""
+    if not name:
+        return "??"
+    import re
+    cleaned = re.sub(r'^(?:Dr\.|Prof\.|Mr\.|Mrs\.|Ms\.)\s*', '', name.strip(), flags=re.IGNORECASE)
+    parts = [p for p in re.split(r'[\s.]+', cleaned) if p]
+    if len(parts) >= 2:
+        return (parts[0][0] + parts[1][0]).upper()
+    elif len(parts) == 1:
+        return parts[0][:2].upper()
+    return name[:2].upper()
+
+
+
 @app.route("/favicon.ico")
 def favicon():
     return send_from_directory(os.path.join(app.root_path, "static"), "favicon.ico", mimetype="image/vnd.microsoft.icon")
@@ -2015,7 +2031,75 @@ def manage_donors():
     )
 
 
+
+def process_donor_photo(photo_file):
+    """
+    Process uploaded donor photo:
+    - Resizes/crops to max 400x400
+    - Encodes as Base64 data URI so it is stored directly in SQLite and backed up to GitHub
+    - Also saves a local copy to static/uploads/donors as cache
+    Returns data_uri string or None.
+    """
+    if not photo_file or not getattr(photo_file, "filename", None):
+        return None
+    ext = photo_file.filename.rsplit(".", 1)[-1].lower() if "." in photo_file.filename else ""
+    if ext not in {"png", "jpg", "jpeg", "webp", "gif"}:
+        return None
+    
+    try:
+        from PIL import Image
+        import io, base64, uuid
+        
+        img = Image.open(photo_file.stream)
+        if img.mode in ("RGBA", "P"):
+            img = img.convert("RGBA")
+            save_format = "PNG"
+            mime_type = "image/png"
+        else:
+            img = img.convert("RGB")
+            save_format = "JPEG"
+            mime_type = "image/jpeg"
+            
+        img.thumbnail((400, 400), Image.Resampling.LANCZOS)
+        
+        buf = io.BytesIO()
+        if save_format == "JPEG":
+            img.save(buf, format="JPEG", quality=85, optimize=True)
+        else:
+            img.save(buf, format="PNG", optimize=True)
+            
+        raw_bytes = buf.getvalue()
+        b64 = base64.b64encode(raw_bytes).decode("ascii")
+        data_uri = f"data:{mime_type};base64,{b64}"
+        
+        try:
+            os.makedirs(DONOR_UPLOAD_FOLDER, exist_ok=True)
+            fname = f"donor_{uuid.uuid4().hex[:10]}.{'png' if save_format == 'PNG' else 'jpg'}"
+            fpath = os.path.join(DONOR_UPLOAD_FOLDER, fname)
+            with open(fpath, "wb") as f:
+                f.write(raw_bytes)
+        except Exception:
+            pass
+            
+        return data_uri
+    except Exception as e:
+        logger.error("Error processing donor photo: %s", e)
+        return None
+
+
+@app.route("/static/uploads/donors/<path:filename>")
+def serve_donor_upload(filename):
+    """Serve local donor image if available on disk, or 1x1 transparent PNG fallback if file was lost."""
+    file_path = os.path.join(DONOR_UPLOAD_FOLDER, filename)
+    if os.path.exists(file_path):
+        return send_from_directory(DONOR_UPLOAD_FOLDER, filename)
+    import base64
+    transparent_png = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=")
+    return Response(transparent_png, mimetype="image/png", status=200)
+
+
 @app.route("/api/donors/add", methods=["POST"])
+
 def add_donor_route():
     if not require_staff():
         return jsonify({"success": False, "message": "Unauthorized"}), 403
@@ -2030,15 +2114,7 @@ def add_donor_route():
     donated_date = request.form.get("donated_date", "").strip() or None
     
     photo_file = request.files.get("photo")
-    photo_url = None
-    if photo_file and photo_file.filename:
-        ext = photo_file.filename.rsplit(".", 1)[-1].lower() if "." in photo_file.filename else ""
-        if ext in {"png", "jpg", "jpeg", "webp", "gif"}:
-            import uuid
-            fname = f"donor_{uuid.uuid4().hex[:10]}.{ext}"
-            fpath = os.path.join(DONOR_UPLOAD_FOLDER, fname)
-            photo_file.save(fpath)
-            photo_url = f"/static/uploads/donors/{fname}"
+    photo_url = process_donor_photo(photo_file)
 
     ok, donor_id = add_donor(
         name=name,
@@ -2082,25 +2158,11 @@ def update_donor_route(donor_id):
     remove_photo = request.form.get("remove_photo") == "1"
     
     if remove_photo:
-        if donor.get("photo_url") and donor["photo_url"].startswith("/static/uploads/donors/"):
-            old_path = os.path.join(app.root_path, donor["photo_url"].lstrip("/"))
-            if os.path.exists(old_path):
-                try: os.remove(old_path)
-                except Exception: pass
         photo_url = ""
-    elif photo_file and photo_file.filename:
-        ext = photo_file.filename.rsplit(".", 1)[-1].lower() if "." in photo_file.filename else ""
-        if ext in {"png", "jpg", "jpeg", "webp", "gif"}:
-            import uuid
-            if donor.get("photo_url") and donor["photo_url"].startswith("/static/uploads/donors/"):
-                old_path = os.path.join(app.root_path, donor["photo_url"].lstrip("/"))
-                if os.path.exists(old_path):
-                    try: os.remove(old_path)
-                    except Exception: pass
-            fname = f"donor_{donor_id}_{uuid.uuid4().hex[:8]}.{ext}"
-            fpath = os.path.join(DONOR_UPLOAD_FOLDER, fname)
-            photo_file.save(fpath)
-            photo_url = f"/static/uploads/donors/{fname}"
+    elif photo_file and getattr(photo_file, "filename", None):
+        processed_url = process_donor_photo(photo_file)
+        if processed_url:
+            photo_url = processed_url
 
     ok, msg = update_donor(
         donor_id=donor_id,

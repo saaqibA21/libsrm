@@ -287,10 +287,13 @@
     <!-- Avatar -->
     <div class="donor-avatar-wrap">
       {% if donor.photo_url %}
-        <img src="{{ donor.photo_url }}" alt="{{ donor.name }}" class="donor-avatar-img">
+        <img src="{{ donor.photo_url }}" alt="{{ donor.name }}" class="donor-avatar-img" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+        <div class="donor-avatar-initials" style="display:none;">
+          {{ donor.name|donor_initials }}
+        </div>
       {% else %}
         <div class="donor-avatar-initials">
-          {{ donor.name[:2]|upper }}
+          {{ donor.name|donor_initials }}
         </div>
       {% endif %}
       <div class="donor-medal" title="{{ donor.books_donated }} Books Contributed">

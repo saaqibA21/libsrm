@@ -118,9 +118,10 @@
         <tr data-name="{{ d.name|lower }}" data-desig="{{ (d.designation or '')|lower }}" data-cat="{{ (d.category or '')|lower }}">
           <td>
             {% if d.photo_url %}
-              <img src="{{ d.photo_url }}" alt="{{ d.name }}" class="donor-thumb">
+              <img src="{{ d.photo_url }}" alt="{{ d.name }}" class="donor-thumb" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+              <div class="donor-thumb-placeholder" style="display:none;">{{ d.name|donor_initials }}</div>
             {% else %}
-              <div class="donor-thumb-placeholder">{{ d.name[:2]|upper }}</div>
+              <div class="donor-thumb-placeholder">{{ d.name|donor_initials }}</div>
             {% endif %}
           </td>
           <td>
